@@ -52,7 +52,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.pnpm/global") || scriptPath.includes("/pnpm/global")) {
 			return {
 				packageManager: PackageManager.PNPM,
-				updateCommand: `pnpm add -g dirac@${tag}`,
+				updateCommand: `pnpm add -g dirac-cli@${tag}`,
 			}
 		}
 
@@ -60,7 +60,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.yarn/") || scriptPath.includes("/yarn/global")) {
 			return {
 				packageManager: PackageManager.YARN,
-				updateCommand: `yarn global add dirac@${tag}`,
+				updateCommand: `yarn global add dirac-cli@${tag}`,
 			}
 		}
 
@@ -68,15 +68,15 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.bun/bin")) {
 			return {
 				packageManager: PackageManager.BUN,
-				updateCommand: `bun add -g dirac@${tag}`,
+				updateCommand: `bun add -g dirac-cli@${tag}`,
 			}
 		}
 
 		// npm global (node_modules/dirac)
-		if (scriptPath.includes("/node_modules/dirac/")) {
+		if (scriptPath.includes("/node_modules/dirac-cli/")) {
 			return {
 				packageManager: PackageManager.NPM,
-				updateCommand: `npm install -g dirac@${tag}`,
+				updateCommand: `npm install -g dirac-cli@${tag}`,
 			}
 		}
 	} catch {
@@ -93,7 +93,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 async function getLatestVersion(currentVersion: string): Promise<string | null> {
 	try {
 		const tag = getNpmTag(currentVersion)
-		const response = await fetch(`https://registry.npmjs.org/dirac/${tag}`)
+		const response = await fetch(`https://registry.npmjs.org/dirac-cli/${tag}`)
 		if (!response.ok) return null
 		const data = (await response.json()) as { version: string }
 		return data.version || null

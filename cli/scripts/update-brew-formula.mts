@@ -42,10 +42,10 @@ async function updateFormula(version: string, sha256: string) {
 
 	let formula = await readFile(FORMULA_PATH, "utf-8")
 
-	const tarballUrl = `https://registry.npmjs.org/dirac/-/dirac-${version}.tgz`
+	const tarballUrl = `https://registry.npmjs.org/dirac-cli/-/dirac-cli-${version}.tgz`
 
 	// Update URL - matches pattern like: url "https://registry.npmjs.org/dirac/-/dirac-1.0.10.tgz"
-	formula = formula.replace(/url "https:\/\/registry\.npmjs\.org\/dirac\/-\/dirac-[\d.]+\.tgz"/, `url "${tarballUrl}"`)
+	formula = formula.replace(/url "https:\/\/registry\.npmjs\.org\/dirac-cli\/-\/dirac-cli-[\d.]+\.tgz"/, `url "${tarballUrl}"`)
 
 	// Update SHA256
 	formula = formula.replace(/sha256 "[a-f0-9]+"/, `sha256 "${sha256}"`)
@@ -61,7 +61,7 @@ async function main() {
 		const sha256 = await packAndGetSHA256(version)
 		console.log(`SHA256: ${sha256}`)
 
-		const tarballUrl = `https://registry.npmjs.org/dirac/-/dirac-${version}.tgz`
+		const tarballUrl = `https://registry.npmjs.org/dirac-cli/-/dirac-cli-${version}.tgz`
 		console.log(`Tarball URL: ${tarballUrl}`)
 
 		await updateFormula(version, sha256)

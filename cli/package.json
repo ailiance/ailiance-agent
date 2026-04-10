@@ -1,7 +1,11 @@
 {
 	"name": "dirac-cli",
-	"version": "0.0.1",
+	"version": "0.2.1",
 	"description": "Autonomous coding agent CLI - capable of creating/editing files, running commands, using the browser, and more",
+	"files": [
+		"dist",
+		"man"
+	],
 	"main": "dist/lib.mjs",
 	"types": "dist/lib.d.ts",
 	"bin": {
@@ -30,6 +34,7 @@
 	"scripts": {
 		"package:brew": "npx tsx ./scripts/update-brew-formula.mts",
 		"package": "npm pack --pack-destination ./dist",
+		"prepare": "npm run build",
 		"build": "npm run typecheck && npx tsx esbuild.mts && npm run build:types",
 		"build:production": "npm run typecheck && npx tsx esbuild.mts --production && npm run build:types",
 		"build:types": "(npx tsc -p tsconfig.lib.json || true) && cp dist/types/cli/src/exports.d.ts dist/lib.d.ts && mkdir -p dist/agent && cp dist/types/cli/src/agent/DiracAgent.d.ts dist/types/cli/src/agent/DiracSessionEmitter.d.ts dist/types/cli/src/agent/public-types.d.ts dist/agent/ && rm -rf dist/types",
@@ -38,7 +43,7 @@
 		"clean": "rimraf dist",
 		"typecheck": "npx tsc --noEmit",
 		"link": "npm run build && npm link",
-		"unlink": "npm unlink -g dirac",
+		"unlink": "npm unlink -g dirac-cli",
 		"test": "vitest",
 		"test:run": "vitest run"
 	},
