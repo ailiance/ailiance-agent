@@ -72,7 +72,7 @@ export type DiracAssistantContent =
 	| DiracAssistantThinkingBlock
 	| DiracAssistantRedactedThinkingBlock
 
-export type DiracContent = DiracUserContent | DiracAssistantContent
+export type DiracContent = DiracUserContent | DiracAssistantContent | Anthropic.ContentBlockParam
 
 /**
  * An extension of Anthropic.MessageParam that includes Dirac-specific fields.

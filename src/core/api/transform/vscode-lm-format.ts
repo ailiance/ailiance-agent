@@ -54,9 +54,9 @@ export function convertToVsCodeLmMessages(
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_result") {
-							acc.toolMessages.push(part)
+							acc.toolMessages.push(part as Anthropic.ToolResultBlockParam)
 						} else if (part.type === "text" || part.type === "image") {
-							acc.nonToolMessages.push(part)
+							acc.nonToolMessages.push(part as Anthropic.TextBlockParam | Anthropic.ImageBlockParam)
 						}
 						return acc
 					},
@@ -77,7 +77,7 @@ export function convertToVsCodeLmMessages(
 												`[Image (${part.source?.type || "Unknown source-type"}): ${part.source?.media_type || "unknown media-type"} not supported by VSCode LM API]`,
 											)
 										}
-										return new vscode.LanguageModelTextPart(part.text)
+										return new vscode.LanguageModelTextPart(part.type === "text" ? part.text : "")
 									}) ?? [new vscode.LanguageModelTextPart("")])
 
 						return new vscode.LanguageModelToolResultPart(toolMessage.tool_use_id, toolContentParts)
@@ -106,9 +106,9 @@ export function convertToVsCodeLmMessages(
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_use") {
-							acc.toolMessages.push(part)
+							acc.toolMessages.push(part as Anthropic.ToolUseBlockParam)
 						} else if (part.type === "text" || part.type === "image") {
-							acc.nonToolMessages.push(part)
+							acc.nonToolMessages.push(part as Anthropic.TextBlockParam | Anthropic.ImageBlockParam)
 						}
 						return acc
 					},
@@ -132,7 +132,7 @@ export function convertToVsCodeLmMessages(
 						if (part.type === "image") {
 							return new vscode.LanguageModelTextPart("[Image generation not supported by VSCode LM API]")
 						}
-						return new vscode.LanguageModelTextPart(part.text)
+						return new vscode.LanguageModelTextPart(part.type === "text" ? part.text : "")
 					}),
 				]
 
@@ -197,8 +197,13 @@ export function convertToAnthropicMessage(vsCodeLmMessage: vscode.LanguageModelC
 		usage: {
 			input_tokens: 0,
 			output_tokens: 0,
-			cache_creation_input_tokens: null,
-			cache_read_input_tokens: null,
-		},
+			cache_creation_input_tokens: undefined,
+			cache_read_input_tokens: undefined,
+			cache_creation: undefined,
+			cache_read: undefined,
+			inference_geo: undefined,
+			server_tool_use: undefined,
+			service_tier: undefined,
+		} as any,
 	}
 }

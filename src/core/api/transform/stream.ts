@@ -26,6 +26,10 @@ export interface ApiStreamUsageChunk {
 	thoughtsTokenCount?: number // openrouter
 	totalCost?: number // openrouter
 	/**
+	 * The reason the generation stopped (e.g., "length", "stop", "MAX_TOKENS")
+	 */
+	stopReason?: string
+	/**
 	 * The response ID associated with this response
 	 */
 	id?: string

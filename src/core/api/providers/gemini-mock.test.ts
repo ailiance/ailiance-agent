@@ -50,4 +50,10 @@ export interface GenerateContentResponseUsageMetadata {
 export interface Part {
 	thought?: boolean
 	text?: string
+	thoughtSignature?: string
+	functionCall?: {
+		id?: string
+		name: string
+		args: any
+	}
 }

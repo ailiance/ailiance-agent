@@ -1,21 +1,25 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { AssistantMessage } from "@mistralai/mistralai/models/components/assistantmessage"
-import { SystemMessage } from "@mistralai/mistralai/models/components/systemmessage"
-import { ToolMessage } from "@mistralai/mistralai/models/components/toolmessage"
-import { UserMessage } from "@mistralai/mistralai/models/components/usermessage"
 
 export type MistralMessage =
-	| (SystemMessage & { role: "system" })
-	| (UserMessage & { role: "user" })
-	| (AssistantMessage & { role: "assistant" })
-	| (ToolMessage & { role: "tool" })
+	| {
+			role: "system" | "user" | "assistant"
+			content: string
+	  }
+	| {
+			role: "user"
+			content: (
+				| { type: "text"; text: string }
+				| { type: "image_url"; imageUrl: { url: string } }
+			)[]
+	  }
 
 export function convertToMistralMessages(anthropicMessages: Anthropic.Messages.MessageParam[]): MistralMessage[] {
 	const mistralMessages: MistralMessage[] = []
+
 	for (const anthropicMessage of anthropicMessages) {
 		if (typeof anthropicMessage.content === "string") {
 			mistralMessages.push({
-				role: anthropicMessage.role,
+				role: anthropicMessage.role as any,
 				content: anthropicMessage.content,
 			})
 		} else {
@@ -37,7 +41,7 @@ export function convertToMistralMessages(anthropicMessages: Anthropic.Messages.M
 									},
 								}
 							}
-							return { type: "text", text: part.text }
+							return { type: "text", text: part.type === "text" ? part.text : "" }
 						}),
 					})
 				}
@@ -46,7 +50,9 @@ export function convertToMistralMessages(anthropicMessages: Anthropic.Messages.M
 				const textBlocks = anthropicMessage.content.filter((part) => part.type === "text")
 
 				if (textBlocks.length > 0) {
-					const content = textBlocks.map((part) => part.text).join("\n")
+					const content = textBlocks
+						.map((part) => (part.type === "text" ? part.text : ""))
+						.join("\n")
 
 					mistralMessages.push({
 						role: "assistant",

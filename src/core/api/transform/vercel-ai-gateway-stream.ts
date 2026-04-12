@@ -27,7 +27,7 @@ export async function createVercelAIGatewayStream(
 	// Convert Anthropic messages to OpenAI format
 	let openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: "system", content: systemPrompt },
-		...convertToOpenAiMessages(messages),
+		...convertToOpenAiMessages(messages as any),
 	]
 
 	const isClaude1m =

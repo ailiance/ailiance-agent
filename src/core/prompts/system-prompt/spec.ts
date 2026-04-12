@@ -361,7 +361,7 @@ export function openAIToolToAnthropic(openAITool: OpenAITool): AnthropicTool {
 			input_schema: {
 				type: "object",
 				properties: func.parameters?.properties || {},
-				required: func.parameters?.required || [],
+				required: (func.parameters as any)?.required || [],
 			},
 		}
 	}

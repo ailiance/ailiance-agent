@@ -1,5 +1,14 @@
 import { ResponseInput, ResponseInputMessageContentList, ResponseReasoningItem } from "openai/resources/responses/responses"
-import { DiracStorageMessage } from "@/shared/messages/content"
+import {
+	DiracAssistantThinkingBlock,
+	DiracAssistantToolUseBlock,
+	DiracContent,
+	DiracImageContentBlock,
+	DiracStorageMessage,
+	DiracTextContentBlock,
+	DiracUserToolResultContentBlock,
+	DiracAssistantRedactedThinkingBlock,
+} from "@/shared/messages/content"
 
 /**
  * Converts an array of DiracStorageMessage objects (extension of Anthropic format) to a ResponseInput array to use with OpenAI's Responses API.
@@ -111,93 +120,109 @@ export function convertToOpenAIResponsesInput(
 			// turn and ensure proper pairing.
 			const assistantItems: any[] = []
 
-			for (const part of m.content) {
+			for (const _part of m.content) {
+				const part = _part as DiracContent
 				switch (part.type) {
-					case "thinking":
+					case "thinking": {
+						const thinkingBlock = part as DiracAssistantThinkingBlock
 						// Only include reasoning item if it has actual content (thinking text or summary)
 						// Empty reasoning items cause API errors: "Item 'rs_...' of type 'reasoning' was provided without its required following item"
-						const hasThinkingContent = part.thinking && part.thinking.trim().length > 0
-						const hasSummaryContent = part.summary && Array.isArray(part.summary) && part.summary.length > 0
+						const hasThinkingContent = thinkingBlock.thinking && thinkingBlock.thinking.trim().length > 0
+						const hasSummaryContent =
+							thinkingBlock.summary && Array.isArray(thinkingBlock.summary) && thinkingBlock.summary.length > 0
 
-						if (part.call_id && part.call_id.length > 0 && (hasThinkingContent || hasSummaryContent)) {
+						if (
+							thinkingBlock.call_id &&
+							thinkingBlock.call_id.length > 0
+						) {
 							// Use summary if available, otherwise use thinking text
 							let summary: any[] = []
 							if (hasSummaryContent) {
 								// part.summary is already in the correct format from OpenAI Responses API
-								summary = part.summary as any[]
+								summary = thinkingBlock.summary as any[]
 							} else if (hasThinkingContent) {
 								// Convert thinking text to summary format
 								summary = [
 									{
 										type: "summary_text",
-										text: part.thinking,
+										text: thinkingBlock.thinking,
 									},
 								]
 							}
 
 							assistantItems.push({
-								id: part.call_id,
+								id: thinkingBlock.call_id,
 								type: "reasoning",
 								summary,
 							} as ResponseReasoningItem)
 						}
 						break
-					case "redacted_thinking":
+					}
+					case "redacted_thinking": {
+						const redactedBlock = part as DiracAssistantRedactedThinkingBlock
 						// Include reasoning item with encrypted content if it has a call_id
 						// Even if data is missing, we need to maintain the reasoning-function_call pairing
-						if (part.call_id && part.call_id.length > 0) {
+						if (redactedBlock.call_id && redactedBlock.call_id.length > 0) {
 							const reasoningItem: any = {
-								id: part.call_id,
+								id: redactedBlock.call_id,
 								type: "reasoning",
 								summary: [],
 							}
 							// Only include encrypted_content if data exists
-							if (part.data) {
-								reasoningItem.encrypted_content = part.data
+							if (redactedBlock.data) {
+								reasoningItem.encrypted_content = redactedBlock.data
 							}
 							assistantItems.push(reasoningItem as ResponseReasoningItem)
 						}
 						break
-					case "text":
+					}
+					case "text": {
+						const textBlock = part as DiracTextContentBlock
 						// Message ID goes at the message level, not in the content
 						// The reasoning item and message can have different IDs - they just need to be adjacent
 						const messageItem: any = {
 							type: "message",
 							role: "assistant",
-							content: [{ type: "output_text", text: part.text }],
+							content: [{ type: "output_text", text: textBlock.text || "" }],
 						}
 						// Set message-level id if available
-						if (part.call_id) {
-							messageItem.id = part.call_id
+						if (textBlock.call_id) {
+							messageItem.id = textBlock.call_id
 						}
 						assistantItems.push(messageItem)
 						break
-					case "image":
+					}
+					case "image": {
+						const imageBlock = part as DiracImageContentBlock
 						// Message ID goes at the message level, not in the content
 						const imageItem: any = {
 							type: "message",
 							role: "assistant",
-							content: [{ type: "output_text", text: `[image:${part.source.media_type}]` }],
+							content: [{ type: "output_text", text: `[image:${imageBlock.source.media_type}]` }],
 						}
 						// Set message-level id if available (though images typically don't have call_id)
-						if (part.call_id) {
-							imageItem.id = part.call_id
+						if (imageBlock.call_id) {
+							imageItem.id = imageBlock.call_id
 						}
 						assistantItems.push(imageItem)
 						break
+					}
 					case "tool_use": {
+						const toolUseBlock = part as DiracAssistantToolUseBlock
 						// Function calls use call_id, not related to reasoning item ID
-						const call_id = part.call_id || part.id
-						if (part.call_id) {
-							toolUseIdToCallId.set(part.id, part.call_id)
+						const call_id = toolUseBlock.call_id || toolUseBlock.id
+						if (toolUseBlock.call_id) {
+							toolUseIdToCallId.set(toolUseBlock.id, toolUseBlock.call_id)
 						}
 						assistantItems.push({
 							type: "function_call",
 							call_id,
 							// MAX 53 characters for OpenAI Responses API tool IDs
-							id: !part.id.startsWith("fc_") ? `fc_${part.id.slice(0, 50)}` : part.id,
-							name: part.name,
-							arguments: JSON.stringify(part.input ?? {}),
+							id: !toolUseBlock.id.startsWith("fc_")
+								? `fc_${toolUseBlock.id.slice(0, 50)}`
+								: toolUseBlock.id,
+							name: toolUseBlock.name,
+							arguments: JSON.stringify(toolUseBlock.input ?? {}),
 						})
 						break
 					}
@@ -209,29 +234,41 @@ export function convertToOpenAIResponsesInput(
 			// User messages - collect all content
 			const messageContent: ResponseInputMessageContentList = []
 
-			for (const part of m.content) {
+			for (const _part of m.content) {
+				const part = _part as DiracContent
 				switch (part.type) {
-					case "text":
-						messageContent.push({ type: "input_text", text: part.text })
+					case "text": {
+						const textBlock = part as DiracTextContentBlock
+						messageContent.push({ type: "input_text", text: textBlock.text || "" })
 						break
-					case "image":
+					}
+					case "image": {
+						const imageBlock = part as DiracImageContentBlock
 						messageContent.push({
 							type: "input_image",
 							detail: "auto",
-							image_url: `data:${part.source.media_type};base64,${part.source.data}`,
+							image_url: `data:${imageBlock.source.media_type};base64,${imageBlock.source.data}`,
 						})
 						break
+					}
 					case "tool_result": {
+						const toolResultBlock = part as DiracUserToolResultContentBlock
 						// Flush any pending message content before adding tool result
 						if (messageContent.length > 0) {
 							allItems.push({ role: m.role, content: [...messageContent] })
 							messageContent.length = 0
 						}
-						const call_id = part.call_id || toolUseIdToCallId.get(part.tool_use_id) || part.tool_use_id
+						const call_id =
+							toolResultBlock.call_id ||
+							toolUseIdToCallId.get(toolResultBlock.tool_use_id) ||
+							toolResultBlock.tool_use_id
 						allItems.push({
 							type: "function_call_output",
 							call_id,
-							output: typeof part.content === "string" ? part.content : JSON.stringify(part.content),
+							output:
+								typeof toolResultBlock.content === "string"
+									? toolResultBlock.content
+									: JSON.stringify(toolResultBlock.content),
 						})
 						break
 					}

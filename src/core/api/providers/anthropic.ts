@@ -177,6 +177,7 @@ export class AnthropicHandler implements ApiHandler {
 						type: "usage",
 						inputTokens: 0,
 						outputTokens: chunk.usage.output_tokens || 0,
+						stopReason: chunk.delta.stop_reason || undefined,
 					}
 					break
 				case "message_stop":

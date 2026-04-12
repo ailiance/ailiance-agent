@@ -12,6 +12,7 @@ import JSON5 from "json5"
 import OpenAI from "openai"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { DiracStorageMessage } from "@/shared/messages/content"
+import { convertAnthropicMessagesToGemini } from "../transform/gemini-format"
 import { getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
 import { ApiHandler, CommonApiHandlerOptions } from "../"
@@ -169,9 +170,9 @@ namespace Bedrock {
 		let format: "png" | "jpeg" | "gif" | "webp" = "jpeg" // default format
 
 		// Extract format from media_type if available
-		if (item.source.media_type) {
+		if ((item.source as any).media_type) {
 			// Extract format from media_type (e.g., "image/jpeg" -> "jpeg")
-			const formatMatch = item.source.media_type.match(/image\/(\w+)/)
+			const formatMatch = (item.source as any).media_type.match(/image\/(\w+)/)
 			if (formatMatch && formatMatch[1]) {
 				const extractedFormat = formatMatch[1]
 				// Ensure format is one of the allowed values
@@ -185,16 +186,16 @@ namespace Bedrock {
 		try {
 			let imageData: string
 
-			if (typeof item.source.data === "string") {
+			if ('data' in item.source && typeof (item.source as any).data === "string") {
 				// Keep as base64 string, just clean the data URI prefix if present
 				imageData = item.source.data.replace(/^data:image\/\w+;base64,/, "")
-			} else if (item.source.data && typeof item.source.data === "object") {
+			} else if ('data' in item.source && (item.source as any).data && typeof (item.source as any).data === "object") {
 				// Convert Buffer/Uint8Array to base64 string
-				if (Buffer.isBuffer(item.source.data)) {
-					imageData = item.source.data.toString("base64")
+				if (Buffer.isBuffer((item.source as any).data)) {
+					imageData = (item.source as any).data.toString("base64")
 				} else {
 					// Assume Uint8Array
-					const buffer = Buffer.from(item.source.data as Uint8Array)
+					const buffer = Buffer.from((item.source as any).data as Uint8Array)
 					imageData = buffer.toString("base64")
 				}
 			} else {
@@ -291,29 +292,6 @@ namespace Gemini {
 		return result
 	}
 
-	function convertAnthropicMessageToGemini(message: Anthropic.Messages.MessageParam) {
-		const role = message.role === "assistant" ? "model" : "user"
-		const parts = []
-
-		if (typeof message.content === "string") {
-			parts.push({ text: message.content })
-		} else if (Array.isArray(message.content)) {
-			for (const block of message.content) {
-				if (block.type === "text") {
-					parts.push({ text: block.text })
-				} else if (block.type === "image") {
-					parts.push({
-						inlineData: {
-							mimeType: block.source.media_type,
-							data: block.source.data,
-						},
-					})
-				}
-			}
-		}
-
-		return { role, parts }
-	}
 
 	/**
 	 * Prepare Gemini request payload with implicit caching support
@@ -323,7 +301,7 @@ namespace Gemini {
 		messages: DiracStorageMessage[],
 		model: { id: SapAiCoreModelId; info: ModelInfo },
 	): any {
-		const contents = messages.map(convertAnthropicMessageToGemini)
+		const contents = convertAnthropicMessagesToGemini(messages as DiracStorageMessage[])
 
 		const payload = {
 			contents,

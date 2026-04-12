@@ -81,7 +81,7 @@ export function convertToR1Format(messages: Anthropic.Messages.MessageParam[]): 
 
 			message.content.forEach((part) => {
 				if (part.type === "text") {
-					textParts.push(part.text)
+					textParts.push(part.text || "")
 				}
 				if (part.type === "image") {
 					hasImages = true

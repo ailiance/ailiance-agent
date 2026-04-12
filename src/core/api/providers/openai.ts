@@ -145,6 +145,7 @@ export class OpenAiHandler implements ApiHandler {
 		})
 
 		const toolCallProcessor = new ToolCallProcessor()
+		let stopReason: string | undefined
 
 		for await (const chunk of stream) {
 			const delta = chunk.choices?.[0]?.delta
@@ -153,6 +154,10 @@ export class OpenAiHandler implements ApiHandler {
 					type: "text",
 					text: delta.content,
 				}
+			}
+
+			if (chunk.choices?.[0]?.finish_reason) {
+				stopReason = chunk.choices[0].finish_reason
 			}
 
 			if (delta && "reasoning_content" in delta && delta.reasoning_content) {
@@ -174,6 +179,7 @@ export class OpenAiHandler implements ApiHandler {
 					cacheReadTokens: chunk.usage.prompt_tokens_details?.cached_tokens || 0,
 					// @ts-expect-error-next-line
 					cacheWriteTokens: chunk.usage.prompt_cache_miss_tokens || 0,
+					stopReason,
 				}
 			}
 		}

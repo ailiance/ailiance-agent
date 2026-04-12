@@ -1,10 +1,10 @@
 import { Message } from "ollama"
 import {
-    DiracAssistantToolUseBlock,
-    DiracImageContentBlock,
-    DiracStorageMessage,
-    DiracTextContentBlock,
-    DiracUserToolResultContentBlock,
+	DiracAssistantToolUseBlock,
+	DiracImageContentBlock,
+	DiracStorageMessage,
+	DiracTextContentBlock,
+	DiracUserToolResultContentBlock,
 } from "@/shared/messages/content"
 
 export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMessage, "modelInfo">[]): Message[] {
@@ -24,9 +24,9 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_result") {
-							acc.toolMessages.push(part)
+							acc.toolMessages.push(part as DiracUserToolResultContentBlock)
 						} else if (part.type === "text" || part.type === "image") {
-							acc.nonToolMessages.push(part)
+							acc.nonToolMessages.push(part as DiracTextContentBlock | DiracImageContentBlock)
 						}
 						return acc
 					},
@@ -41,7 +41,7 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 
 					if (typeof toolMessage.content === "string") {
 						content = toolMessage.content
-					} else {
+					} else if (Array.isArray(toolMessage.content)) {
 						content =
 							toolMessage.content
 								?.map((part) => {
@@ -49,9 +49,12 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 										toolResultImages.push(`data:${part.source.media_type};base64,${part.source.data}`)
 										return "(see following user message for image)"
 									}
-									return part.text
+									return part.type === "text" ? part.text : ""
 								})
 								.join("\n") ?? ""
+					} else {
+						// Handle undefined content
+						content = ""
 					}
 					ollamaMessages.push({
 						role: "user",
@@ -69,7 +72,7 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 								if (part.type === "image") {
 									return `data:${part.source.media_type};base64,${part.source.data}`
 								}
-								return part.text
+								return part.type === "text" ? part.text : ""
 							})
 							.join("\n"),
 					})
@@ -81,9 +84,9 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_use") {
-							acc.toolMessages.push(part)
+							acc.toolMessages.push(part as DiracAssistantToolUseBlock)
 						} else if (part.type === "text" || part.type === "image") {
-							acc.nonToolMessages.push(part)
+							acc.nonToolMessages.push(part as DiracTextContentBlock | DiracImageContentBlock)
 						} // assistant cannot send tool_result messages
 						return acc
 					},
@@ -98,7 +101,7 @@ export function convertToOllamaMessages(anthropicMessages: Omit<DiracStorageMess
 							if (part.type === "image") {
 								return "" // impossible as the assistant cannot send images
 							}
-							return part.text
+							return part.type === "text" ? part.text : ""
 						})
 						.join("\n")
 				}

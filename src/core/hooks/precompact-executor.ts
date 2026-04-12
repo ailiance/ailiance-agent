@@ -199,7 +199,7 @@ export async function executePreCompactHookWithCleanup(params: PreCompactHookPar
 		)
 
 		// Write context files for hook access
-		const contextFiles = await writePreCompactContextFiles(params.taskId, currentContext)
+		const contextFiles = await writePreCompactContextFiles(params.taskId, currentContext as any)
 		contextJsonPath = contextFiles.contextJsonPath
 		contextRawPath = contextFiles.contextRawPath
 

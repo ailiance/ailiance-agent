@@ -1024,7 +1024,7 @@ export class Task {
 		}
 
 		// Response API requires native tool calls to be enabled
-		const stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory, tools)
+		const stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory as any, tools)
 
 		const iterator = stream[Symbol.asyncIterator]()
 
@@ -1299,7 +1299,7 @@ export class Task {
 			const queueUsageChunkSideEffects = (
 				usageInputTokens: number,
 				usageOutputTokens: number,
-				chunkOptions?: { cacheWriteTokens?: number; cacheReadTokens?: number; totalCost?: number },
+				chunkOptions?: { cacheWriteTokens?: number; cacheReadTokens?: number; totalCost?: number; stopReason?: string },
 			) => {
 				usageChunkSideEffectsQueue = usageChunkSideEffectsQueue
 					.then(async () => {
@@ -1408,6 +1408,7 @@ export class Task {
 
 			this.taskState.isStreaming = true
 			let didReceiveUsageChunk = false
+			let stopReason: string | undefined
 			let didFinalizeReasoningForUi = false
 
 			const finalizePendingReasoningMessage = async (thinking: string): Promise<boolean> => {
@@ -1445,10 +1446,12 @@ export class Task {
 						taskMetrics.cacheWriteTokens += chunk.cacheWriteTokens ?? 0
 						taskMetrics.cacheReadTokens += chunk.cacheReadTokens ?? 0
 						taskMetrics.totalCost = chunk.totalCost ?? taskMetrics.totalCost
+						stopReason = chunk.stopReason ?? stopReason
 						queueUsageChunkSideEffects(chunk.inputTokens, chunk.outputTokens, {
 							cacheWriteTokens: chunk.cacheWriteTokens,
 							cacheReadTokens: chunk.cacheReadTokens,
 							totalCost: chunk.totalCost,
+							stopReason: chunk.stopReason,
 						})
 					},
 				})
@@ -1625,6 +1628,7 @@ export class Task {
 						cacheWriteTokens: apiStreamUsage.cacheWriteTokens,
 						cacheReadTokens: apiStreamUsage.cacheReadTokens,
 						totalCost: apiStreamUsage.totalCost,
+						stopReason: apiStreamUsage.stopReason,
 					})
 				}
 			}
@@ -1656,11 +1660,14 @@ export class Task {
 				await this.checkpointManager?.saveCheckpoint()
 
 				const didToolUse = this.taskState.assistantMessageContent.some((block) => block.type === "tool_use")
+				const hitTokenLimit = stopReason === "MAX_TOKENS" || stopReason === "max_tokens" || stopReason === "length"
 
 				if (!didToolUse) {
 					this.taskState.userMessageContent.push({
 						type: "text",
-						text: formatResponse.noToolsUsed(this.taskState.useNativeToolCalls),
+						text: hitTokenLimit
+							? "You have reached the output token limit. Please continue your response from where you left off. If you were in the middle of a tool call, start over with that tool call. If you were finished, call attempt_completion."
+							: formatResponse.noToolsUsed(this.taskState.useNativeToolCalls),
 					})
 					this.taskState.consecutiveMistakeCount++
 				}

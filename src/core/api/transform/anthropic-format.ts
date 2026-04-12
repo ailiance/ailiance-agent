@@ -31,7 +31,7 @@ export function sanitizeAnthropicMessages(
 	const secondLastMsgUserIndex = userMsgIndices[indicesLength - 2]
 
 	return diracMessages.map((msg, index) => {
-		const anthropicMsg = convertDiracStorageToAnthropicMessage(msg)
+		const anthropicMsg = convertDiracStorageToAnthropicMessage(msg as DiracStorageMessage)
 
 		// Add cache control to the last two user messages
 		if (supportCache && (index === lastUserMsgIndex || index === secondLastMsgUserIndex)) {
@@ -59,7 +59,7 @@ function addCacheControl(message: Anthropic.MessageParam): Anthropic.MessagePara
 	// Convert string content to array format
 	if (typeof message.content === "string") {
 		return {
-			...message,
+			role: message.role,
 			content: [
 				{
 					type: "text",
@@ -86,5 +86,5 @@ function addCacheControl(message: Anthropic.MessageParam): Anthropic.MessagePara
 		}
 	}
 
-	return { ...message, content }
+	return { role: message.role, content }
 }

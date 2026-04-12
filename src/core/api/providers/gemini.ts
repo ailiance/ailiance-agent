@@ -16,7 +16,7 @@ import { DiracStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { RetriableError, withRetry } from "../retry"
-import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
+import { convertAnthropicMessagesToGemini } from "../transform/gemini-format"
 import { ApiStream } from "../transform/stream"
 
 const rateLimitPatterns = [/got status: 429/i, /429 Too Many Requests/i, /rate limit exceeded/i, /too many requests/i]
@@ -149,7 +149,7 @@ export class GeminiHandler implements ApiHandler {
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: GoogleTool[]): ApiStream {
 		const client = this.ensureClient()
 		const { id: modelId, info } = this.getModel()
-		const contents = messages.map(convertAnthropicMessageToGemini)
+		const contents = convertAnthropicMessagesToGemini(messages)
 		// Gemini may emit multiple function calls under the same responseId and without functionCall.id.
 		// Track a local sequence so each emitted tool call has a stable unique ID.
 		const responseToolCallCount = new Map<string, number>()
@@ -204,6 +204,7 @@ export class GeminiHandler implements ApiHandler {
 		let cacheReadTokens = 0
 		let thoughtsTokenCount = 0 // Initialize thought token counts
 		let lastUsageMetadata: GenerateContentResponseUsageMetadata | undefined
+		let stopReason: string | undefined
 
 		const isNativeToolCallsEnabled = tools?.length
 		if (isNativeToolCallsEnabled) {
@@ -288,6 +289,7 @@ export class GeminiHandler implements ApiHandler {
 					outputTokens = lastUsageMetadata.candidatesTokenCount ?? outputTokens
 					thoughtsTokenCount = lastUsageMetadata.thoughtsTokenCount ?? thoughtsTokenCount
 					cacheReadTokens = lastUsageMetadata.cachedContentTokenCount ?? cacheReadTokens
+					stopReason = chunk.candidates?.[0]?.finishReason
 				}
 			}
 			apiSuccess = true
@@ -309,6 +311,7 @@ export class GeminiHandler implements ApiHandler {
 					cacheWriteTokens: 0,
 					totalCost,
 					id: responseId,
+					stopReason,
 				}
 			}
 		} catch (error) {

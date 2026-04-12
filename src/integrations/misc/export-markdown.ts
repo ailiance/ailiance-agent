@@ -28,7 +28,7 @@ export function formatContentBlockToMarkdown(block: Anthropic.ContentBlockParam)
 			}
 			if (Array.isArray(block.content)) {
 				return `[Tool${block.is_error ? " (Error)" : ""}]\n${block.content
-					.map((contentBlock) => formatContentBlockToMarkdown(contentBlock))
+					.map((contentBlock) => formatContentBlockToMarkdown(contentBlock as any))
 					.join("\n")}`
 			}
 			return `[Tool${block.is_error ? " (Error)" : ""}]`

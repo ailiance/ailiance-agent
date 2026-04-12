@@ -145,6 +145,34 @@ export const CLAUDE_OPUS_1M_TIERS = [
 	},
 ]
 
+export const GPT_5_4_TIERS = [
+	{
+		contextWindow: 272_000,
+		inputPrice: 2.5,
+		outputPrice: 15.0,
+		cacheReadsPrice: 0.25,
+	},
+	{
+		contextWindow: Number.MAX_SAFE_INTEGER,
+		inputPrice: 5.0,
+		outputPrice: 22.5,
+		cacheReadsPrice: 0.5,
+	},
+]
+
+export const GPT_5_4_PRO_TIERS = [
+	{
+		contextWindow: 272_000,
+		inputPrice: 30.0,
+		outputPrice: 180.0,
+	},
+	{
+		contextWindow: Number.MAX_SAFE_INTEGER,
+		inputPrice: 60.0,
+		outputPrice: 270.0,
+	},
+]
+
 export interface HicapCompatibleModelInfo extends ModelInfo {
 	temperature?: number
 }
@@ -957,53 +985,61 @@ export const geminiModels = {
 // OpenAI Native
 // https://openai.com/api/pricing/
 export type OpenAiNativeModelId = keyof typeof openAiNativeModels
-export const openAiNativeDefaultModelId: OpenAiNativeModelId = "o3"
+export const openAiNativeDefaultModelId: OpenAiNativeModelId = "gpt-5.4"
 export const openAiNativeModels = {
-	o3: {
-		maxTokens: 100_000,
-		contextWindow: 200_000,
+	"gpt-5.4": {
+		name: "GPT-5.4",
+		maxTokens: 128_000,
+		contextWindow: 1_000_000,
 		supportsImages: true,
 		supportsPromptCache: true,
-		inputPrice: 2.0,
-		outputPrice: 8.0,
-		cacheReadsPrice: 0.5,
-		systemRole: "developer",
-		supportsReasoning: true,
-		supportsReasoningEffort: true,
-		supportsTools: false,
-	},
-	"o3-mini": {
-		maxTokens: 100_000,
-		contextWindow: 200_000,
-		supportsImages: false,
-		supportsPromptCache: true,
-		inputPrice: 1.1,
-		outputPrice: 4.4,
-		cacheReadsPrice: 0.55,
-		systemRole: "developer",
-		supportsReasoning: true,
-		supportsReasoningEffort: true,
-		supportsTools: false,
-	},
-	// don't support tool use yet
-	o1: {
-		maxTokens: 100_000,
-		contextWindow: 200_000,
-		supportsImages: true,
-		supportsPromptCache: false,
-		inputPrice: 15,
-		outputPrice: 60,
-		cacheReadsPrice: 7.5,
-		supportsStreaming: false,
-	},
-	"chatgpt-4o-latest": {
-		maxTokens: 16_384,
-		contextWindow: 128_000,
-		supportsImages: true,
-		supportsPromptCache: false,
-		inputPrice: 5,
+		inputPrice: 2.5,
 		outputPrice: 15,
-		temperature: 0,
+		cacheReadsPrice: 0.25,
+		cacheWritesPrice: 0,
+		supportsReasoning: true,
+		apiFormat: ApiFormat.OPENAI_RESPONSES,
+		tiers: GPT_5_4_TIERS,
+	},
+	"gpt-5.4-mini": {
+		name: "GPT-5.4 mini",
+		maxTokens: 128_000,
+		contextWindow: 400_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 0.75,
+		outputPrice: 4.5,
+		cacheReadsPrice: 0.075,
+		cacheWritesPrice: 0,
+		supportsReasoning: true,
+		apiFormat: ApiFormat.OPENAI_RESPONSES,
+	},
+	"gpt-5.4-nano": {
+		name: "GPT-5.4 nano",
+		maxTokens: 128_000,
+		contextWindow: 400_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 0.2,
+		outputPrice: 1.25,
+		cacheReadsPrice: 0.02,
+		cacheWritesPrice: 0,
+		supportsReasoning: true,
+		apiFormat: ApiFormat.OPENAI_RESPONSES,
+	},
+	"gpt-5.4-pro": {
+		name: "GPT-5.4 Pro",
+		maxTokens: 128_000,
+		contextWindow: 1_050_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 30,
+		outputPrice: 180,
+		cacheReadsPrice: 0,
+		cacheWritesPrice: 0,
+		supportsReasoning: true,
+		apiFormat: ApiFormat.OPENAI_RESPONSES,
+		tiers: GPT_5_4_PRO_TIERS,
 	},
 } as const satisfies Record<string, OpenAiCompatibleModelInfo>
 

@@ -104,7 +104,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 		}
 
 		// Auto-approve if yolo mode is on and it's an approval request
-		if (yolo && message.type === "ask" && (message.ask === "tool" || message.ask === "command" || message.ask === "browser_action_launch")) {
+		if (yolo && message.type === "ask" && (message.ask === "tool" || message.ask === "command" || message.ask === "browser_action_launch" || message.ask === "plan_mode_respond" || message.ask === "act_mode_respond")) {
 			if (verbose) {
 				process.stderr.write(`[yolo] Auto-approving ${message.ask}\n`)
 			}
