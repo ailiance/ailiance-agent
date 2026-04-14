@@ -17,6 +17,12 @@ export const SUBAGENT_DEFAULT_ALLOWED_TOOLS: DiracDefaultTool[] = [
 	DiracDefaultTool.BASH,
 	DiracDefaultTool.USE_SKILL,
 	DiracDefaultTool.ATTEMPT,
+	DiracDefaultTool.GET_FUNCTION,
+	DiracDefaultTool.GET_FILE_SKELETON,
+	DiracDefaultTool.FIND_SYMBOL_REFERENCES,
+	DiracDefaultTool.DIAGNOSTICS_SCAN,
+	DiracDefaultTool.WEB_SEARCH,
+	DiracDefaultTool.WEB_FETCH,
 ]
 
 export const SUBAGENT_SYSTEM_SUFFIX = `\n\n# Subagent Execution Mode
