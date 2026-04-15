@@ -32,19 +32,26 @@ export function convertAnthropicContentToGemini(
 		return [{ text: content }]
 	}
 
+	let lastThoughtSignature: string | undefined
+
 	return content
 		.map((block: any): Part | null => {
+			if (block.signature) {
+				lastThoughtSignature = block.signature
+			}
+			const signature = block.signature || lastThoughtSignature
+
 			if (block.type === "text") {
 				return {
 					text: block.text,
-					thoughtSignature: block.signature,
+					thoughtSignature: signature,
 				}
 			}
 			if (block.type === "thinking") {
 				return {
 					thought: true,
 					text: block.thinking,
-					thoughtSignature: block.signature,
+					thoughtSignature: signature,
 				} as any
 			}
 			if (block.type === "image") {
@@ -62,7 +69,7 @@ export function convertAnthropicContentToGemini(
 						name: block.name,
 						args: block.input as Record<string, unknown>,
 					},
-					thoughtSignature: block.signature,
+					thoughtSignature: signature,
 				}
 			}
 			if (block.type === "tool_result") {

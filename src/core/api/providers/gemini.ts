@@ -249,6 +249,7 @@ export class GeminiHandler implements ApiHandler {
 			})
 
 			let isFirstSdkChunk = true
+			let currentThoughtSignature: string | undefined
 			for await (const chunk of result) {
 				const responseKey = chunk.responseId || "gemini-response"
 				if (isFirstSdkChunk) {
@@ -260,20 +261,27 @@ export class GeminiHandler implements ApiHandler {
 				// Handle thinking content from Gemini's response
 				const parts = chunk?.candidates?.[0]?.content?.parts || []
 				for (const part of parts) {
+					if (part.thoughtSignature) {
+						currentThoughtSignature = part.thoughtSignature
+					}
+					const signature = part.thoughtSignature || currentThoughtSignature
+
 					if (part.thought && part.text) {
 						yield {
 							type: "reasoning",
 							id: chunk.responseId,
 							reasoning: part.text || "",
-							signature: part.thoughtSignature,
+							signature: signature,
 						}
+
 					} else if (part.text) {
 						yield {
 							type: "text",
 							text: part.text,
 							id: chunk.responseId,
-							signature: part.thoughtSignature,
+							signature: signature,
 						}
+
 					}
 					if (part.functionCall) {
 						const functionCall = part.functionCall
@@ -298,7 +306,7 @@ export class GeminiHandler implements ApiHandler {
 										arguments: JSON.stringify(functionCall.args),
 									},
 								},
-								signature: part.thoughtSignature,
+								signature: signature,
 							}
 						}
 					}
