@@ -97,8 +97,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 			const isFirstDelta = !streamedMessages.has(ts)
 			streamedMessages.add(ts)
 			lastProcessedPartialText.set(ts, text)
-
-			handleMessageForPipeMode(message, verbose || false, yolo || false, { delta, isFirstDelta })
+			handleMessageForPipeMode(message, verbose || false, yolo || false, { delta, isFirstDelta }, true)
 		} else if (message.partial || (processedMessages.has(ts) && processedMessages.get(ts) === text)) {
 			return
 		} else {
@@ -107,11 +106,13 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 				process.stdout.write(JSON.stringify(message) + "\n")
 			} else {
 				const wasStreamed = streamedMessages.has(ts)
+				const isUpdate = processedMessages.has(ts)
 				handleMessageForPipeMode(
 					message,
 					verbose || false,
 					yolo || false,
 					wasStreamed ? { isLastDelta: true } : undefined,
+					isUpdate,
 				)
 			}
 
@@ -262,6 +263,7 @@ function handleMessageForPipeMode(
 	verbose: boolean,
 	yolo: boolean,
 	streaming?: { delta?: string; isFirstDelta?: boolean; isLastDelta?: boolean },
+	isUpdate?: boolean,
 ): void {
 	const fullText = message.text ?? ""
 	const reasoning = message.reasoning ?? ""
@@ -292,23 +294,24 @@ function handleMessageForPipeMode(
 				const label = message.say === "api_req_started" ? "API request started" : "API request finished"
 				try {
 					const info = JSON.parse(fullText || "{}")
-					if (info.cost !== undefined || info.tokensIn !== undefined) {
+					const hasMetrics = info.cost !== undefined || info.tokensIn !== undefined
+					if (hasMetrics || !isUpdate) {
 						const costStr = info.cost !== undefined ? `Cost: $${info.cost.toFixed(4)}` : ""
 						const tokensStr =
 							info.tokensIn !== undefined
 								? `Tokens: ${info.tokensIn.toLocaleString()} in, ${info.tokensOut.toLocaleString()} out`
 								: ""
 						const cacheStr =
-							info.cacheReadTokens !== undefined || info.cacheWriteTokens !== undefined
-								? ` (Cache: ${(info.cacheReadTokens || 0).toLocaleString()} read, ${(info.cacheWriteTokens || 0).toLocaleString()} write)`
+							info.cacheReads !== undefined || info.cacheWrites !== undefined
+								? ` (Cache: ${(info.cacheReads || 0).toLocaleString()} read, ${(info.cacheWrites || 0).toLocaleString()} write)`
 								: ""
 						const contextStr =
 							info.contextWindow !== undefined
 								? ` | Context: ${info.contextUsagePercentage}% of ${(info.contextWindow / 1000).toFixed(0)}K`
 								: ""
-						process.stderr.write(`${statusPrefix}${label} [${tokensStr}${cacheStr}${contextStr} | ${costStr}]\n`)
-					} else {
-						process.stderr.write(`${statusPrefix}${label}\n`)
+
+						const metricsStr = hasMetrics ? ` [${tokensStr}${cacheStr}${contextStr} | ${costStr}]` : ""
+						process.stderr.write(`${statusPrefix}${label}${metricsStr}\n`)
 					}
 				} catch {
 					process.stderr.write(`${statusPrefix}${label}\n`)

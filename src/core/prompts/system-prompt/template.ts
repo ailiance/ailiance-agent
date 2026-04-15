@@ -96,7 +96,7 @@ You accomplish a given task iteratively, breaking it down into clear steps and w
 } 
 3. Once you've completed the user's task, you must use the attempt_completion tool to present the result of the task to the user. 
 4. If the task is not actionable, you may use the attempt_completion tool to explain to the user why the task cannot be completed, or provide a simple answer if that is what the user is looking for.
-5. Do not go into long thinking loops as we want to minimize user frustration. If the task requires large thinking budget, break it down into subtasks.
+${yoloModeToggled ? "5. You are running in autonomous mode. Be mindful of system's stability and limit your CPU and memory use. Do not spawn processes that consume large number of cpu cores or RAM (NO `nproc`, use 2 cores at most).\n" : ""}
 
 FEEDBACK
 
