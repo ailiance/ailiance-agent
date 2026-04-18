@@ -1,5 +1,4 @@
 import { ApiHandler } from "@core/api"
-import { getContextWindowInfo } from "@core/context/context-management/context-window-utils"
 import { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
 import { formatResponse } from "@core/prompts/responses"
 import { getEditingFilesInstructions } from "@core/prompts/system-prompt/sections/editing-files"
@@ -7,10 +6,6 @@ import { StateManager } from "@core/storage/StateManager"
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { ITerminalManager } from "@integrations/terminal/types"
-import { findLast } from "@shared/array"
-import { combineApiRequests } from "@shared/combineApiRequests"
-import { combineCommandSequences } from "@shared/combineCommandSequences"
-import { DiracMessage } from "@shared/ExtensionMessage"
 import type { Dirent } from "fs"
 import fs from "fs/promises"
 import * as path from "path"
@@ -107,22 +102,6 @@ export class EnvironmentManager {
 
 		// Workspace roots (multi-root)
 		details += this.formatWorkspaceRootsSection()
-		
-		// Add current time information with timezone
-		const now = new Date()
-		const formatter = new Intl.DateTimeFormat(undefined, {
-			year: "numeric",
-			month: "numeric",
-			day: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-			second: "numeric",
-			hour12: true,
-		})
-		const timeZone = formatter.resolvedOptions().timeZone
-		const timeZoneOffset = -now.getTimezoneOffset() / 60 // Convert to hours and invert sign to match conventional notation
-		const timeZoneOffsetStr = `${timeZoneOffset >= 0 ? "+" : ""}${timeZoneOffset}:00`
-		details += `\n\n# Current Time\n${formatter.format(now)} (${timeZone}, UTC${timeZoneOffsetStr})`
 
 		if (includeFileDetails) {
 			const MAX_RECENT_FILES = 10
@@ -155,36 +134,6 @@ export class EnvironmentManager {
 			}
 		}
 
-		// Add context window usage information (conditionally for some models)
-		const { contextWindow } = getContextWindowInfo(this.api)
-
-		const getTotalTokensFromApiReqMessage = (msg: DiracMessage) => {
-			if (!msg.text) {
-				return 0
-			}
-			try {
-				const { tokensIn, tokensOut, cacheWrites, cacheReads } = JSON.parse(msg.text)
-				return (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
-			} catch (_e) {
-				return 0
-			}
-		}
-
-		const diracMessages = this.messageStateHandler.getDiracMessages()
-		const modifiedMessages = combineApiRequests(combineCommandSequences(diracMessages.slice(1)))
-		const lastApiReqMessage = findLast(modifiedMessages, (msg) => {
-			if (msg.say !== "api_req_started") {
-				return false
-			}
-			return getTotalTokensFromApiReqMessage(msg) > 0
-		})
-
-		const lastApiReqTotalTokens = lastApiReqMessage ? getTotalTokensFromApiReqMessage(lastApiReqMessage) : 0
-		const usagePercentage = Math.round((lastApiReqTotalTokens / contextWindow) * 100)
-
-		details += "\n\n# Context Window Usage"
-		details += `\n${lastApiReqTotalTokens.toLocaleString()} / ${(contextWindow / 1000).toLocaleString()}K tokens used (${usagePercentage}%)`
-
 		details += "\n\n# Current Mode"
 		const mode = this.stateManager.getGlobalSettingsKey("mode")
 		if (mode === "plan") {
@@ -196,6 +145,8 @@ export class EnvironmentManager {
 				details += `\n${getEditingFilesInstructions()}\n`
 			}
 		}
+
+		details += "\nReminder: always batch tool calls whenever possible.\n"
 
 		return `<environment_details>\n${details.trim()}\n</environment_details>`
 	}

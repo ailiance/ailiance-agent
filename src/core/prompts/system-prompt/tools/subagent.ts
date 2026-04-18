@@ -7,7 +7,7 @@ export const subagent: DiracToolSpec = {
 	id,
 	name: "use_subagents",
 	description:
-		"Run between two and five focused in-process subagents in parallel. Each subagent gets its own prompt and returns a comprehensive research result. Use this for broad exploration, parallel research across different modules, deep-diving into multiple potential implementations, or concurrent analysis of logs and test results. It's particularly effective for investigating multiple independent paths simultaneously without consuming the main agent's context window.",
+		"Run between two and five focused in-process subagents in parallel. Each subagent gets its own prompt and returns a comprehensive research result. Default timeout is 300 seconds. Particularly effective for investigating multiple independent paths simultaneously without consuming the your context window.",
 	contextRequirements: (context) => context.subagentsEnabled === true,
 	parameters: [
 		{
@@ -43,7 +43,7 @@ export const subagent: DiracToolSpec = {
 		{
 			name: "timeout",
 			required: false,
-			instruction: "Optional timeout in seconds for each subagent.",
+			instruction: "Optional timeout in seconds for each subagent. Defaults to 300 seconds.",
 		},
 		{
 			name: "max_turns",

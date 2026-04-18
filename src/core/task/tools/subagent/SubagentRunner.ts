@@ -232,6 +232,7 @@ export class SubagentRunner {
 	private abortReason?: string
 	private activeCommandExecutions = 0
 	private abortingCommands = false
+	private gaveTimeoutWrapUpChance = false
 
 	constructor(
 		private baseConfig: TaskConfig,
@@ -470,6 +471,36 @@ ${partialResult}`
 				}
 
 				if (this.shouldAbort()) {
+					if (
+						this.abortRequested &&
+						this.abortReason &&
+						/timed out/.test(this.abortReason) &&
+						!this.gaveTimeoutWrapUpChance &&
+						!this.baseConfig.taskState.abort
+					) {
+						this.gaveTimeoutWrapUpChance = true
+						if (timeoutHandle) {
+							clearTimeout(timeoutHandle)
+						}
+						timeoutHandle = setTimeout(() => {
+							void this.abort("Subagent failed to wrap up after timeout.")
+						}, 60000)
+
+						conversation.push({
+							role: "user",
+							content: [
+								{
+									type: "text",
+									text: "Timeout reached. Please provide your final findings now using attempt_completion based on what you have so far. This is your absolute last turn.",
+								} as DiracTextContentBlock,
+							],
+						})
+
+						this.abortRequested = false
+						this.abortReason = undefined
+						continue
+					}
+
 					await this.abort()
 					const reason = this.abortReason || "Subagent run cancelled."
 					const isLimitReached = /timed out|maximum turns/.test(this.abortReason || "")

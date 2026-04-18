@@ -63,7 +63,7 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 		const timeoutRaw = uiHelpers.removeClosingTag(block, "timeout", String(block.params.timeout ?? ""))?.trim()
 		const maxTurnsRaw = uiHelpers.removeClosingTag(block, "max_turns", String(block.params.max_turns ?? ""))?.trim()
 		const includeHistoryRaw = uiHelpers.removeClosingTag(block, "include_history", String(block.params.include_history ?? ""))?.trim()
-		const timeout = timeoutRaw ? parseInt(timeoutRaw, 10) : undefined
+		const timeout = timeoutRaw ? parseInt(timeoutRaw, 10) : 300
 		const maxTurns = maxTurnsRaw ? parseInt(maxTurnsRaw, 10) : undefined
 		const includeHistory = includeHistoryRaw === "true" || includeHistoryRaw === "1" || block.params.include_history === true
 
@@ -104,7 +104,7 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 		const prompts = collectPrompts(block, configuredSubagentName)
 		Logger.debug(`[SubagentToolHandler] Collected prompts:`, prompts)
 
-		const timeout = block.params.timeout ? parseInt(String(block.params.timeout), 10) : undefined
+		const timeout = block.params.timeout ? parseInt(String(block.params.timeout), 10) : 300
 		const maxTurns = block.params.max_turns ? parseInt(String(block.params.max_turns), 10) : undefined
 		const includeHistory = block.params.include_history === true || String(block.params.include_history) === "true" || String(block.params.include_history) === "1"
 

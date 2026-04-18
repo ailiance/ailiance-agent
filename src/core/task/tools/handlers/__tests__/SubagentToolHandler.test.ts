@@ -437,4 +437,41 @@ describe("SubagentToolHandler", () => {
 		assert.equal(taskState.consecutiveMistakeCount, 1)
 		sinon.assert.calledWithExactly(callbacks.sayAndCreateMissingParamError, DiracDefaultTool.USE_SUBAGENTS, "prompt")
 	})
+	it("defaults timeout to 300 seconds if not provided", async () => {
+		const { config, callbacks } = createConfig({ autoApproveSafe: false, autoApproveAll: false })
+		const runStub = sinon.stub(SubagentRunner.prototype, "run").resolves({
+			status: "completed",
+			result: "done",
+			stats: {
+				toolCalls: 1,
+				inputTokens: 2,
+				outputTokens: 3,
+				cacheWriteTokens: 0,
+				cacheReadTokens: 0,
+				totalCost: 0.25,
+				contextTokens: 5,
+				contextWindow: 200000,
+				contextUsagePercentage: 0.0025,
+			},
+		})
+		const handler = new UseSubagentsToolHandler()
+
+		await handler.execute(config, {
+			type: "tool_use",
+			name: DiracDefaultTool.USE_SUBAGENTS,
+			params: {
+				prompt_1: "test prompt",
+			},
+			partial: false,
+		})
+
+		// Check approval payload
+		const approvalPayload = JSON.parse(callbacks.ask.firstCall.args[1])
+		assert.equal(approvalPayload.timeout, 300)
+
+		// Check runner call
+		assert.equal(runStub.firstCall.args[3], 300)
+	})
+
+
 })
