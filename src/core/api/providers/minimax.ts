@@ -1,5 +1,4 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { Tool as AnthropicTool } from "@anthropic-ai/sdk/resources/index"
 import { Stream as AnthropicStream } from "@anthropic-ai/sdk/streaming"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { MinimaxModelId, ModelInfo, minimaxDefaultModelId, minimaxModels } from "@/shared/api"
@@ -15,6 +14,49 @@ interface MinimaxHandlerOptions extends CommonApiHandlerOptions {
 	minimaxApiLine?: string
 	apiModelId?: string
 	thinkingBudgetTokens?: number
+}
+
+/**
+ * Creates a simple tool call processor for MiniMax to accumulate arguments.
+ * MiniMax uses Anthropic API format which streams partial JSON.
+ */
+function createToolCallProcessor() {
+	const accumulatedArgs = new Map<string, string>()
+	const toolCallState = new Map<string, { id: string; name: string }>()
+
+	return {
+		accumulateArguments(id: string, name: string, partial: string): boolean {
+			// Store tool call info
+			toolCallState.set(id, { id, name })
+
+			// Accumulate arguments
+			const current = accumulatedArgs.get(id) || ""
+			accumulatedArgs.set(id, current + partial)
+
+			// Try to parse - if complete, return true
+			try {
+				const args = accumulatedArgs.get(id) || ""
+				JSON.parse(args)
+				return true // Complete JSON received
+			} catch {
+				return false // Incomplete JSON
+			}
+		},
+		getToolCalls(): Array<{ id: string; name: string; arguments: string }> {
+			const results: Array<{ id: string; name: string; arguments: string }> = []
+			for (const [id, state] of toolCallState) {
+				const args = accumulatedArgs.get(id)
+				if (args) {
+					results.push({ id: state.id, name: state.name, arguments: args })
+				}
+			}
+			return results
+		},
+		clear() {
+			accumulatedArgs.clear()
+			toolCallState.clear()
+		},
+	}
 }
 
 export class MinimaxHandler implements ApiHandler {
@@ -66,7 +108,7 @@ export class MinimaxHandler implements ApiHandler {
 			system: [{ text: systemPrompt, type: "text" }],
 			messages,
 			stream: true,
-			tools: nativeToolsOn ? (tools as AnthropicTool[]) : undefined,
+			tools: nativeToolsOn ? (tools as any) : undefined,
 			thinking: reasoningOn ? { type: "enabled", budget_tokens: budget_tokens } : undefined,
 			// "Thinking isn't compatible with temperature, top_p, or top_k modifications"
 			temperature: reasoningOn ? undefined : 1.0, // MiniMax recommends 1.0, range is (0.0, 1.0]
@@ -75,6 +117,7 @@ export class MinimaxHandler implements ApiHandler {
 		})
 
 		const lastStartedToolCall = { id: "", name: "", arguments: "" }
+		let toolCallProcessor: ReturnType<typeof createToolCallProcessor> | null = null
 
 		for await (const chunk of stream) {
 			switch (chunk?.type) {
@@ -124,6 +167,11 @@ export class MinimaxHandler implements ApiHandler {
 								lastStartedToolCall.id = chunk.content_block.id
 								lastStartedToolCall.name = chunk.content_block.name
 								lastStartedToolCall.arguments = ""
+
+								// Initialize tool call processor for this conversation
+								if (!toolCallProcessor) {
+									toolCallProcessor = createToolCallProcessor()
+								}
 							}
 							break
 						case "text":
@@ -169,25 +217,41 @@ export class MinimaxHandler implements ApiHandler {
 							break
 						case "input_json_delta":
 							if (lastStartedToolCall.id && lastStartedToolCall.name && chunk.delta.partial_json) {
-								// Convert Anthropic tool_use to OpenAI-compatible format for internal processing
-								yield {
-									type: "tool_calls",
-									tool_call: {
-										...lastStartedToolCall,
-										function: {
-											...lastStartedToolCall,
-											id: lastStartedToolCall.id,
-											name: lastStartedToolCall.name,
-											arguments: chunk.delta.partial_json,
-										},
-									},
+								// Accumulate the partial JSON arguments
+								lastStartedToolCall.arguments += chunk.delta.partial_json
+
+								// Check if we have a complete JSON object to yield
+								// The ToolCallProcessor expects a specific format, so we construct it here
+								if (toolCallProcessor) {
+									toolCallProcessor.accumulateArguments(
+										lastStartedToolCall.id,
+										lastStartedToolCall.name,
+										chunk.delta.partial_json,
+									)
 								}
 							}
 							break
 					}
 					break
-
 				case "content_block_stop":
+					// Yield any complete tool calls accumulated during this block
+					if (toolCallProcessor) {
+						const toolCalls = toolCallProcessor.getToolCalls()
+						for (const tc of toolCalls) {
+							yield {
+								type: "tool_calls",
+								tool_call: {
+									call_id: tc.id,
+									function: {
+										id: tc.id,
+										name: tc.name,
+										arguments: tc.arguments,
+									},
+								},
+							}
+						}
+						toolCallProcessor.clear()
+					}
 					lastStartedToolCall.id = ""
 					lastStartedToolCall.name = ""
 					lastStartedToolCall.arguments = ""

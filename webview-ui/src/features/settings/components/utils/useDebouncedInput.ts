@@ -17,18 +17,30 @@ export function useDebouncedInput<T>(initialValue: T, onChange: (value: T) => vo
 	// Track previous initialValue to detect external changes
 	const prevInitialValueRef = useRef<T>(initialValue)
 
+	// Track the last value we sent to onChange to avoid syncing back older values from the store
+	const lastSentValueRef = useRef<T>(initialValue)
+
 	// Sync local state when initialValue changes externally (e.g., when switching Plan/Act tabs)
 	useEffect(() => {
 		if (prevInitialValueRef.current !== initialValue) {
-			setLocalValue(initialValue)
+			// Only update localValue if initialValue is different from what we last sent
+			// This prevents the "jumping cursor" or "disappearing characters" bug when
+			// the store update (triggered by our own onChange) reflects back to us.
+			if (initialValue !== lastSentValueRef.current) {
+				setLocalValue(initialValue)
+			}
 			prevInitialValueRef.current = initialValue
+			lastSentValueRef.current = initialValue
 		}
 	}, [initialValue])
 
 	// Debounced backend save - saves after user stops changing value
 	useDebounceEffect(
 		() => {
-			onChange(localValue)
+			if (localValue !== lastSentValueRef.current) {
+				onChange(localValue)
+				lastSentValueRef.current = localValue
+			}
 		},
 		debounceMs,
 		[localValue],

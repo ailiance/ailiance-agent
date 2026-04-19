@@ -38,6 +38,15 @@ import {
     WorkspaceHooks,
 } from "./ConfigViewComponents"
 
+
+const SETTING_HELP_TEXT: Record<string, string> = {
+	openAiBaseUrl: "The base URL of the OpenAI-compatible API. Note: Do not include /chat/completions at the end.",
+	openAiModelId: "The model ID to use (e.g., Qwen/Qwen2.5-Coder-32B-Instruct for DeepInfra)",
+	actModeOpenAiModelId: "The model ID to use in Act mode (e.g., Qwen/Qwen2.5-Coder-32B-Instruct for DeepInfra)",
+	planModeOpenAiModelId: "The model ID to use in Plan mode (e.g., Qwen/Qwen2.5-Coder-32B-Instruct for DeepInfra)",
+	azureApiVersion: "The API version for Azure OpenAI (e.g., 2024-08-01-preview).",
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -650,6 +659,11 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 				<Text color="gray">{getHelpText()}</Text>
 				{currentTab === "settings" && selectedConfigEntry && !selectedConfigEntry.isEditable && (
 					<Text color="yellow">This field is read-only ({selectedConfigEntry.type} type or not a setting)</Text>
+				)}
+				{currentTab === "settings" && selectedConfigEntry && SETTING_HELP_TEXT[selectedConfigEntry.key] && (
+					<Box marginTop={1}>
+						<Text color="blue">Hint: {SETTING_HELP_TEXT[selectedConfigEntry.key]}</Text>
+					</Box>
 				)}
 			</Box>
 		</Box>

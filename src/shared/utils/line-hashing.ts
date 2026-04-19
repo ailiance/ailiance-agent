@@ -23,7 +23,7 @@ function escapeRegExp(string: string) {
 
 /**
  * Strips hash prefixes from a content string.
- * Removes patterns like "Apple§" from each line.
+ * Removes patterns like "Apple" followed by the delimiter from each line.
  * Anchors are guaranteed to start with a capital letter.
  *
  * @param content - The content containing hashed lines

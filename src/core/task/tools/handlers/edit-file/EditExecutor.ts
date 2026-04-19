@@ -1,6 +1,6 @@
-import { ToolUse } from "@core/assistant-message"
-import { splitAnchor, stripHashes } from "@utils/line-hashing"
-import { AppliedEdit, Edit, FailedEdit, ResolvedEdit } from "./types"
+import { ToolUse } from "@core/assistant-message";
+import { splitAnchor, stripHashes, getDelimiter } from "@utils/line-hashing";
+import { AppliedEdit, Edit, FailedEdit, ResolvedEdit } from "./types";
 
 export class EditExecutor {
 	resolveEdits(
@@ -68,7 +68,7 @@ export class EditExecutor {
 		if (!anchorExtractRegex.test(anchorName)) {
 			return {
 				index: -1,
-				error: `${type} is missing or incorrectly formatted. It must start with a single word followed by the delimiter (e.g., "Apple§").`,
+				error: `${type} is missing or incorrectly formatted. It must start with a single word followed by the delimiter (e.g., "Apple${getDelimiter()}").`,
 			}
 		}
 
@@ -85,7 +85,7 @@ export class EditExecutor {
 		if (providedContent.includes("\n") || providedContent.includes("\r")) {
 			return {
 				index: -1,
-				error: `${type} "${anchorName}" exists, but the provided code line contains a newline character. Anchors must refer to a single line only.`,
+				error: `${type} "${anchorName}" exists, but the provided code line contains a newline character. Anchors must refer to a single line only in the format Anchor${getDelimiter()}{line_text}.`,
 			}
 		}
 

@@ -45,8 +45,15 @@ export class OpenAiHandler implements ApiHandler {
 				throw new Error("OpenAI API key or Azure Identity Authentication is required")
 			}
 			try {
-				const baseUrl = this.options.openAiBaseUrl?.toLowerCase() ?? ""
-				const isAzureDomain = baseUrl.includes("azure.com") || baseUrl.includes("azure.us")
+				let baseUrl = this.options.openAiBaseUrl?.trim() || ""
+				if (baseUrl) {
+					// Normalize URL: strip trailing /chat/completions and trailing slashes
+					// The OpenAI SDK appends /chat/completions automatically.
+					baseUrl = baseUrl.replace(/\/chat\/completions\/?$/, "")
+					baseUrl = baseUrl.replace(/\/+$/, "")
+				}
+				const baseUrlLower = baseUrl.toLowerCase()
+				const isAzureDomain = baseUrlLower.includes("azure.com") || baseUrlLower.includes("azure.us")
 				const externalHeaders = buildExternalBasicHeaders()
 				// Azure API shape slightly differs from the core API shape...
 				if (
@@ -55,7 +62,7 @@ export class OpenAiHandler implements ApiHandler {
 				) {
 					if (this.options.azureIdentity) {
 						this.client = new AzureOpenAI({
-							baseURL: this.options.openAiBaseUrl,
+							baseURL: baseUrl,
 							azureADTokenProvider: getBearerTokenProvider(
 								new DefaultAzureCredential(),
 								this.getAzureAudienceScope(this.options.openAiBaseUrl),
@@ -69,7 +76,7 @@ export class OpenAiHandler implements ApiHandler {
 						})
 					} else {
 						this.client = new AzureOpenAI({
-							baseURL: this.options.openAiBaseUrl,
+							baseURL: baseUrl,
 							apiKey: this.options.openAiApiKey,
 							apiVersion: this.options.azureApiVersion || azureOpenAiDefaultApiVersion,
 							defaultHeaders: {
@@ -81,7 +88,7 @@ export class OpenAiHandler implements ApiHandler {
 					}
 				} else {
 					this.client = createOpenAIClient({
-						baseURL: this.options.openAiBaseUrl,
+						baseURL: baseUrl,
 						apiKey: this.options.openAiApiKey,
 						defaultHeaders: this.options.openAiHeaders,
 					})

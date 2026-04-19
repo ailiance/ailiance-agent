@@ -47,6 +47,7 @@ export interface PreparedEdits {
 }
 
 export interface PreparedFileBatch {
+	wasStringified?: boolean
 	absolutePath: string
 	displayPath: string
 	prepared?: PreparedEdits

@@ -17,6 +17,7 @@ interface DebouncedTextFieldProps {
 	children?: React.ReactNode
 	disabled?: boolean
 	className?: string
+	helpText?: string
 }
 
 /**
@@ -29,6 +30,7 @@ export const DebouncedTextField = ({
 	children,
 	type,
 	className,
+	helpText,
 	...otherProps
 }: DebouncedTextFieldProps) => {
 	const [localValue, setLocalValue] = useDebouncedInput(initialValue, onChange)
@@ -44,6 +46,18 @@ export const DebouncedTextField = ({
 			type={type}
 			value={localValue}>
 			{children}
+			{helpText && (
+				<div
+					slot="helper-text"
+					style={{
+						fontSize: "12px",
+						marginTop: "4px",
+						color: "var(--vscode-descriptionForeground)",
+						opacity: 0.8,
+					}}>
+					{helpText}
+				</div>
+			)}
 		</VSCodeTextField>
 	)
 }

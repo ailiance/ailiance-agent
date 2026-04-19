@@ -5,16 +5,15 @@ import { OpenAiModelsRequest } from "@shared/proto/dirac/models"
 import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-    getModeSpecificFields,
-    normalizeApiConfiguration,
-    supportsReasoningEffortForModelId,
+	getModeSpecificFields,
+	normalizeApiConfiguration,
+	supportsReasoningEffortForModelId,
 } from "@/features/settings/components/utils/providerUtils"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { ModelsServiceClient } from "@/shared/api/grpc-client"
 import { getAsVar, VSC_DESCRIPTION_FOREGROUND } from "@/shared/lib/vscStyles"
 import { Tooltip } from "@/shared/ui/tooltip"
 import { ApiKeyField } from "../common/ApiKeyField"
-import { BaseUrlField } from "../common/BaseUrlField"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { ModelInfoView } from "../common/ModelInfoView"
 import ReasoningEffortSelector from "../ReasoningEffortSelector"
@@ -89,6 +88,7 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 						</div>
 						<DebouncedTextField
 							disabled={remoteConfigSettings?.openAiBaseUrl !== undefined}
+							helpText="The base URL of the OpenAI-compatible API. Note: Do not include /chat/completions at the end."
 							initialValue={apiConfiguration?.openAiBaseUrl || ""}
 							onChange={(value: string) => {
 								handleFieldChange("openAiBaseUrl", value)
@@ -116,6 +116,7 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 
 			<DebouncedTextField
 				initialValue={selectedModelId || ""}
+				helpText="The model ID to use (e.g., Qwen/Qwen2.5-Coder-32B-Instruct for DeepInfra)"
 				onChange={(value: string) =>
 					handleModeFieldChange({ plan: "planModeOpenAiModelId", act: "actModeOpenAiModelId" }, value, currentMode)
 				}
@@ -204,28 +205,22 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 				)
 			})()}
 
-			{remoteConfigSettings?.azureApiVersion !== undefined ? (
-				<Tooltip>
-					<TooltipTrigger>
-						<BaseUrlField
-							disabled={true}
-							initialValue={apiConfiguration?.azureApiVersion}
-							label="Set Azure API version"
-							onChange={(value: string) => handleFieldChange("azureApiVersion", value)}
-							placeholder={`Default: ${azureOpenAiDefaultApiVersion}`}
-							showLockIcon={true}
-						/>
-					</TooltipTrigger>
-					<TooltipContent>This setting is managed by your organization's remote configuration</TooltipContent>
-				</Tooltip>
-			) : (
-				<BaseUrlField
-					initialValue={apiConfiguration?.azureApiVersion}
-					label="Set Azure API version"
+			<div className="mb-2.5">
+				<div className="flex items-center gap-2 mb-1">
+					<span style={{ fontWeight: 500 }}>Azure API Version</span>
+					{remoteConfigSettings?.azureApiVersion !== undefined && (
+						<i className="codicon codicon-lock text-description text-sm" />
+					)}
+				</div>
+				<DebouncedTextField
+					disabled={remoteConfigSettings?.azureApiVersion !== undefined}
+					initialValue={apiConfiguration?.azureApiVersion || ""}
 					onChange={(value: string) => handleFieldChange("azureApiVersion", value)}
 					placeholder={`Default: ${azureOpenAiDefaultApiVersion}`}
+					style={{ width: "100%", marginBottom: 10 }}
+					type="text"
 				/>
-			)}
+			</div>
 
 			<VSCodeCheckbox
 				checked={false}

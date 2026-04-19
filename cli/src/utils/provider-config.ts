@@ -18,6 +18,7 @@ export interface ApplyProviderConfigOptions {
 	apiKey?: string
 	modelId?: string // Override default model
 	baseUrl?: string // For OpenAI-compatible providers
+	azureApiVersion?: string // For Azure OpenAI
 	controller?: Controller
 }
 
@@ -25,7 +26,7 @@ export interface ApplyProviderConfigOptions {
  * Apply provider configuration to state and rebuild API handler if needed
  */
 export async function applyProviderConfig(options: ApplyProviderConfigOptions): Promise<void> {
-	const { providerId, apiKey, modelId, baseUrl, controller } = options
+	const { providerId, apiKey, modelId, baseUrl, azureApiVersion, controller } = options
 	const stateManager = StateManager.get()
 
 	const config: Record<string, string> = {
@@ -72,7 +73,19 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 
 	// Add base URL if provided (for OpenAI-compatible providers)
 	if (baseUrl) {
-		config.openAiBaseUrl = baseUrl
+		let normalizedBaseUrl = baseUrl.trim()
+		if (normalizedBaseUrl) {
+			// Normalize URL: strip trailing /chat/completions and trailing slashes
+			// The OpenAI SDK appends /chat/completions automatically.
+			normalizedBaseUrl = normalizedBaseUrl.replace(/\/chat\/completions\/?$/, "")
+			normalizedBaseUrl = normalizedBaseUrl.replace(/\/+$/, "")
+		}
+		config.openAiBaseUrl = normalizedBaseUrl
+	}
+
+	// Add Azure API version if provided
+	if (azureApiVersion) {
+		config.azureApiVersion = azureApiVersion
 	}
 
 	// Save via StateManager

@@ -771,13 +771,13 @@ async function showConfig(options: { config?: string }) {
  */
 async function performQuickAuthSetup(
 	ctx: CliContext,
-	options: { provider: string; apikey: string; modelid: string; baseurl?: string },
+	options: { provider: string; apikey: string; modelid: string; baseurl?: string; azureApiVersion?: string },
 ): Promise<{ success: boolean; error?: string }> {
 	const { isValidCliProvider, getValidCliProviders } = await import("./utils/providers")
 	const { applyProviderConfig } = await import("./utils/provider-config")
 	const { StateManager } = await import("@/core/storage/StateManager")
 
-	const { provider, apikey, modelid, baseurl } = options
+	const { provider, apikey, modelid, baseurl, azureApiVersion } = options
 
 	const normalizedProvider = provider.toLowerCase().trim()
 
@@ -803,6 +803,7 @@ async function performQuickAuthSetup(
 		apiKey: apikey,
 		modelId: modelid,
 		baseUrl: baseurl,
+		azureApiVersion: azureApiVersion,
 		controller: ctx.controller,
 	})
 
@@ -818,6 +819,7 @@ async function runAuth(options: {
 	apikey?: string
 	modelid?: string
 	baseurl?: string
+	azureApiVersion?: string
 	verbose?: boolean
 	cwd?: string
 	config?: string
@@ -833,6 +835,7 @@ async function runAuth(options: {
 	let provider = options.provider
 	let apikey = options.apikey
 	let modelid = options.modelid
+	let azureApiVersion = options.azureApiVersion
 
 	if (!provider || !apikey || !modelid) {
 		const { getSecretsFromEnv, getProviderFromEnv } = await import("@shared/storage/env-config")
@@ -881,6 +884,7 @@ async function runAuth(options: {
 			apikey: apikey!,
 			modelid: modelid!,
 			baseurl: options.baseurl,
+			azureApiVersion: options.azureApiVersion,
 		})
 
 		if (!result.success) {
@@ -978,6 +982,7 @@ program
 	.option("-k, --apikey <key>", "API key for the provider")
 	.option("-m, --modelid <id>", "Model ID to configure (e.g., gpt-4o, claude-sonnet-4-6, kimi-k2.5)")
 	.option("-b, --baseurl <url>", "Base URL (optional, only for openai provider)")
+	.option("--azure-api-version <version>", "Azure API version (optional, only for azure openai)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
 	.option("--config <path>", "Path to Dirac configuration directory")

@@ -53,10 +53,19 @@ export class EditFileToolHandler implements IFullyManagedTool {
 	}
 
 		async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPath = block.params.path || (Array.isArray(block.params.files) && block.params.files[0]?.path) || ""
-		const filesCount = Array.isArray(block.params.files) ? block.params.files.length : block.params.path ? 1 : 0
-		const edits = Array.isArray(block.params.edits) ? block.params.edits : []
-		const editsCount = edits.length
+		let files = block.params.files
+		if (typeof files === "string") {
+			try { files = JSON.parse(files) } catch (e) {}
+		}
+		const relPath = Array.isArray(files) && files[0]?.path ? files[0].path : ""
+		const filesCount = Array.isArray(files) ? files.length : 0
+		const editsCount = Array.isArray(files) ? files.reduce((acc, f) => {
+			let edits = f.edits
+			if (typeof edits === "string") {
+				try { edits = JSON.parse(edits) } catch (e) {}
+			}
+			return acc + (Array.isArray(edits) ? edits.length : 0)
+		}, 0) : 0
 
 		const message = JSON.stringify({
 			tool: "editFile",
@@ -119,12 +128,50 @@ export class EditFileToolHandler implements IFullyManagedTool {
 		}
 
 		// Fallback for blocks without call_id or if somehow not in cache
-		const relPath = block.params.path || (Array.isArray(block.params.files) && block.params.files[0]?.path) || ""
-		const { absolutePath, displayPath } = this.processor.resolvePath(config, relPath)
-		const singleBatch = new Map<string, PreparedFileBatch>()
-		singleBatch.set(absolutePath, { absolutePath, displayPath, blocks: [block] })
-		const resultsMap = await this.processor.executeMultiFileBatch(config, singleBatch)
-		const result = resultsMap.get(absolutePath) || formatResponse.toolError("Unexpected error.")
+		let files = block.params.files
+		let wasStringified = false
+		if (typeof files === "string") {
+			try { 
+				files = JSON.parse(files) 
+				block.params.files = files
+				wasStringified = true
+			} catch (e) {}
+		}
+		
+		let result: ToolResponse
+		if (!Array.isArray(files)) {
+			const relPath = ""
+			const { absolutePath, displayPath } = this.processor.resolvePath(config, relPath)
+			const singleBatch = new Map<string, PreparedFileBatch>()
+			singleBatch.set(absolutePath, { absolutePath, displayPath, blocks: [block], wasStringified })
+			const resultsMap = await this.processor.executeMultiFileBatch(config, singleBatch)
+			result = resultsMap.get(absolutePath) || formatResponse.toolError("Unexpected error.")
+		} else {
+			const singleBlockBatches = new Map<string, PreparedFileBatch>()
+			for (const fe of files) {
+				let editsWasStringified = false
+				if (typeof fe.edits === "string") {
+					try {
+						fe.edits = JSON.parse(fe.edits)
+						editsWasStringified = true
+					} catch (e) {}
+				}
+
+				const { absolutePath, displayPath } = this.processor.resolvePath(config, fe.path)
+				if (!singleBlockBatches.has(absolutePath)) {
+					singleBlockBatches.set(absolutePath, { absolutePath, displayPath, blocks: [], wasStringified: wasStringified || editsWasStringified })
+				} else if (wasStringified || editsWasStringified) {
+					singleBlockBatches.get(absolutePath)!.wasStringified = true
+				}
+				singleBlockBatches.get(absolutePath)!.blocks.push({
+					...block,
+					params: { ...block.params, path: fe.path, edits: fe.edits }
+				})
+			}
+			const resultsMap = await this.processor.executeMultiFileBatch(config, singleBlockBatches)
+			result = this.combineResponses(Array.from(resultsMap.values()))
+		}
+
 		const isSuccess = typeof result !== "string" || !result.toLowerCase().includes("error")
 
 		const apiConfig = config.services.stateManager.getApiConfiguration()

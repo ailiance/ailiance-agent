@@ -45,22 +45,41 @@ export class BatchProcessor {
 
         for (const b of allBlocks) {
             const fileEdits: FileEdit[] = []
-            if (Array.isArray(b.params.files)) {
-                fileEdits.push(...b.params.files)
-            } else if (b.params.path && b.params.edits) {
-                fileEdits.push({ path: b.params.path, edits: b.params.edits })
+            
+            let files = b.params.files
+            let wasStringified = false
+            if (typeof files === "string") {
+                try {
+                    files = JSON.parse(files)
+                    b.params.files = files
+                    wasStringified = true
+                } catch (e) { }
+            }
+
+            if (Array.isArray(files)) {
+                fileEdits.push(...files)
             }
 
             for (const fe of fileEdits) {
+                let editsWasStringified = false
+                if (typeof fe.edits === "string") {
+                    try {
+                        fe.edits = JSON.parse(fe.edits)
+                        editsWasStringified = true
+                    } catch (e) { }
+                }
+
                 const { absolutePath, displayPath } = this.resolvePath(config, fe.path)
                 if (!groups.has(absolutePath)) {
-                    groups.set(absolutePath, { absolutePath, displayPath, blocks: [] })
+                    groups.set(absolutePath, { absolutePath, displayPath, blocks: [], wasStringified: wasStringified || editsWasStringified })
+                } else if (wasStringified || editsWasStringified) {
+                    groups.get(absolutePath)!.wasStringified = true
                 }
 
                 groups.get(absolutePath)!.blocks.push({
                     ...b,
-                    params: { ...b.params, path: fe.path, edits: fe.path === b.params.path ? b.params.edits : fe.edits },
-                })
+                    params: { ...b.params, path: fe.path, edits: fe.edits },
+                } as any)
             }
         }
         return groups
@@ -223,6 +242,7 @@ export class BatchProcessor {
                     this.diffMode,
                     applied.saveResult.autoFormattingEdits,
                     applied.saveResult.userEdits,
+                    batch.wasStringified
                 )
                 results.set(batch.absolutePath, result)
             }
@@ -245,34 +265,27 @@ export class BatchProcessor {
         blocks: ToolUse[],
     ): Promise<{ error?: ToolResponse; prepared?: PreparedEdits }> {
         for (const block of blocks) {
-            const validation = this.validator.assertRequiredParams(block, "path", "edits")
-            if (!validation.ok) {
-                config.taskState.consecutiveMistakeCount++
-                return {
-                    error: await config.callbacks.sayAndCreateMissingParamError(
-                        DiracDefaultTool.EDIT_FILE,
-                        !block.params.path ? "path" : "edits",
-                    ),
+            if (block.params.path === undefined || block.params.edits === undefined) {
+                let files = block.params.files
+                if (typeof files === "string") {
+                    try { files = JSON.parse(files) } catch (e) { }
+                }
+                if (!Array.isArray(files)) {
+                    config.taskState.consecutiveMistakeCount++
+                    return { error: formatResponse.toolError("The 'files' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON.") }
                 }
             }
 
-            let edits = block.params.edits
-            if (typeof edits === "string") {
-                try {
-                    edits = JSON.parse(edits)
-                    block.params.edits = edits
-                } catch (e) { }
-            }
-
+            const edits = block.params.edits
             if (!Array.isArray(edits)) {
                 config.taskState.consecutiveMistakeCount++
-                return { error: formatResponse.toolError("The 'edits' parameter must be an array.") }
+                return { error: formatResponse.toolError("The 'edits' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON.") }
             }
 
             for (const edit of edits) {
                 const editType = edit.edit_type
                 const hasEndAnchor = !!edit.end_anchor
-                const isReplace = editType === "replace"
+                const isReplace = editType === "replace" || !editType // default is replace
 
                 if (!editType || !edit.anchor || (isReplace && !hasEndAnchor) || edit.text === undefined) {
                     config.taskState.consecutiveMistakeCount++
@@ -450,7 +463,6 @@ export class BatchProcessor {
                 return { error: formatResponse.toolError(failureMessages.join("\n\n")) }
             }
 
-            // We don't apply edits here anymore, they are applied in executeMultiFileBatch
             return {
                 content,
                 finalContent: content, // Placeholder

@@ -1,5 +1,5 @@
 import { formatResponse } from "@core/prompts/responses"
-import { formatLineWithHash } from "@utils/line-hashing"
+import { formatLineWithHash, getDelimiter } from "@utils/line-hashing"
 import { ToolResponse } from "../../../index"
 import { EditExecutor } from "./EditExecutor"
 import { AppliedEdit, PreparedEdits } from "./types"
@@ -100,6 +100,7 @@ export class EditFormatter {
 		diffMode: "full" | "additions-only",
 		autoFormattingEdits?: string,
 		userEdits?: string,
+		wasStringified?: boolean,
 	): ToolResponse {
 		const { resolvedEdits, failedEdits, appliedEdits, lines, lineHashes } = prepared
 		const appliedDiffs: string[] = []
@@ -156,8 +157,8 @@ export class EditFormatter {
 		// Check for accidental literal \n in applied edits
 		for (const applied of appliedEdits) {
 			if (applied.edit.text.includes("\\n")) {
-				const anchorName = applied.edit.anchor.split("§")[0]
-				const endAnchorName = applied.edit.end_anchor?.split("§")[0]
+				const anchorName = applied.edit.anchor.split(getDelimiter())[0]
+				const endAnchorName = applied.edit.end_anchor?.split(getDelimiter())[0]
 				const endAnchorPart = endAnchorName ? ` and ending with ${endAnchorName}` : ""
 				results.push(
 					`Your edit starting with ${anchorName}${endAnchorPart} inserted a '\\n' literal in the code because you supplied double backslash '\\\\n'. If you meant to add a newline char instead, update it using '\\n' in the next call. You do not need escape characters in the text portion`,
@@ -189,6 +190,10 @@ export class EditFormatter {
 		const lineChanges = ` (+${totalAdded}, -${totalRemoved} lines)`
 		const summary = `Applied ${resolvedEdits.length} edit(s) successfully${lineChanges}. NOTE the UPDATED anchors below.${failedEdits.length > 0 ? ` ${failedEdits.length} edit(s) failed.` : ""
 			}`
+		if (wasStringified) {
+			results.push(`Note: You provided the 'files' parameter as a stringified JSON array. While this was successfully parsed and applied, you should provide it as a native JSON array in the future.`)
+		}
+
 		return formatResponse.toolResult(`${summary}\n\n${results.join("\n\n---\n\n")}`)
 	}
 }

@@ -10,6 +10,7 @@ import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { withRetry } from "../retry"
 import { convertToMistralMessages } from "../transform/mistral-format"
 import { ApiStream } from "../transform/stream"
+import { ToolCallProcessor } from "../transform/tool-call-processor"
 
 interface MistralHandlerOptions extends CommonApiHandlerOptions {
 	mistralApiKey?: string
@@ -82,6 +83,7 @@ export class MistralHandler implements ApiHandler {
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: OpenAITool[]): ApiStream {
 		const client = this.ensureClient()
+		const toolCallProcessor = new ToolCallProcessor()
 		const stream = await client.chat
 			.stream({
 				model: this.getModel().id,
@@ -105,18 +107,20 @@ export class MistralHandler implements ApiHandler {
 		for await (const chunk of stream) {
 			const delta = chunk.data.choices[0]?.delta
 			if (delta.toolCalls) {
-				for (const toolCall of delta.toolCalls) {
-					yield {
-						type: "tool_calls",
-						tool_call: {
-							function: {
-								id: toolCall.id,
-								name: toolCall.function.name,
-								arguments: JSON.stringify(toolCall.function.arguments),
-							},
+				yield* toolCallProcessor.processToolCallDeltas(
+					delta.toolCalls.map((toolCall, index) => ({
+						index,
+						id: toolCall.id,
+						type: "function",
+						function: {
+							name: toolCall.function.name,
+							arguments:
+								typeof toolCall.function.arguments === "string"
+									? toolCall.function.arguments
+									: JSON.stringify(toolCall.function.arguments),
 						},
-					}
-				}
+					})),
+				)
 			} else if (delta?.content) {
 				let content = ""
 				if (typeof delta.content === "string") {
