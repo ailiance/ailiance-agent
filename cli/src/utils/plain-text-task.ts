@@ -285,7 +285,7 @@ function handleMessageForPipeMode(
 				try {
 					const info = JSON.parse(fullText || "{}")
 					const hasMetrics = info.cost !== undefined || info.tokensIn !== undefined
-					if (hasMetrics) {
+					if (hasMetrics || !isUpdate) {
 						const costStr = info.cost !== undefined ? `Cost: $${info.cost.toFixed(4)}` : ""
 						const tokensStr =
 							info.tokensIn !== undefined

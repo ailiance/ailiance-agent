@@ -118,39 +118,27 @@ export function convertToOpenAIResponsesInput(
 			// For assistant messages, we must ensure reasoning items are IMMEDIATELY followed
 			// by their corresponding message or function_call. Process the entire assistant
 			// turn and ensure proper pairing.
-			const assistantItems: any[] = []
+			const reasoningItems: any[] = []
+			const outputItems: any[] = []
 
 			for (const _part of m.content) {
 				const part = _part as DiracContent
 				switch (part.type) {
 					case "thinking": {
 						const thinkingBlock = part as DiracAssistantThinkingBlock
-						// Only include reasoning item if it has actual content (thinking text or summary)
-						// Empty reasoning items cause API errors: "Item 'rs_...' of type 'reasoning' was provided without its required following item"
 						const hasThinkingContent = thinkingBlock.thinking && thinkingBlock.thinking.trim().length > 0
 						const hasSummaryContent =
 							thinkingBlock.summary && Array.isArray(thinkingBlock.summary) && thinkingBlock.summary.length > 0
 
-						if (
-							thinkingBlock.call_id &&
-							thinkingBlock.call_id.length > 0
-						) {
-							// Use summary if available, otherwise use thinking text
+						if (thinkingBlock.call_id && thinkingBlock.call_id.length > 0) {
 							let summary: any[] = []
 							if (hasSummaryContent) {
-								// part.summary is already in the correct format from OpenAI Responses API
 								summary = thinkingBlock.summary as any[]
 							} else if (hasThinkingContent) {
-								// Convert thinking text to summary format
-								summary = [
-									{
-										type: "summary_text",
-										text: thinkingBlock.thinking,
-									},
-								]
+								summary = [{ type: "summary_text", text: thinkingBlock.thinking }]
 							}
 
-							assistantItems.push({
+							reasoningItems.push({
 								id: thinkingBlock.call_id,
 								type: "reasoning",
 								summary,
@@ -160,67 +148,55 @@ export function convertToOpenAIResponsesInput(
 					}
 					case "redacted_thinking": {
 						const redactedBlock = part as DiracAssistantRedactedThinkingBlock
-						// Include reasoning item with encrypted content if it has a call_id
-						// Even if data is missing, we need to maintain the reasoning-function_call pairing
 						if (redactedBlock.call_id && redactedBlock.call_id.length > 0) {
 							const reasoningItem: any = {
 								id: redactedBlock.call_id,
 								type: "reasoning",
 								summary: [],
 							}
-							// Only include encrypted_content if data exists
 							if (redactedBlock.data) {
 								reasoningItem.encrypted_content = redactedBlock.data
 							}
-							assistantItems.push(reasoningItem as ResponseReasoningItem)
+							reasoningItems.push(reasoningItem as ResponseReasoningItem)
 						}
 						break
 					}
 					case "text": {
 						const textBlock = part as DiracTextContentBlock
-						// Message ID goes at the message level, not in the content
-						// The reasoning item and message can have different IDs - they just need to be adjacent
 						const messageItem: any = {
 							type: "message",
 							role: "assistant",
 							content: [{ type: "output_text", text: textBlock.text || "" }],
 						}
-						// Set message-level id if available
 						if (textBlock.call_id) {
 							messageItem.id = textBlock.call_id
 						}
-						assistantItems.push(messageItem)
+						outputItems.push(messageItem)
 						break
 					}
 					case "image": {
 						const imageBlock = part as DiracImageContentBlock
-						// Message ID goes at the message level, not in the content
 						const imageItem: any = {
 							type: "message",
 							role: "assistant",
 							content: [{ type: "output_text", text: `[image:${imageBlock.source.type === "base64" ? imageBlock.source.media_type : "url"}]` }],
 						}
-						// Set message-level id if available (though images typically don't have call_id)
 						if (imageBlock.call_id) {
 							imageItem.id = imageBlock.call_id
 						}
-						assistantItems.push(imageItem)
+						outputItems.push(imageItem)
 						break
 					}
 					case "tool_use": {
 						const toolUseBlock = part as DiracAssistantToolUseBlock
-						// Function calls use call_id, not related to reasoning item ID
 						const call_id = toolUseBlock.call_id || toolUseBlock.id
 						if (toolUseBlock.call_id) {
 							toolUseIdToCallId.set(toolUseBlock.id, toolUseBlock.call_id)
 						}
-						assistantItems.push({
+						outputItems.push({
 							type: "function_call",
 							call_id,
-							// MAX 53 characters for OpenAI Responses API tool IDs
-							id: !toolUseBlock.id.startsWith("fc_")
-								? `fc_${toolUseBlock.id.slice(0, 50)}`
-								: toolUseBlock.id,
+							id: !toolUseBlock.id.startsWith("fc_") ? `fc_${toolUseBlock.id.slice(0, 50)}` : toolUseBlock.id,
 							name: toolUseBlock.name,
 							arguments: JSON.stringify(toolUseBlock.input ?? {}),
 						})
@@ -229,7 +205,49 @@ export function convertToOpenAIResponsesInput(
 				}
 			}
 
-			allItems.push(...assistantItems)
+			// Pair reasoning items with their corresponding output items.
+			// OpenAI Responses API requires that a reasoning item be immediately followed by the item it belongs to.
+			// We use the shared ID prefix (the 24 characters after 'rs_' or 'fc_') to identify pairings.
+			const assistantTurnItems: any[] = []
+			const usedReasoningIds = new Set<string>()
+
+			for (const outputItem of outputItems) {
+				const outputId = outputItem.id || outputItem.call_id
+				if (outputId) {
+					// Extract the unique part of the ID (after the prefix)
+					const outputIdSuffix = outputId.includes("_") ? outputId.split("_")[1] : outputId
+					const outputIdPrefix = outputIdSuffix.slice(0, 24)
+
+					// Find a matching reasoning item
+					const matchingReasoning = reasoningItems.find((r) => {
+						if (usedReasoningIds.has(r.id)) return false
+						const reasoningIdSuffix = r.id.includes("_") ? r.id.split("_")[1] : r.id
+						return reasoningIdSuffix.startsWith(outputIdPrefix)
+					})
+
+					if (matchingReasoning) {
+						assistantTurnItems.push(matchingReasoning)
+						usedReasoningIds.add(matchingReasoning.id)
+					}
+				}
+				assistantTurnItems.push(outputItem)
+			}
+
+			// Add any remaining (orphaned) reasoning items at the end, followed by a placeholder if needed.
+			// However, orphaned reasoning items are rare and usually indicate a bug in generation or storage.
+			for (const reasoningItem of reasoningItems) {
+				if (!usedReasoningIds.has(reasoningItem.id)) {
+					assistantTurnItems.push(reasoningItem)
+					// Every reasoning item MUST be followed by something.
+					assistantTurnItems.push({
+						type: "message",
+						role: "assistant",
+						content: [{ type: "output_text", text: "" }],
+					})
+				}
+			}
+
+			allItems.push(...assistantTurnItems)
 		} else {
 			// User messages - collect all content
 			const messageContent: ResponseInputMessageContentList = []

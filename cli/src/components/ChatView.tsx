@@ -128,7 +128,7 @@ import { useHomeEndKeys } from "../hooks/useHomeEndKeys"
 import { useIsSpinnerActive } from "../hooks/useStateSubscriber"
 import { findWordEnd, findWordStart, useTextInput } from "../hooks/useTextInput"
 import { moveCursorDown, moveCursorUp } from "../utils/cursor"
-import { setTerminalTitle } from "../utils/display"
+import { centerText, setTerminalTitle } from "../utils/display"
 import {
     checkAndWarnRipgrepMissing,
     extractMentionQuery,
@@ -252,14 +252,6 @@ function createContextBar(used: number, total: number, width = 8): { filled: str
 	return { filled: "█".repeat(filledCount), empty: "█".repeat(emptyCount) }
 }
 
-/**
- * Center text by padding with spaces
- */
-function centerText(text: string, terminalWidth?: number): string {
-	const width = terminalWidth || process.stdout.columns || 80
-	const padding = Math.max(0, Math.floor((width - text.length) / 2))
-	return " ".repeat(padding) + text
-}
 
 /**
  * Yolo mode auto-approves tool use, commands, browser actions, etc. so the AI can work
@@ -1494,7 +1486,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 							{centerText("What can I do for you?")}
 						</Text>
 
-						<Box justifyContent="center" marginTop={1} paddingX={4}>
+						<Box marginTop={1}>
 							<Text color="cyan" italic>
 								{centerText(`“${quote}”`)}
 							</Text>

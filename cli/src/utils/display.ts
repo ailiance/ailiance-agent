@@ -44,6 +44,16 @@ const colors = {
 	bgWhite: "\x1b[47m",
 }
 
+/**
+ * Center text by padding with spaces
+ */
+export function centerText(text: string, terminalWidth?: number): string {
+	const width = terminalWidth || process.stdout.columns || 80
+	const padding = Math.max(0, Math.floor((width - text.length) / 2))
+	return " ".repeat(padding) + text
+}
+
+
 export function colorize(text: string, ...colorCodes: string[]): string {
 	return colorCodes.join("") + text + colors.reset
 }

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { centerText } from '../utils/display';
 
 export type PlaybackAPI = {
 	play: () => void;
@@ -24,30 +25,30 @@ const _DIRAC_COLORS = {
 
 // ASCII art Dirac logo
 const DIRAC_LOGO = [
-	"          █████████████        ",
-	"        ███          ▀▀██      ",
-	"      ██▀                      ",
-	"      ██▄                      ",
-	"        ▀██▄                   ",
-	"           ▀██▄                ",
-	"             ▀██▄              ",
-	"           ▄██▀ ▀██▄           ",
-	"        ▄██▀      ▀██▄         ",
-	"      ▄██▀          ▀██▄       ",
-	"    ▄██▀              ▀██▄     ",
-	"  ▄██▀                  ▀██▄   ",
-	"  ▀██▄                  ▄██▀   ",
-	"    ▀██▄              ▄██▀     ",
-	"      ▀██▄          ▄██▀       ",
-	"         ▀▀▀▀▀▀▀▀▀▀▀▀          "
+	"        █████████████        ",
+	"      ███          ▀▀██      ",
+	"    ██▀                      ",
+	"    ██▄                      ",
+	"      ▀██▄                   ",
+	"         ▀██▄                ",
+	"           ▀██▄              ",
+	"         ▄██▀ ▀██▄           ",
+	"      ▄██▀      ▀██▄         ",
+    "    ▄██▀          ▀██▄       ",
+	"  ▄██▀              ▀██▄     ",
+	"▄██▀                  ▀██▄   ",
+	"▀██▄                  ▄██▀   ",
+	"  ▀██▄              ▄██▀     ",
+	"    ▀██▄          ▄██▀       ",
+	"       ▀▀▀▀▀▀▀▀▀▀▀▀          "
 ];
 
 export const StaticRobotFrame: React.FC<{ hasDarkBackground?: boolean }> = () => {
 	return (
-		<Box flexDirection="column" alignItems="center" width="100%" marginBottom={1} marginTop={1}>
+		<Box flexDirection="column" marginBottom={1} marginTop={1}>
 			{DIRAC_LOGO.map((line, idx) => (
 				<Text color="#F59E0B" key={idx}>
-					{line}
+					{centerText(line)}
 				</Text>
 			))}
 		</Box>

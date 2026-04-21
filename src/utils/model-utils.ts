@@ -41,12 +41,6 @@ export function isGPT5(id: string): boolean {
 	return modelId.includes("gpt-5") || modelId.includes("gpt5")
 }
 
-
-export function isGPT51(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("gpt-5.1") || modelId.includes("gpt-5-1")
-}
-
 export function isLocalModel(providerInfo: ApiProviderInfo): boolean {
 	const localProviders = ["lmstudio", "ollama"]
 	return localProviders.includes(normalize(providerInfo.providerId))

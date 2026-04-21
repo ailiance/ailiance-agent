@@ -10,6 +10,7 @@ import { StateManager } from "@/core/storage/StateManager"
 import type { ApiProvider } from "@/shared/api"
 import { getProviderDefaultModelId, getProviderModelIdKey, Mode, SettingsKey } from "@/shared/storage"
 import { useStdinContext } from "../context/StdinContext"
+import { centerText } from "../utils/display"
 import {
 	checkAndWarnRipgrepMissing,
 	extractMentionQuery,
@@ -31,22 +32,22 @@ interface WelcomeViewProps {
 
 // ASCII art Dirac logo
 const DIRAC_LOGO = [
-	"          █████████████        ",
-	"        ███          ▀▀██      ",
-	"      ██▀                      ",
-	"      ██▄                      ",
-	"        ▀██▄                   ",
-	"           ▀██▄                ",
-	"             ▀██▄              ",
-	"           ▄██▀ ▀██▄           ",
-	"        ▄██▀      ▀██▄         ",
-	"      ▄██▀          ▀██▄       ",
-	"    ▄██▀              ▀██▄     ",
-	"  ▄██▀                  ▀██▄   ",
-	"  ▀██▄                  ▄██▀   ",
-	"    ▀██▄              ▄██▀     ",
-	"      ▀██▄          ▄██▀       ",
-	"         ▀▀▀▀▀▀▀▀▀▀▀▀          "
+	"        █████████████        ",
+	"      ███          ▀▀██      ",
+	"    ██▀                      ",
+	"    ██▄                      ",
+	"      ▀██▄                   ",
+	"         ▀██▄                ",
+	"           ▀██▄              ",
+	"         ▄██▀ ▀██▄           ",
+	"      ▄██▀      ▀██▄         ",
+	"    ▄██▀          ▀██▄       ",
+	"  ▄██▀              ▀██▄     ",
+	"▄██▀                  ▀██▄   ",
+	"▀██▄                  ▄██▀   ",
+	"  ▀██▄              ▄██▀     ",
+	"    ▀██▄          ▄██▀       ",
+	"       ▀▀▀▀▀▀▀▀▀▀▀▀          "
 ];
 
 
@@ -241,11 +242,11 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 	return (
 		<Box flexDirection="column" width="100%">
 			{/* Dirac logo - centered */}
-			<Box alignItems="center" flexDirection="column">
+			<Box flexDirection="column">
 				{DIRAC_LOGO.map((line, idx) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: static array that never changes
 					<Text color="#F59E0B" key={idx}>
-						{line}
+						{centerText(line)}
 					</Text>
 				))}
 			</Box>
@@ -253,12 +254,12 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 			{/* Main prompt - centered, bold */}
 			<Box alignItems="center" flexDirection="column" marginTop={1}>
 				<Text bold color="white">
-					What can I do for you?
+					{centerText("What can I do for you?")}
 				</Text>
 
-				<Box marginTop={1} paddingX={4}>
+				<Box marginTop={1}>
 					<Text color="cyan" italic>
-						“{quote}”
+						{centerText(`“${quote}”`)}
 					</Text>
 				</Box>
 			</Box>

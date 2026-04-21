@@ -133,7 +133,7 @@ async function applyTaskOptions(options: TaskOptions): Promise<void> {
 
 	const stateManager = StateManager.get()
 
-	// Apply mode flag
+	// Apply mode flag first so currentMode is correct for overrides
 	if (options.plan) {
 		stateManager.setSessionOverride("mode", "plan")
 		telemetryService.captureHostEvent("mode_flag", "plan")
@@ -141,6 +141,7 @@ async function applyTaskOptions(options: TaskOptions): Promise<void> {
 		stateManager.setSessionOverride("mode", "act")
 		telemetryService.captureHostEvent("mode_flag", "act")
 	}
+
 
 	// Validate provider/model combination
 	if (options.provider && !options.model) {
@@ -151,25 +152,22 @@ async function applyTaskOptions(options: TaskOptions): Promise<void> {
 	// Apply model override if specified
 	if (options.model) {
 		const currentMode = (stateManager.getGlobalSettingsKey("mode") || "act") as "act" | "plan"
-		const providerKey = currentMode === "act" ? "actModeApiProvider" : "planModeApiProvider"
-		const currentProvider = stateManager.getGlobalSettingsKey(providerKey) as ApiProvider
-
-		let targetProvider = options.provider as ApiProvider | undefined
 
 		if (options.provider) {
 			await validate_provider(options.provider)
 		}
 
-		if (!targetProvider) {
-			targetProvider = currentProvider
-		} else if (targetProvider !== currentProvider) {
-			stateManager.setSessionOverride(providerKey, targetProvider)
-		}
+		// Determine the target provider based on current mode or explicit flag
+		const providerKey = currentMode === "act" ? "actModeApiProvider" : "planModeApiProvider"
+		const targetProvider = (options.provider as ApiProvider) || (stateManager.getGlobalSettingsKey(providerKey) as ApiProvider)
 
 		await setModeScopedState(currentMode, (mode) => {
 			const pKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
-			const p = stateManager.getGlobalSettingsKey(pKey) as ApiProvider
-			const modelKey = getProviderModelIdKey(p, mode)
+
+			// Ensure the provider is synced if setModeScopedState calls us for multiple modes
+			stateManager.setSessionOverride(pKey, targetProvider)
+
+			const modelKey = getProviderModelIdKey(targetProvider, mode)
 			if (modelKey) {
 				stateManager.setSessionOverride(modelKey, options.model!)
 			}
