@@ -25,7 +25,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		const range =
 			block.params.start_line || block.params.end_line
 				? ` lines ${block.params.start_line || 1}-${block.params.end_line || "?"}`
@@ -34,7 +34,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
 			return
@@ -128,7 +128,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		const startLineNum = block.params.start_line ? Number.parseInt(String(block.params.start_line)) : undefined
 		const endLineNum = block.params.end_line ? Number.parseInt(String(block.params.end_line)) : undefined
 

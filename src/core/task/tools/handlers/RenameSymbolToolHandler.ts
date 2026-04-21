@@ -33,14 +33,14 @@ export class RenameSymbolToolHandler implements IFullyManagedTool {
 	getDescription(block: ToolUse): string {
 		const existingSymbol = block.params.existing_symbol as string
 		const newSymbol = block.params.new_symbol as string
-		const paths = (block.params.paths as string[]) || []
+		const paths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		return `[${block.name} for '${existingSymbol}' to '${newSymbol}' in ${paths.map((p) => `'${p}'`).join(", ")}]`
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
 		const existingSymbol = uiHelpers.removeClosingTag(block, "existing_symbol", (block.params.existing_symbol as string) || "")
 		const newSymbol = uiHelpers.removeClosingTag(block, "new_symbol", (block.params.new_symbol as string) || "")
-		const paths = (block.params.paths as string[]) || []
+		const paths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
@@ -69,7 +69,7 @@ export class RenameSymbolToolHandler implements IFullyManagedTool {
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const existingSymbol = block.params.existing_symbol as string
 		const newSymbol = block.params.new_symbol as string
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 
 		if (!existingSymbol || !newSymbol || relPaths.length === 0) {
 			config.taskState.consecutiveMistakeCount++

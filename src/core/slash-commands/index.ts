@@ -4,11 +4,11 @@ import fs from "fs/promises"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
 import {
-    condenseToolResponse,
-    explainChangesToolResponse,
-    newRuleToolResponse,
-    newTaskToolResponse,
-    reportBugToolResponse,
+	condenseToolResponse,
+	explainChangesToolResponse,
+	newRuleToolResponse,
+	newTaskToolResponse,
+	reportBugToolResponse,
 } from "../prompts/commands"
 import { StateManager } from "../storage/StateManager"
 

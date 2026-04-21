@@ -326,9 +326,15 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
 	})
 
-	function makeBlock(relPath?: string, regex?: string, filePattern?: string) {
-		const params: Record<string, string> = {}
-		if (relPath !== undefined) params.path = relPath
+	function makeBlock(relPaths?: string | string[], regex?: string, filePattern?: string) {
+		const params: Record<string, any> = {}
+		if (relPaths !== undefined) {
+			if (Array.isArray(relPaths)) {
+				params.paths = relPaths
+			} else {
+				params.path = relPaths
+			}
+		}
 		if (regex !== undefined) params.regex = regex
 		if (filePattern !== undefined) params.file_pattern = filePattern
 		return {
@@ -483,6 +489,52 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		assert.equal(taskState.consecutiveMistakeCount, 2)
 
 		await handler.execute(config, makeBlock("dir-3", "pat"))
+		assert.equal(taskState.consecutiveMistakeCount, 0)
+	})
+
+
+	it("resets consecutiveMistakeCount if at least one path succeeds in a multi-path call", async () => {
+		const { config, taskState, validator } = createConfig()
+		const handler = new SearchFilesToolHandler(validator)
+
+		const ripgrepModule = await import("@services/ripgrep")
+		const stub = sandbox.stub(ripgrepModule, "regexSearchFiles")
+
+		// Mock one failure and one success
+		stub.withArgs(sinon.match.any, sinon.match(/blocked/), sinon.match.any).rejects(new Error("boom"))
+		stub.withArgs(sinon.match.any, sinon.match(/success/), sinon.match.any).resolves("Found 1 result.\n\nfile.txt\nmatch")
+
+		// Accumulate failures first
+		taskState.consecutiveMistakeCount = 2
+
+		const result = await handler.execute(config, makeBlock(["blocked-dir", "success-dir"], "pattern"))
+
+		assert.equal(typeof result, "string")
+		assert.ok((result as string).includes("Found 1 result"))
+		assert.equal(taskState.consecutiveMistakeCount, 0)
+	})
+
+	it("correctly handles an array passed to the 'path' parameter (bug fix)", async () => {
+		const { config, taskState, validator } = createConfig()
+		const handler = new SearchFilesToolHandler(validator)
+
+		const ripgrepModule = await import("@services/ripgrep")
+		sandbox.stub(ripgrepModule, "regexSearchFiles").resolves("Found 0 results.\n\n")
+
+		// Pass array to 'path' instead of 'paths'
+		const block = {
+			type: "tool_use" as const,
+			name: DiracDefaultTool.SEARCH,
+			params: {
+				path: ["src/transformers/pipelines"],
+				regex: "class.*Pipeline",
+			},
+			partial: false,
+		}
+
+		const result = await handler.execute(config, block as any)
+
+		assert.equal(typeof result, "string")
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
 })

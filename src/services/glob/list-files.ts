@@ -85,6 +85,36 @@ export async function listFiles(dirPath: string, recursive: boolean, limit: numb
 
 	// globby requires cwd to point to a directory
 	if (!(await isDirectory(absolutePath))) {
+		// If it's a file, return information about that file
+		try {
+			const stats = await fs.stat(absolutePath)
+			if (stats.isFile()) {
+				let lineCount: number | undefined
+				try {
+					const isBinary = await isBinaryFile(absolutePath)
+					if (!isBinary) {
+						const content = await fs.readFile(absolutePath, "utf8")
+						lineCount = (content.match(/\n/g) || []).length + 1
+					}
+				} catch (error) {
+					// Ignore errors reading file
+				}
+
+				return [
+					[
+						{
+							path: absolutePath,
+							mtime: stats.mtimeMs,
+							isDirectory: false,
+							lineCount,
+						},
+					],
+					false,
+				]
+			}
+		} catch (error) {
+			// Path does not exist or other error
+		}
 		return [[], false]
 	}
 

@@ -23,13 +23,13 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		const pathsText = relPaths.length > 0 ? ` for ${relPaths.map((p) => `'${p}'`).join(", ")}` : ""
 		return `[${block.name}${pathsText}]`
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = (block.params.paths as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
 		const config = uiHelpers.getConfig()
 
 		const message = JSON.stringify({
@@ -55,7 +55,12 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 			return await config.callbacks.sayAndCreateMissingParamError(this.name, "paths")
 		}
 
-		const relPaths = block.params.paths as string[]
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
+		if (relPaths.length === 0) {
+			config.taskState.consecutiveMistakeCount++
+			return await config.callbacks.sayAndCreateMissingParamError(this.name, "paths")
+		}
+
 		const fileInfos = await Promise.all(
 			relPaths.map(async (relPath) => {
 				const pathResult = resolveWorkspacePath(config, relPath, "DiagnosticsScanToolHandler.execute")

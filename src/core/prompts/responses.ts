@@ -167,7 +167,10 @@ Otherwise, if you have not completed the task and do not need additional informa
 			: sorted
 
 		const formatted = filtered.map((file) => {
-			const relativePath = path.relative(absolutePath, file.path).toPosix()
+			let relativePath = path.relative(absolutePath, file.path).toPosix()
+			if (relativePath === "" && !file.isDirectory) {
+				relativePath = path.basename(file.path)
+			}
 			const displayPath = file.isDirectory
 				? relativePath.endsWith("/")
 					? relativePath

@@ -20,13 +20,13 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const functionNames = (block.params.function_names as string[]) || []
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
+		const functionNames = Array.isArray(block.params.function_names) ? block.params.function_names : (block.params.function_names ? [block.params.function_names as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
 		return `[${block.name} for '${functionNames.join(", ")}' in ${relPaths.map((p) => `'${p}'`).join(", ")}]`
 	}
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
-		const functionNames = (block.params.function_names as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
+		const functionNames = Array.isArray(block.params.function_names) ? block.params.function_names : (block.params.function_names ? [block.params.function_names as string] : [])
 
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
@@ -119,19 +119,18 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 
 
 		async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
-		const functionNames = (block.params.function_names as string[]) || []
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
+		const functionNames = Array.isArray(block.params.function_names) ? block.params.function_names : (block.params.function_names ? [block.params.function_names as string] : [])
 
 		const apiConfig = config.services.stateManager.getApiConfiguration()
 		const currentMode = config.services.stateManager.getGlobalSettingsKey("mode")
 		const provider = (currentMode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) as string
 
-		const pathValidation = this.validator.assertRequiredParams(block, block.params.paths ? "paths" : "path", "function_names")
-		if (!pathValidation.ok) {
+		if (relPaths.length === 0 || functionNames.length === 0) {
 			config.taskState.consecutiveMistakeCount++
 			return await config.callbacks.sayAndCreateMissingParamError(
 				this.name,
-				!block.params.paths && !block.params.path ? "paths" : "function_names",
+				relPaths.length === 0 ? "paths" : "function_names",
 			)
 		}
 

@@ -7,13 +7,15 @@ export const search_files: DiracToolSpec = {
 	id,
 	name: "search_files",
 	description:
-		"Regex search across files in a specified directory. Skips non-useful content (.git, node_modules, build artifacts, etc. and all files and directories starting with a dot). Prefer AST tools over this when reasonable.",
+		"Regex search across files in the specified paths (files or directories). Skips non-useful content (.git, node_modules, build artifacts, etc. and all files and directories starting with a dot). Prefer AST tools over this when reasonable.",
 	parameters: [
 		{
-			name: "path",
+			name: "paths",
 			required: true,
-			instruction: "The path of the directory to search in.",
-			usage: "Directory path here",
+			type: "array",
+			items: { type: "string" },
+			instruction: "The paths of the files or directories to search in.",
+			usage: '["src/core", "src/services"]',
 		},
 		{
 			name: "regex",

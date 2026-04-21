@@ -23,15 +23,15 @@ export class FindSymbolReferencesToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
-		const symbols = (block.params.symbols as string[]) || (block.params.symbol ? [block.params.symbol as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
+		const symbols = Array.isArray(block.params.symbols) ? block.params.symbols : (block.params.symbols ? [block.params.symbols as string] : (block.params.symbol ? [block.params.symbol as string] : []))
 		const findType = (block.params.find_type as string) || "both"
 		return `[${block.name} for ${symbols.map((s) => `'${s}'`).join(", ")} in ${relPaths.map((p) => `'${p}'`).join(", ")}${findType !== "both" ? ` (type: ${findType})` : ""}]`
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
-		const symbols = (block.params.symbols as string[]) || (block.params.symbol ? [block.params.symbol as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
+		const symbols = Array.isArray(block.params.symbols) ? block.params.symbols : (block.params.symbols ? [block.params.symbols as string] : (block.params.symbol ? [block.params.symbol as string] : []))
 
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
@@ -60,8 +60,8 @@ export class FindSymbolReferencesToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
-		const symbols = (block.params.symbols as string[]) || (block.params.symbol ? [block.params.symbol as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
+		const symbols = Array.isArray(block.params.symbols) ? block.params.symbols : (block.params.symbols ? [block.params.symbols as string] : (block.params.symbol ? [block.params.symbol as string] : []))
 		const findType = (block.params.find_type as "definition" | "reference" | "both") || "both"
 
 		const apiConfig = config.services.stateManager.getApiConfiguration()

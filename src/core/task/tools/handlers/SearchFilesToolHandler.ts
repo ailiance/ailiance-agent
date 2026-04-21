@@ -24,10 +24,23 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 	readonly name = DiracDefaultTool.SEARCH
 
 	constructor(private validator: ToolValidator) {}
+	private getRelPaths(params: any): string[] {
+		return Array.isArray(params.paths)
+			? params.paths
+			: params.paths
+				? [params.paths as string]
+				: Array.isArray(params.path)
+					? params.path
+					: params.path
+						? [params.path as string]
+						: []
+	}
 
 	getDescription(block: ToolUse): string {
+		const relPaths = this.getRelPaths(block.params)
+		const pathsStr = relPaths.length > 1 ? `${relPaths.length} paths` : `'${relPaths[0] || ""}'`
 		const contextLines = block.params.context_lines ? ` with ${block.params.context_lines} context lines` : ""
-		return `[${block.name} for '${block.params.regex}'${
+		return `[${block.name} for '${block.params.regex}' in ${pathsStr}${
 			block.params.file_pattern ? ` in '${block.params.file_pattern}'` : ""
 		}${contextLines}]`
 	}
@@ -178,7 +191,8 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPath = block.params.path
+		const relPaths = this.getRelPaths(block.params)
+		const relPath = relPaths[0] || ""
 		const regex = block.params.regex
 
 		const config = uiHelpers.getConfig()
@@ -192,18 +206,25 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 
 		const sharedMessageProps = {
 			tool: "searchFiles",
-			path: getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, "path", relPath)),
+			paths: relPaths.map((p) =>
+				getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, block.params.paths ? "paths" : "path", p)),
+			),
+			path: getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, block.params.paths ? "paths" : "path", relPath)),
 			content: "",
 			regex: uiHelpers.removeClosingTag(block, "regex", regex),
 			filePattern: uiHelpers.removeClosingTag(block, "file_pattern", filePattern),
 			contextLines: Number.parseInt(uiHelpers.removeClosingTag(block, "context_lines", contextLines) || "0", 10),
-			operationIsLocatedInWorkspace: await isLocatedInWorkspace(relPath),
+			operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(Boolean),
 		} satisfies DiracSayTool
 
 		const partialMessage = JSON.stringify(sharedMessageProps)
 
 		// Handle auto-approval vs manual approval for partial
-		if (await uiHelpers.shouldAutoApproveToolWithPath(block.name, relPath)) {
+		const shouldAutoApprove = (
+			await Promise.all(relPaths.map((p) => uiHelpers.shouldAutoApproveToolWithPath(block.name, p)))
+		).every(Boolean)
+
+		if (shouldAutoApprove) {
 			await uiHelpers.removeLastPartialMessageIfExistsWithType("ask", "tool")
 			await uiHelpers.say("tool", partialMessage, undefined, undefined, block.partial)
 		} else {
@@ -213,7 +234,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relDirPath: string | undefined = block.params.path
+		const relPaths = this.getRelPaths(block.params)
 		const regex: string | undefined = block.params.regex
 		const filePattern: string | undefined = block.params.file_pattern
 		const contextLines = Number.parseInt(block.params.context_lines || "0", 10)
@@ -224,10 +245,9 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		const provider = (currentMode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) as string
 
 		// Validate required parameters
-		const pathValidation = this.validator.assertRequiredParams(block, "path")
-		if (!pathValidation.ok) {
+		if (relPaths.length === 0) {
 			config.taskState.consecutiveMistakeCount++
-			return await config.callbacks.sayAndCreateMissingParamError(this.name, "path")
+			return await config.callbacks.sayAndCreateMissingParamError(this.name, block.params.paths ? "paths" : "path")
 		}
 
 		if (!regex) {
@@ -238,14 +258,18 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		// Parse workspace hint from the path and determine search targets.
 		// These can throw if the workspace configuration is invalid or the
 		// path cannot be resolved, so catch and return a graceful tool error.
-		let parsedPath: string
-		let workspaceHint: string | undefined
-		let searchPaths: ReturnType<SearchFilesToolHandler["determineSearchPaths"]>
+		let anyUsedWorkspaceHint = false
+		const allSearchPaths: Array<{ absolutePath: string; workspaceName?: string; workspaceRoot?: string; originalPath: string }> = []
+
 		try {
-			const parsed = parseWorkspaceInlinePath(relDirPath!)
-			parsedPath = parsed.relPath
-			workspaceHint = parsed.workspaceHint
-			searchPaths = this.determineSearchPaths(config, parsedPath, workspaceHint, relDirPath!)
+			for (const relPath of relPaths) {
+				const parsed = parseWorkspaceInlinePath(relPath)
+				const searchPaths = this.determineSearchPaths(config, parsed.relPath, parsed.workspaceHint, relPath)
+				allSearchPaths.push(...searchPaths.map((p) => ({ ...p, originalPath: relPath })))
+				if (parsed.workspaceHint) {
+					anyUsedWorkspaceHint = true
+				}
+			}
 		} catch (error) {
 			config.taskState.consecutiveMistakeCount++
 			const errorMessage = error instanceof Error ? error.message : String(error)
@@ -253,43 +277,46 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		}
 
 		// Determine workspace context for telemetry
-		const primaryWorkspaceRoot = searchPaths[0]?.workspaceRoot
+		const primaryWorkspaceRoot = allSearchPaths[0]?.workspaceRoot
 		const resolvedToNonPrimary =
-			searchPaths.length === 0
+			allSearchPaths.length === 0
 				? true
-				: searchPaths.length > 1 || (primaryWorkspaceRoot ? !arePathsEqual(primaryWorkspaceRoot, config.cwd) : true)
+				: allSearchPaths.length > 1 || (primaryWorkspaceRoot ? !arePathsEqual(primaryWorkspaceRoot, config.cwd) : true)
 		const workspaceContext = {
 			isMultiRootEnabled: config.isMultiRootEnabled || false,
-			usedWorkspaceHint: !!workspaceHint,
+			usedWorkspaceHint: anyUsedWorkspaceHint,
 			resolvedToNonPrimary,
-			resolutionMethod: (workspaceHint ? "hint" : searchPaths.length > 1 ? "path_detection" : "primary_fallback") as
-				| "hint"
-				| "primary_fallback"
-				| "path_detection",
+			resolutionMethod: (anyUsedWorkspaceHint
+				? "hint"
+				: allSearchPaths.length > 1
+					? "path_detection"
+					: "primary_fallback") as "hint" | "primary_fallback" | "path_detection",
 		}
 
 		// Capture workspace path resolution telemetry
 		if (config.isMultiRootEnabled && config.workspaceManager) {
-			const resolutionType = workspaceHint
+			const resolutionType = anyUsedWorkspaceHint
 				? "hint_provided"
-				: searchPaths.length > 1
+				: allSearchPaths.length > 1
 					? "cross_workspace_search"
 					: "fallback_to_primary"
 			telemetryService.captureWorkspacePathResolved(
 				config.ulid,
 				"SearchFilesToolHandler",
 				resolutionType,
-				workspaceHint ? "workspace_name" : undefined,
-				searchPaths.length > 0, // resolution success = found paths to search
+				anyUsedWorkspaceHint ? "workspace_name" : undefined,
+				allSearchPaths.length > 0, // resolution success = found paths to search
 				undefined, // TODO: could calculate primary workspace index
 				true,
 			)
 		}
 
-
 		// Execute searches in all relevant workspaces in parallel
-		const searchPromises = searchPaths.map(({ absolutePath, workspaceName, workspaceRoot }) =>
-			this.executeSearch(config, absolutePath, workspaceName, workspaceRoot, regex, filePattern, contextLines, ["!.*", "!**/.*"]),
+		const searchPromises = allSearchPaths.map(({ absolutePath, workspaceName, workspaceRoot }) =>
+			this.executeSearch(config, absolutePath, workspaceName, workspaceRoot, regex, filePattern, contextLines, [
+				"!.*",
+				"!**/.*",
+			]),
 		)
 
 		// Wait for all searches to complete
@@ -298,7 +325,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		const searchDurationMs = performance.now() - searchStartTime
 
 		// Format and combine results
-		const results = this.formatSearchResults(config, searchResults, searchPaths)
+		const results = this.formatSearchResults(config, searchResults, allSearchPaths)
 
 		// Only reset after a successful operation so repeated failures
 		// accumulate toward the yolo-mode mistake limit.
@@ -312,14 +339,14 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 
 		// Capture workspace search pattern telemetry
 		if (config.isMultiRootEnabled && config.workspaceManager) {
-			const searchType = workspaceHint ? "targeted" : searchPaths.length > 1 ? "cross_workspace" : "primary_only"
+			const searchType = anyUsedWorkspaceHint ? "targeted" : allSearchPaths.length > 1 ? "cross_workspace" : "primary_only"
 			const resultsFound = searchResults.some((result) => result.resultCount > 0)
 
 			telemetryService.captureWorkspaceSearchPattern(
 				config.ulid,
 				searchType,
-				searchPaths.length,
-				!!workspaceHint,
+				allSearchPaths.length,
+				anyUsedWorkspaceHint,
 				resultsFound,
 				searchDurationMs,
 			)
@@ -327,18 +354,20 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 
 		const sharedMessageProps = {
 			tool: "searchFiles",
-			path: getReadablePath(config.cwd, relDirPath!),
+			paths: relPaths.map((p) => getReadablePath(config.cwd, p)),
+			path: getReadablePath(config.cwd, relPaths[0] || ""),
 			content: stripHashes(results),
 			regex: regex,
 			filePattern: filePattern,
 			contextLines: contextLines,
-			operationIsLocatedInWorkspace: await isLocatedInWorkspace(parsedPath),
+			operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(Boolean),
 		} satisfies DiracSayTool
 
 		const completeMessage = JSON.stringify(sharedMessageProps)
 
 		const shouldAutoApprove =
-			config.isSubagentExecution || (await config.callbacks.shouldAutoApproveToolWithPath(block.name, relDirPath))
+			config.isSubagentExecution ||
+			(await Promise.all(relPaths.map((p) => config.callbacks.shouldAutoApproveToolWithPath(block.name, p)))).every(Boolean)
 		if (shouldAutoApprove) {
 			// Auto-approval flow
 			if (!config.isSubagentExecution) {

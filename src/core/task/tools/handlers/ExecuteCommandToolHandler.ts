@@ -59,7 +59,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const commands = (block.params.commands as string[] | undefined) || []
+		const commands = Array.isArray(block.params.commands) ? block.params.commands : (block.params.commands ? [block.params.commands as string] : [])
 		const command = block.params.command as string | undefined
 		const script = block.params.script as string | undefined
 		const language = block.params.language as string | undefined
@@ -95,6 +95,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 						command: uiHelpers.removeClosingTag(block, "commands", cmd),
 					})
 				}
+			})
+		} else if (typeof rawCommands === "string" && rawCommands.trim() !== "") {
+			commandsToProcess.push({
+				command: uiHelpers.removeClosingTag(block, "commands", rawCommands),
 			})
 		} else if (rawCommand) {
 			commandsToProcess.push({
@@ -166,6 +170,8 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 		if (Array.isArray(rawCommands) && rawCommands.length > 0) {
 			rawCommands.forEach((cmd: string) => commandsToProcess.push({ command: cmd }))
+		} else if (typeof rawCommands === "string" && rawCommands.trim() !== "") {
+			commandsToProcess.push({ command: rawCommands })
 		} else if (rawCommand) {
 			commandsToProcess.push({ command: rawCommand })
 		}
@@ -177,6 +183,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				command: wrappedCommand,
 				displayName: `${langDisplay} script`,
 			})
+		}
+
+		if (commandsToProcess.length === 0) {
+			return formatResponse.toolResult("No commands provided to execute.")
 		}
 
 		// Extract provider

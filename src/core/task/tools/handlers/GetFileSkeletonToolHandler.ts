@@ -20,12 +20,12 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
 		return `[${block.name} for ${relPaths.map((p) => `'${p}'`).join(", ")}]`
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
 			return
@@ -50,7 +50,7 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relPaths = (block.params.paths as string[]) || (block.params.path ? [block.params.path as string] : [])
+		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : (block.params.path ? [block.params.path as string] : []))
 		const apiConfig = config.services.stateManager.getApiConfiguration()
 		const currentMode = config.services.stateManager.getGlobalSettingsKey("mode")
 		const provider = (currentMode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) as string

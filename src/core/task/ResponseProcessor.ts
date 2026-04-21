@@ -97,21 +97,6 @@ export class ResponseProcessor {
 			block.partial = false
 		})
 
-		// Ensure all messages in the UI are marked as non-partial once the stream is finished
-		const diracMessages = this.dependencies.messageStateHandler.getDiracMessages()
-		let changed = false
-		diracMessages.forEach((msg) => {
-			if (msg.partial) {
-				msg.partial = false
-				changed = true
-			}
-		})
-
-		if (changed) {
-			await this.dependencies.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-			await this.dependencies.postStateToWebview()
-		}
-
 		const partialToolBlocks = params.toolUseHandler
 			.getPartialToolUsesAsContent()
 			?.map((block: any) => ({ ...block, partial: false }))
