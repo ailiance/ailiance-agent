@@ -136,6 +136,8 @@ export interface ModelInfo {
 		cacheReadsPrice?: number
 	}[]
 	temperature?: number
+	supportsTools?: boolean
+
 	apiFormat?: ApiFormat // The API format used by this model
 }
 
@@ -144,7 +146,6 @@ export interface OpenAiCompatibleModelInfo extends ModelInfo {
 	isR1FormatRequired?: boolean
 	systemRole?: "developer" | "system"
 	supportsReasoningEffort?: boolean
-	supportsTools?: boolean
 	supportsStreaming?: boolean
 }
 
@@ -1184,6 +1185,7 @@ export const huggingFaceModels = {
 			"Medium open-weight reasoning model that runs on most desktops, balancing strong reasoning with broad accessibility.",
 	},
 	"moonshotai/Kimi-K2-Instruct": {
+		supportsTools: true,
 		maxTokens: 131_072,
 		contextWindow: 131_072,
 		supportsImages: false,
@@ -2114,6 +2116,7 @@ export const nebiusModels = {
 		outputPrice: 0.6,
 	},
 	"moonshotai/Kimi-K2-Instruct": {
+		supportsTools: true,
 		maxTokens: 16384, // Quantization: fp4
 		contextWindow: 131_000,
 		supportsImages: false,
@@ -2138,6 +2141,7 @@ export const nebiusModels = {
 		outputPrice: 0.2,
 	},
 	"zai-org/GLM-4.5": {
+		supportsTools: true,
 		maxTokens: 98304, // Quantization: fp8
 		contextWindow: 128_000,
 		supportsImages: false,
@@ -2146,6 +2150,7 @@ export const nebiusModels = {
 		outputPrice: 2.2,
 	},
 	"zai-org/GLM-4.5-Air": {
+		supportsTools: true,
 		maxTokens: 98304, // Quantization: fp8
 		contextWindow: 128_000,
 		supportsImages: false,
@@ -2237,6 +2242,7 @@ export const wandbModels = {
 		description: "Compact, efficient model ideal for fast responses in resource-constrained environments",
 	},
 	"MiniMaxAI/MiniMax-M2.5": {
+		supportsTools: true,
 		maxTokens: 40_960,
 		contextWindow: 197_000,
 		supportsImages: false,
@@ -2323,6 +2329,7 @@ export const wandbModels = {
 			"Mixture-of-Experts model optimized for agentic coding tasks such as function calling, tool use, and long-context reasoning",
 	},
 	"zai-org/GLM-5-FP8": {
+		supportsTools: true,
 		maxTokens: 8_192,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -2538,6 +2545,7 @@ export const sambanovaModels = {
 		outputPrice: 1.2,
 	},
 	"MiniMax-M2.5": {
+		supportsTools: true,
 		maxTokens: 16384,
 		contextWindow: 163840,
 		supportsImages: false,
@@ -2572,6 +2580,7 @@ export type CerebrasModelId = keyof typeof cerebrasModels
 export const cerebrasDefaultModelId: CerebrasModelId = "zai-glm-4.7"
 export const cerebrasModels = {
 	"zai-glm-4.7": {
+		supportsTools: true,
 		maxTokens: 40000,
 		contextWindow: 131072,
 		supportsImages: false,
@@ -3086,6 +3095,7 @@ export interface BasetenModelInfo extends ModelInfo {
 
 export const basetenModels = {
 	"moonshotai/Kimi-K2-Thinking": {
+		supportsTools: true,
 		maxTokens: 163_800,
 		contextWindow: 262_000,
 		supportsImages: false,
@@ -3098,6 +3108,7 @@ export const basetenModels = {
 		supportsReasoning: true,
 	},
 	"zai-org/GLM-4.6": {
+		supportsTools: true,
 		maxTokens: 200_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3206,6 +3217,7 @@ export const basetenModels = {
 		supportsReasoning: true,
 	},
 	"moonshotai/Kimi-K2-Instruct-0905": {
+		supportsTools: true,
 		maxTokens: 168_000,
 		contextWindow: 262_000,
 		supportsImages: false,
@@ -3228,6 +3240,7 @@ export type internationalZAiModelId = keyof typeof internationalZAiModels
 export const internationalZAiDefaultModelId: internationalZAiModelId = "glm-5"
 export const internationalZAiModels = {
 	"glm-5.1": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3241,6 +3254,7 @@ export const internationalZAiModels = {
 		outputPrice: 4.4,
 	},
 	"glm-5": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3254,6 +3268,7 @@ export const internationalZAiModels = {
 		outputPrice: 3.2,
 	},
 	"glm-4.7": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3267,6 +3282,7 @@ export const internationalZAiModels = {
 		outputPrice: 2.2,
 	},
 	"glm-4.6": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3285,6 +3301,7 @@ export type mainlandZAiModelId = keyof typeof mainlandZAiModels
 export const mainlandZAiDefaultModelId: mainlandZAiModelId = "glm-5"
 export const mainlandZAiModels = {
 	"glm-5.1": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3298,6 +3315,7 @@ export const mainlandZAiModels = {
 		outputPrice: 4.4,
 	},
 	"glm-5": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3311,6 +3329,7 @@ export const mainlandZAiModels = {
 		outputPrice: 3.2,
 	},
 	"glm-4.7": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3324,6 +3343,7 @@ export const mainlandZAiModels = {
 		outputPrice: 2.2,
 	},
 	"glm-4.6": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 200_000,
 		supportsImages: false,
@@ -3404,6 +3424,7 @@ export const fireworksModels = {
 		description: "DeepSeek V3.2 model tuned for high computational efficiency and strong reasoning and agent performance.",
 	},
 	"accounts/fireworks/models/glm-4p7": {
+		supportsTools: true,
 		maxTokens: 16384,
 		contextWindow: 202752,
 		supportsImages: false,
@@ -3416,6 +3437,7 @@ export const fireworksModels = {
 		description: "GLM-4.7 is a next-generation general-purpose model optimized for coding, reasoning, and agentic workflows.",
 	},
 	"accounts/fireworks/models/glm-5": {
+		supportsTools: true,
 		maxTokens: 16384,
 		contextWindow: 202752,
 		supportsImages: false,
@@ -3428,6 +3450,7 @@ export const fireworksModels = {
 		description: "GLM-5 is Z.ai's flagship reasoning model for complex systems engineering and long-horizon agentic tasks.",
 	},
 	"accounts/fireworks/models/minimax-m2p5": {
+		supportsTools: true,
 		maxTokens: 16384,
 		contextWindow: 196608,
 		supportsImages: false,
@@ -3440,6 +3463,7 @@ export const fireworksModels = {
 		description: "MiniMax M2.5 is built for state-of-the-art coding, agentic tool use.",
 	},
 	"accounts/fireworks/models/minimax-m2p1": {
+		supportsTools: true,
 		maxTokens: 16384,
 		contextWindow: 196608,
 		supportsImages: false,
@@ -3501,6 +3525,7 @@ export type MinimaxModelId = keyof typeof minimaxModels
 export const minimaxDefaultModelId: MinimaxModelId = "MiniMax-M2.7"
 export const minimaxModels = {
 	"MiniMax-M2.7": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3513,6 +3538,7 @@ export const minimaxModels = {
 		description: "Latest flagship model with enhanced reasoning and coding",
 	},
 	"MiniMax-M2.7-highspeed": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3525,6 +3551,7 @@ export const minimaxModels = {
 		description: "High-speed version of M2.7 for low-latency scenarios",
 	},
 	"MiniMax-M2.5": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3536,6 +3563,7 @@ export const minimaxModels = {
 		cacheReadsPrice: 0.03,
 	},
 	"MiniMax-M2.5-highspeed": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3547,6 +3575,7 @@ export const minimaxModels = {
 		cacheReadsPrice: 0.03,
 	},
 	"MiniMax-M2.1": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3557,6 +3586,7 @@ export const minimaxModels = {
 		cacheReadsPrice: 0.03,
 	},
 	"MiniMax-M2.1-lightning": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
@@ -3567,6 +3597,7 @@ export const minimaxModels = {
 		cacheReadsPrice: 0.03,
 	},
 	"MiniMax-M2": {
+		supportsTools: true,
 		maxTokens: 128_000,
 		contextWindow: 192_000,
 		supportsImages: false,
