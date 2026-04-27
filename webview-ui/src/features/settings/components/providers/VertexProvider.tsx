@@ -122,6 +122,8 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 					style={{ display: "inline", fontSize: "inherit" }}>
 					{"2) install the Google Cloud CLI › configure Application Default Credentials."}
 				</VSCodeLink>
+				<br />
+				Alternatively, you can set <b>GOOGLE_CLOUD_PROJECT</b> and <b>GOOGLE_CLOUD_LOCATION</b> environment variables.
 			</p>
 
 			{showModelOptions && (

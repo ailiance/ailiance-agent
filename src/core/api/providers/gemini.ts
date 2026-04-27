@@ -92,8 +92,13 @@ export class GeminiHandler implements ApiHandler {
 
 			if (options.isVertex) {
 				// Initialize with Vertex AI configuration
-				const project = this.options.vertexProjectId ?? "not-provided"
-				const location = this.options.vertexRegion ?? "not-provided"
+				if (!this.options.vertexProjectId || !this.options.vertexRegion) {
+					throw new Error(
+						"Vertex AI project ID and region are required. Please configure them in settings or set GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.",
+					)
+				}
+				const project = this.options.vertexProjectId
+				const location = this.options.vertexRegion
 
 				try {
 					this.client = new GoogleGenAI({

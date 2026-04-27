@@ -31,7 +31,7 @@ export function validateApiConfiguration(currentMode: Mode, apiConfiguration?: A
 				break
 			case "vertex":
 				if (!apiConfiguration.vertexProjectId || !apiConfiguration.vertexRegion) {
-					return "You must provide a valid Google Cloud Project ID and Region."
+					return "You must provide a valid Google Cloud Project ID and Region. You can also set these via GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables."
 				}
 				break
 			case "gemini":

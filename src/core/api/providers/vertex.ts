@@ -50,10 +50,10 @@ export class VertexHandler implements ApiHandler {
 	private ensureAnthropicClient(): AnthropicVertex {
 		if (!this.clientAnthropic) {
 			if (!this.options.vertexProjectId) {
-				throw new Error("Vertex AI project ID is required")
+				throw new Error("Vertex AI project ID is required. Please configure it in settings or set the GOOGLE_CLOUD_PROJECT environment variable.")
 			}
 			if (!this.options.vertexRegion) {
-				throw new Error("Vertex AI region is required")
+				throw new Error("Vertex AI region is required. Please configure it in settings or set the GOOGLE_CLOUD_LOCATION environment variable.")
 			}
 			try {
 				const externalHeaders = buildExternalBasicHeaders()

@@ -1,5 +1,5 @@
 import { ApiProvider } from "../api"
-import { Secrets } from "./state-keys"
+import { Secrets, Settings } from "./state-keys"
 
 /**
  * Mapping of environment variables to Dirac secret keys.
@@ -33,6 +33,17 @@ export const ENV_VAR_TO_SECRET_KEY: Record<string, keyof Secrets> = {
 }
 
 /**
+ * Mapping of environment variables to Dirac settings keys.
+ * This allows users to provide configuration via environment variables.
+ */
+export const ENV_VAR_TO_SETTINGS_KEY: Record<string, keyof Settings> = {
+	GOOGLE_CLOUD_PROJECT: "vertexProjectId",
+	GCP_PROJECT: "vertexProjectId",
+	GOOGLE_CLOUD_LOCATION: "vertexRegion",
+	GOOGLE_CLOUD_REGION: "vertexRegion",
+}
+
+/**
  * Get secrets from environment variables.
  * Returns a partial Secrets object with keys found in process.env.
  */
@@ -59,6 +70,23 @@ export function getSecretsFromEnv(): Partial<Secrets> {
 	return secrets
 }
 
+/**
+ * Get settings from environment variables.
+ * Returns a partial Settings object with keys found in process.env.
+ */
+export function getSettingsFromEnv(): Partial<Settings> {
+	const settings: Partial<Settings> = {}
+
+	for (const [envVar, settingsKey] of Object.entries(ENV_VAR_TO_SETTINGS_KEY)) {
+		const value = process.env[envVar]
+		if (value) {
+			settings[settingsKey] = value as any
+		}
+	}
+
+	return settings
+}
+
 
 /**
  * Get the best provider based on available environment variables.
@@ -68,6 +96,8 @@ export function getProviderFromEnv(): ApiProvider | undefined {
 	if (process.env.OPENROUTER_API_KEY) return "openrouter"
 	if (process.env.OPENAI_API_KEY) return "openai-native"
 	if (process.env.GEMINI_API_KEY) return "gemini"
+
+	if (process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT) return "vertex"
 	if (process.env.GROQ_API_KEY) return "groq"
 	if (process.env.XAI_API_KEY) return "xai"
 	if (process.env.MISTRAL_API_KEY) return "mistral"
