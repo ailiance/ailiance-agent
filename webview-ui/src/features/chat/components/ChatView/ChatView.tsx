@@ -153,7 +153,7 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			if (!isHidden && !sendingDisabled && !enableButtons) {
+			if (!isHidden && !sendingDisabled && !enableButtons && document.hasFocus()) {
 				textAreaRef.current?.focus()
 			}
 		}, 50)
