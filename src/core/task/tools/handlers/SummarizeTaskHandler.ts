@@ -224,7 +224,7 @@ export class SummarizeTaskHandler implements IToolHandler, IPartialBlockHandler 
 
 			// Handle context management
 			const apiConversationHistory = config.messageState.getApiConversationHistory()
-			const keepStrategy = "none"
+			const keepStrategy = "lastTwo"
 
 			// clear the context history at this point in time. note that this will not include the assistant message
 			// for summarizing, which we will need to delete later

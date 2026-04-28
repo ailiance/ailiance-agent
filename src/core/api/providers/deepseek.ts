@@ -64,7 +64,7 @@ export class DeepSeekHandler implements ApiHandler {
 		}
 		const deepUsage = usage as DeepSeekUsage
 
-		const inputTokens = deepUsage?.prompt_tokens || 0 // sum of cache hits and misses
+		const inputTokens = deepUsage?.prompt_cache_miss_tokens ?? deepUsage?.prompt_tokens ?? 0 // sum of cache hits and misses
 		const outputTokens = deepUsage?.completion_tokens || 0
 		const cacheReadTokens = deepUsage?.prompt_cache_hit_tokens || 0
 		const cacheWriteTokens = deepUsage?.prompt_cache_miss_tokens || 0

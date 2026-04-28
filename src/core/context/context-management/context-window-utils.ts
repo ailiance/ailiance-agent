@@ -7,7 +7,7 @@ import { ApiHandler } from "@core/api"
  * @returns An object containing the raw context window size and the effective max allowed size
  */
 export function getContextWindowInfo(api: ApiHandler) {
-	const HARD_LIMIT = 250_000
+	const HARD_LIMIT = 1_000_000
 
 	let contextWindow = api.getModel().info.contextWindow || 128_000
 

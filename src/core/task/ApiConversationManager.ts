@@ -85,23 +85,8 @@ export class ApiConversationManager {
 		const autoCondenseThreshold = useAutoCondense ? 0.75 : undefined
 
 		if (useAutoCondense) {
-			// When we initially trigger context cleanup, we increase the context window size, so we need state `currentlySummarizing`
-			// to track if we've already started the context summarization flow. After summarizing, we increment
-			// conversationHistoryDeletedRange to mask out the summarization-trigger user & assistant response messages
 			if (this.dependencies.taskState.currentlySummarizing) {
 				this.dependencies.taskState.currentlySummarizing = false
-
-				if (this.dependencies.taskState.conversationHistoryDeletedRange) {
-					const [start, end] = this.dependencies.taskState.conversationHistoryDeletedRange
-					const apiHistory = this.dependencies.messageStateHandler.getApiConversationHistory()
-
-					// we want to increment the deleted range to remove the pre-summarization tool call output, with additional safety check
-					const safeEnd = Math.min(end + 2, apiHistory.length - 1)
-					if (end + 2 <= safeEnd) {
-						this.dependencies.taskState.conversationHistoryDeletedRange = [start, end + 2]
-						await this.dependencies.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-					}
-				}
 			} else {
 				shouldCompact = this.dependencies.contextManager.shouldCompactContextWindow(
 					this.dependencies.messageStateHandler.getDiracMessages(),
