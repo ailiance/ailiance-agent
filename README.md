@@ -90,6 +90,25 @@ You can provide API keys via environment variables to skip the `dirac auth` step
 - `HF_TOKEN` (HuggingFace)
 - ... and others (see `src/shared/storage/env-config.ts` for the full list).
 
+#### AWS Bedrock
+Use Bedrock by setting AWS credentials and region. When any of these are present, Dirac automatically switches to the Bedrock provider:
+
+- `AWS_REGION` — AWS region (e.g. `us-east-1`)
+- `AWS_ACCESS_KEY_ID` — AWS access key
+- `AWS_SECRET_ACCESS_KEY` — AWS secret key
+- `AWS_SESSION_TOKEN` — session token (for temporary credentials)
+- `AWS_BEDROCK_MODEL` — model ID for both act and plan modes (e.g. `us.anthropic.claude-sonnet-4-6`)
+- `AWS_BEDROCK_MODEL_ACT` — model ID for act mode only
+- `AWS_BEDROCK_MODEL_PLAN` — model ID for plan mode only
+
+Works seamlessly with [aws-vault](https://github.com/99designs/aws-vault):
+```bash
+AWS_REGION=us-east-1 AWS_BEDROCK_MODEL=us.anthropic.claude-sonnet-4-6 \
+  aws-vault exec my-profile -- dirac "your task"
+```
+
+> **Note:** Newer Claude models on Bedrock (Sonnet 4.6+) require a cross-region inference profile prefix (`us.`, `eu.`, `ap.`). See the [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) for supported model IDs.
+
 ### Common Commands
 - `dirac "prompt"`: Start an interactive task.
 - `dirac -p "prompt"`: Run in **Plan Mode** to see the strategy before executing.

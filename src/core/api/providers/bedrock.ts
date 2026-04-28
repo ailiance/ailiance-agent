@@ -200,9 +200,20 @@ export class AwsBedrockHandler implements ApiHandler {
 
 	getModel(): { id: string; info: ModelInfo } {
 		const modelId = this.options.apiModelId
-		if (modelId && modelId in bedrockModels) {
-			const id = modelId as BedrockModelId
-			return { id, info: bedrockModels[id] }
+
+		if (modelId) {
+			// Direct match in model map
+			if (modelId in bedrockModels) {
+				return { id: modelId as BedrockModelId, info: bedrockModels[modelId as BedrockModelId] }
+			}
+
+			// Strip cross-region/global inference prefix (e.g. "us.", "eu.", "ap.", "apac.", "jp.", "global.")
+			// so "us.anthropic.claude-sonnet-4-6" resolves to "anthropic.claude-sonnet-4-6" for capability info
+			// but the original prefixed ID is returned for the actual API call
+			const stripped = modelId.replace(/^(us|eu|ap|apac|jp|global)\./, "")
+			if (stripped !== modelId && stripped in bedrockModels) {
+				return { id: modelId, info: bedrockModels[stripped as BedrockModelId] }
+			}
 		}
 
 		const customSelected = this.options.awsBedrockCustomSelected
