@@ -92,9 +92,9 @@ You can provide API keys via environment variables to skip the `dirac auth` step
 
 #### Using Any OpenAI compatible endpoint
 
-You can use OPENAI_COMPATIBLE_CUSTOM_KEY for any provider and model as long as it exposes an OpenAI compatible endpoint. Using OPENAI_COMPATIBLE_CUSTOM_KEY requires providing both the model and the provider in the cli
+You can use OPENAI_COMPATIBLE_CUSTOM_KEY (or its alias OPENAI_API_BASE) for any provider and model as long as it exposes an OpenAI compatible endpoint. Using these variables requires providing both the model and the provider in the cli
 
-`$ OPENAI_COMPATIBLE_CUSTOM_KEY="xxx" dirac -y --provider "https://api.deepseek.com/v1" --model deepseek-v4-flash "explain Dirac Delta function"`
+`$ OPENAI_API_BASE="xxx" dirac -y --provider "https://api.deepseek.com/v1" --model deepseek-v4-flash "explain Dirac Delta function"`
 
 
 #### AWS Bedrock

@@ -137,13 +137,14 @@ async function applyTaskOptions(options: TaskOptions): Promise<void> {
 
 	const stateManager = StateManager.get()
 
-	if (process.env.OPENAI_COMPATIBLE_CUSTOM_KEY) {
+	if (process.env.OPENAI_COMPATIBLE_CUSTOM_KEY || process.env.OPENAI_API_BASE) {
+		const customKeyName = process.env.OPENAI_API_BASE ? "OPENAI_API_BASE" : "OPENAI_COMPATIBLE_CUSTOM_KEY"
 		if (!options.provider || !options.model) {
-			printError("Error: OPENAI_COMPATIBLE_CUSTOM_KEY requires --provider (base URL) and --model to be specified.")
+			printError(`Error: ${customKeyName} requires --provider (base URL) and --model to be specified.`)
 			exit(1)
 		}
 		if (!options.provider || !options.provider.startsWith("http")) {
-			printError("Error: When using OPENAI_COMPATIBLE_CUSTOM_KEY, --provider must be a base URL (starting with http/https).")
+			printError(`Error: When using ${customKeyName}, --provider must be a base URL (starting with http/https).`)
 			exit(1)
 		}
 	}

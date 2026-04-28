@@ -30,6 +30,7 @@ export const ENV_VAR_TO_SECRET_KEY: Record<string, keyof Secrets> = {
 	FIREWORKS_API_KEY: "fireworksApiKey",
 	NEBIUS_API_KEY: "nebiusApiKey",
 	OPENAI_COMPATIBLE_CUSTOM_KEY: "openAiCompatibleCustomApiKey",
+	OPENAI_API_BASE: "openAiCompatibleCustomApiKey",
 	// AWS credentials for Bedrock (picked up by the SDK provider chain, but also stored explicitly)
 	AWS_ACCESS_KEY_ID: "awsAccessKey",
 	AWS_SECRET_ACCESS_KEY: "awsSecretKey",
@@ -68,9 +69,10 @@ export function getSecretsFromEnv(): Partial<Secrets> {
 		secrets.openAiNativeApiKey = process.env.OPENAI_API_KEY
 	}
 
-	// Map OPENAI_COMPATIBLE_CUSTOM_KEY to openAiApiKey if not already set
-	if (process.env.OPENAI_COMPATIBLE_CUSTOM_KEY && !secrets.openAiApiKey) {
-		secrets.openAiApiKey = process.env.OPENAI_COMPATIBLE_CUSTOM_KEY
+	// Map OPENAI_COMPATIBLE_CUSTOM_KEY or OPENAI_API_BASE to openAiApiKey if not already set
+	const customKey = process.env.OPENAI_COMPATIBLE_CUSTOM_KEY || process.env.OPENAI_API_BASE
+	if (customKey && !secrets.openAiApiKey) {
+		secrets.openAiApiKey = customKey
 	}
 
 	return secrets
@@ -148,7 +150,7 @@ export function getProviderFromEnv(): ApiProvider | undefined {
 	if (process.env.TOGETHER_API_KEY) return "together"
 	if (process.env.FIREWORKS_API_KEY) return "fireworks"
 	if (process.env.NEBIUS_API_KEY) return "nebius"
-	if (process.env.OPENAI_COMPATIBLE_CUSTOM_KEY) return "openai"
+	if (process.env.OPENAI_COMPATIBLE_CUSTOM_KEY || process.env.OPENAI_API_BASE) return "openai"
 	return undefined
 }
 
