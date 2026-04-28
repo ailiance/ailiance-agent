@@ -193,6 +193,22 @@ export const CLAUDE_OPUS_1M_TIERS = [
 	},
 ]
 
+export const GPT_5_5_TIERS = [
+	{
+		contextWindow: 272_000,
+		inputPrice: 5.0,
+		outputPrice: 30.0,
+		cacheReadsPrice: 0.5,
+	},
+	{
+		contextWindow: Number.MAX_SAFE_INTEGER,
+		inputPrice: 10.0,
+		outputPrice: 45.0,
+		cacheReadsPrice: 1.0,
+	},
+]
+
+
 export const GPT_5_4_TIERS = [
 	{
 		contextWindow: 272_000,
@@ -1051,6 +1067,20 @@ export const geminiModels = {
 export type OpenAiNativeModelId = keyof typeof openAiNativeModels
 export const openAiNativeDefaultModelId: OpenAiNativeModelId = "gpt-5.4"
 export const openAiNativeModels = {
+	"gpt-5.5": {
+		name: "GPT-5.5",
+		maxTokens: 128_000,
+		contextWindow: 1_000_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0,
+		outputPrice: 30.0,
+		cacheReadsPrice: 0.5,
+		cacheWritesPrice: 0,
+		supportsReasoning: true,
+		apiFormat: ApiFormat.OPENAI_RESPONSES,
+		tiers: GPT_5_5_TIERS,
+	},
 	"gpt-5.4": {
 		name: "GPT-5.4",
 		maxTokens: 128_000,
