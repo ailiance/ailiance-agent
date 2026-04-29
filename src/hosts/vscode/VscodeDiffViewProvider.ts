@@ -1,4 +1,5 @@
 import { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
+import pTimeout from "p-timeout"
 import * as path from "path"
 import * as vscode from "vscode"
 import { DecorationController } from "@/hosts/vscode/DecorationController"
@@ -197,7 +198,10 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 		if (!this.activeDiffEditor.document.isDirty) {
 			return false
 		}
-		await this.activeDiffEditor.document.save()
+		await pTimeout(this.activeDiffEditor.document.save(), {
+			milliseconds: 10_000,
+			message: "Failed to save document in VS Code within 10 seconds",
+		})
 		return true
 	}
 
@@ -274,7 +278,10 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 		edit.replace(uri, range, content)
 		await vscode.workspace.applyEdit(edit)
 
-		await document.save()
+		await pTimeout(document.save(), {
+			milliseconds: 10_000,
+			message: "Failed to save document in VS Code within 10 seconds",
+		})
 
 		const postSaveContent = document.getText()
 		const newContentEOL = content.includes("\r\n") ? "\r\n" : "\n"

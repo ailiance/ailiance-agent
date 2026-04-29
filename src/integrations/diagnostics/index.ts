@@ -138,13 +138,25 @@ export async function pollForNewDiagnostics(
 		attempts++
 		const currentDiagnostics = await getDiagnostics()
 
+		let changed = false
 		for (const filePath of paths) {
 			const preFileDiags = preDiagnostics.find((p) => arePathsEqual(p.filePath, filePath))?.diagnostics || []
 			const currentFileDiags = currentDiagnostics.find((p) => arePathsEqual(p.filePath, filePath))?.diagnostics || []
 
 			if (!deepEqual(preFileDiags, currentFileDiags)) {
-				return currentDiagnostics
+				changed = true
+				break
 			}
+		}
+
+		if (changed) {
+			return currentDiagnostics
+		}
+
+		// If we've waited longer than the quiet period and no change was detected,
+		// we can assume the diagnostics are stable (linter finished or didn't find anything new).
+		if (Date.now() - startTime >= quietPeriodMs) {
+			break
 		}
 
 		const remainingTime = timeoutMs - (Date.now() - startTime)

@@ -23,8 +23,8 @@ import { StateManager } from "../storage/StateManager"
 import { HookExecutionError } from "./HookError"
 import { HookProcess } from "./HookProcess"
 
-// Hook execution timeout (30 seconds)
-const HOOK_EXECUTION_TIMEOUT_MS = 30000
+// Hook execution timeout (10 seconds)
+const HOOK_EXECUTION_TIMEOUT_MS = 10000
 
 // Maximum size for context modification (to prevent prompt overflow)
 const MAX_CONTEXT_MODIFICATION_SIZE = 50000 // ~50KB

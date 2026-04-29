@@ -7,7 +7,7 @@ import { diagnosticsToProblemsString, getNewDiagnostics, pollForNewDiagnostics }
 
 export class LinterFeedbackProvider implements IDiagnosticsProvider {
 	constructor(
-		private readonly diagnosticsTimeoutMs: number = 10_000,
+		private readonly diagnosticsTimeoutMs: number = 3_000,
 		private readonly diagnosticsDelayMs: number = 500,
 	) {}
 
@@ -22,7 +22,7 @@ export class LinterFeedbackProvider implements IDiagnosticsProvider {
 		hashes?: string[],
 	): Promise<DiagnosticsFeedbackResult> {
 		const postDiagnostics = await pollForNewDiagnostics(
-			async () => await this.getDiagnosticsSafe(),
+			async () => await this.getDiagnosticsSafe([filePath]),
 			preSaveDiagnostics,
 			filePath,
 			this.diagnosticsTimeoutMs,
@@ -61,7 +61,7 @@ export class LinterFeedbackProvider implements IDiagnosticsProvider {
 		preSaveDiagnostics: FileDiagnostics[]
 	): Promise<DiagnosticsFeedbackResult[]> {
 		const postDiagnostics = await pollForNewDiagnostics(
-			async () => await this.getDiagnosticsSafe(),
+			async () => await this.getDiagnosticsSafe(files.map((f) => f.filePath)),
 			preSaveDiagnostics,
 			files.map((f) => f.filePath),
 			this.diagnosticsTimeoutMs,
@@ -99,9 +99,9 @@ export class LinterFeedbackProvider implements IDiagnosticsProvider {
 		)
 	}
 
-	private async getDiagnosticsSafe(): Promise<FileDiagnostics[]> {
+	private async getDiagnosticsSafe(filePaths: string[] = []): Promise<FileDiagnostics[]> {
 		try {
-			const response = await pTimeout(HostProvider.workspace.getDiagnostics({ filePaths: [] }), {
+			const response = await pTimeout(HostProvider.workspace.getDiagnostics({ filePaths }), {
 				milliseconds: this.diagnosticsTimeoutMs,
 			})
 			return response.fileDiagnostics

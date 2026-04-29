@@ -5,9 +5,16 @@ import { Diagnostic, DiagnosticSeverity, FileDiagnostics } from "@/shared/proto/
 import "@/utils/path" // for String.prototype.toPosix
 import { Logger } from "@/shared/services/Logger"
 
-export async function getDiagnostics(_request: GetDiagnosticsRequest): Promise<GetDiagnosticsResponse> {
-	// Get all diagnostics from VS Code
-	const vscodeAllDiagnostics = vscode.languages.getDiagnostics()
+export async function getDiagnostics(request: GetDiagnosticsRequest): Promise<GetDiagnosticsResponse> {
+	let vscodeAllDiagnostics: [vscode.Uri, vscode.Diagnostic[]][]
+	if (request.filePaths && request.filePaths.length > 0) {
+		vscodeAllDiagnostics = request.filePaths.map((p) => {
+			const uri = vscode.Uri.file(p)
+			return [uri, vscode.languages.getDiagnostics(uri)]
+		})
+	} else {
+		vscodeAllDiagnostics = vscode.languages.getDiagnostics()
+	}
 
 	const fileDiagnostics = convertToFileDiagnostics(vscodeAllDiagnostics)
 
