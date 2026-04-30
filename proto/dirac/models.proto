@@ -25,8 +25,6 @@ service ModelsService {
   rpc refreshOpenAiModels(OpenAiModelsRequest) returns (StringArray);
   // Refreshes and returns Requesty models
   rpc refreshRequestyModels(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
-  // Refreshes and returns Hicap models
-  rpc refreshHicapModels(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
   // Refreshes and returns LiteLLM models
   rpc refreshLiteLlmModelsRpc(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
   // Subscribe to OpenRouter models updates
@@ -399,7 +397,7 @@ enum ApiProvider {
   QWEN_CODE = 33;
   DIFY = 34;
   MINIMAX = 36;
-  HICAP = 37;
+  reserved 37;
   AIHUBMIX = 38;
   NOUSRESEARCH = 39;
   OPENAI_CODEX = 40;
@@ -523,8 +521,8 @@ message ModelsApiConfiguration {
   optional bool aws_use_global_inference = 77;
   optional string minimax_api_key = 78;
   optional string minimax_api_line = 79;
-  optional string hicap_model_id = 80;
-  optional string hicap_api_key = 81;
+  reserved 80, 81;
+
   optional string aihubmix_api_key = 82;
   optional string aihubmix_base_url = 83;
   optional string aihubmix_app_code = 84;
@@ -562,8 +560,8 @@ message ModelsApiConfiguration {
   optional OpenRouterModelInfo plan_mode_baseten_model_info = 128;
   optional string plan_mode_vercel_ai_gateway_model_id = 129;
   optional OpenRouterModelInfo plan_mode_vercel_ai_gateway_model_info = 130;
-  optional string plan_mode_hicap_model_id = 134;
-  optional OpenRouterModelInfo plan_mode_hicap_model_info = 135;
+  reserved 134, 135;
+
   optional string plan_mode_aihubmix_model_id = 136;
   optional OpenAiCompatibleModelInfo plan_mode_aihubmix_model_info = 137;
   optional string plan_mode_nous_research_model_id = 138;
@@ -601,8 +599,8 @@ message ModelsApiConfiguration {
   optional OpenRouterModelInfo act_mode_baseten_model_info = 228;
   optional string act_mode_vercel_ai_gateway_model_id = 229;
   optional OpenRouterModelInfo act_mode_vercel_ai_gateway_model_info = 230;
-  optional string act_mode_hicap_model_id = 234;
-  optional OpenRouterModelInfo act_mode_hicap_model_info = 235;
+  reserved 234, 235;
+
   optional string act_mode_aihubmix_model_id = 236;
   optional OpenAiCompatibleModelInfo act_mode_aihubmix_model_info = 237;
   optional string act_mode_nous_research_model_id = 238;

@@ -91,7 +91,6 @@ message Secrets {
   optional string vercel_ai_gateway_api_key = 34;
   optional string dify_api_key = 35;
   optional string minimax_api_key = 36;
-  optional string hicap_api_key = 37;
   optional string aihubmix_api_key = 38;
   optional string nous_research_api_key = 39;
   optional string wandb_api_key = 50;
@@ -171,8 +170,6 @@ message Settings {
   optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 73;
   optional string plan_mode_aihubmix_model_id = 77;
   optional OpenAiCompatibleModelInfo plan_mode_aihubmix_model_info = 78;
-  optional string plan_mode_hicap_model_id = 79;
-  optional OpenRouterModelInfo plan_mode_hicap_model_info = 80;
   optional string plan_mode_nous_research_model_id = 81;
   optional string plan_mode_vercel_ai_gateway_model_id = 82;
   optional OpenRouterModelInfo plan_mode_vercel_ai_gateway_model_info = 83;
@@ -207,14 +204,11 @@ message Settings {
   optional OpenRouterModelInfo act_mode_huawei_cloud_maas_model_info = 113;
   optional string act_mode_aihubmix_model_id = 117;
   optional OpenAiCompatibleModelInfo act_mode_aihubmix_model_info = 118;
-  optional string act_mode_hicap_model_id = 119;
-  optional OpenRouterModelInfo act_mode_hicap_model_info = 120;
   optional string act_mode_nous_research_model_id = 121;
   optional string act_mode_vercel_ai_gateway_model_id = 122;
   optional OpenRouterModelInfo act_mode_vercel_ai_gateway_model_info = 123;
   optional ApiProvider plan_mode_api_provider = 124;
   optional ApiProvider act_mode_api_provider = 125;
-  optional string hicap_model_id = 126;
   optional string lm_studio_model_id = 127;
   optional AutoApprovalSettings auto_approval_settings = 128;
   optional string global_dirac_rules_toggles = 129;

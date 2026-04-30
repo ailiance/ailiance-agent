@@ -28,7 +28,7 @@
     "type": "function",
     "function": {
       "name": "attempt_completion",
-      "description": "Presents a brief and informative summary of the final result. Keep it concise while covering important changes.",
+      "description": "Presents a brief and informative summary of the final result. Keep it concise while covering important changes. Avoid redundant text.",
       "strict": false,
       "parameters": {
         "type": "object",
@@ -110,7 +110,7 @@
     "type": "function",
     "function": {
       "name": "edit_file",
-      "description": "Edit one or more files by replacing, inserting after, or inserting before specific lines.\nRead the files of extract function first to get current anchors. Each file contains an array of edits.\n\nEDIT TYPES:\n1. replace (default): Replaces an inclusive range of lines from anchor to end_anchor.\n2. insert_after: Inserts the provided text immediately after the line specified by anchor. end_anchor is not used.\n3. insert_before: Inserts the provided text immediately before the line specified by anchor. end_anchor is not used.\n\nANCHOR RULES:\n1. Anchors are a single opaque word (e.g., \"AppleBanana\") and basically hashes that carry no meaning, ollowed by § which is followed by the actual line content.\n2. For 'replace', anchors are inclusive, meaning what you specify as anchor and end_anchor, the lines belonging to both and everything in between will be overwritten.\n3. Anchors are file scoped. \"Apple§\" in one file is different from \"Apple§\" in another file.  \n\nWhen replacing multi-line statements, function calls, or dictionaries, you MUST ensure your end_anchor points to precisely the line where the construct ends (e.g. a closing bracket or end of function). Do not leave orphaned closing syntax on the following lines NOR do miss the closing syntax. \n\nTip: if you are stuck updating a single line, try to change it to 'replace' call with start line is few lines before the the target line and end line is a few lines after.\n\nBATCHING RULES:\nYou MUST batch all non-overlapping edits into a single tool call. As long as the edits do not overlap, our backend tooling guarantees safety. Multiple files can be edited in a single call also.",
+      "description": "Edit one or more files by replacing, inserting after, or inserting before specific lines.\nRead the files of extract function first to get current anchors. Each file contains an array of edits.\n\nEDIT TYPES:\n1. replace (default): Replaces an inclusive range of lines from anchor to end_anchor.\n2. insert_after: Inserts the provided text immediately after the line specified by anchor. end_anchor is not used.\n3. insert_before: Inserts the provided text immediately before the line specified by anchor. end_anchor is not used.\n\nANCHOR RULES:\n1. Anchors are a single opaque word (e.g., \"AppleBanana\") and basically hashes that carry no meaning, followed by § which is followed by the actual line content.\n2. For 'replace', anchors are inclusive, meaning what you specify as anchor and end_anchor, the lines belonging to both and everything in between will be overwritten.\n3. Anchors are file scoped. \"Apple§\" in one file is different from \"Apple§\" in another file.  \n\nWhen replacing multi-line statements, function calls, or dictionaries, you MUST ensure your end_anchor points to precisely the line where the construct ends (e.g. a closing bracket or end of function). Do not leave orphaned closing syntax on the following lines NOR do miss the closing syntax. \n\nTip: if you are stuck updating a single line, try to change it to 'replace' call with start line is few lines before the the target line and end line is a few lines after.\n\nBATCHING RULES:\nYou MUST batch all non-overlapping edits into a single tool call. As long as the edits do not overlap, our backend tooling guarantees safety. Multiple files can be edited in a single call also.",
       "strict": false,
       "parameters": {
         "type": "object",
@@ -228,7 +228,7 @@
     "type": "function",
     "function": {
       "name": "rename_symbol",
-      "description": "Renames ALL occurences of a symbol (function, class, method, or variable) inside the specified files or directories. This tool can identify precise symbols using a language's AST and is more accurate than a simple search-and-replace because it understands the language structure. For renaming tasks, strongly prefer this as the first pass.",
+      "description": "Renames ALL occurrences of a symbol (function, class, method, or variable) inside the specified files or directories. This tool can identify precise symbols using a language's AST and is more accurate than a simple search-and-replace because it understands the language structure. For renaming tasks, strongly prefer this as the first pass.",
       "strict": false,
       "parameters": {
         "type": "object",
@@ -438,7 +438,7 @@
     "type": "function",
     "function": {
       "name": "plan_mode_respond",
-      "description": "Proposes a step-by-step solution plan to the user. Use only in PLAN MODE after exploring the codebase.",
+      "description": "Proposes a step-by-step solution plan to the user. Use only in PLAN MODE after exploring the codebase. Avoid repeating the plan in text.",
       "strict": false,
       "parameters": {
         "type": "object",

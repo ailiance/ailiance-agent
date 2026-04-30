@@ -134,8 +134,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	planModeHuaweiCloudMaasModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeAihubmixModelId: { default: undefined as string | undefined },
 	planModeAihubmixModelInfo: { default: undefined as OpenAiCompatibleModelInfo | undefined },
-	planModeHicapModelId: { default: undefined as string | undefined },
-	planModeHicapModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeGithubCopilotModelId: { default: undefined as string | undefined },
 	planModeGithubCopilotModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeNousResearchModelId: { default: undefined as string | undefined },
@@ -174,8 +172,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	actModeHuaweiCloudMaasModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeAihubmixModelId: { default: undefined as string | undefined },
 	actModeAihubmixModelInfo: { default: undefined as OpenAiCompatibleModelInfo | undefined },
-	actModeHicapModelId: { default: undefined as string | undefined },
-	actModeHicapModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeGithubCopilotModelId: { default: undefined as string | undefined },
 	actModeGithubCopilotModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeNousResearchModelId: { default: undefined as string | undefined },
@@ -187,7 +183,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	actModeApiProvider: { default: DEFAULT_API_PROVIDER as ApiProvider },
 
 	// Deprecated model settings
-	hicapModelId: { default: undefined as string | undefined },
 	lmStudioModelId: { default: undefined as string | undefined },
 } satisfies FieldDefinitions
 
@@ -288,7 +283,6 @@ const SECRETS_KEYS = [
 	"difyApiKey",
 	"openAiCompatibleCustomApiKey",
 	"minimaxApiKey",
-	"hicapApiKey",
 	"aihubmixApiKey",
 	"nousResearchApiKey",
 	"openai-codex-oauth-credentials", // JSON blob containing OAuth tokens for OpenAI Codex (ChatGPT subscription)

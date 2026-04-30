@@ -148,10 +148,6 @@ export function getConfiguredProviders(
 		configured.push("minimax")
 	}
 
-	// Hicap - requires API key
-	if (apiConfiguration.hicapApiKey) {
-		configured.push("hicap")
-	}
 
 	// Huawei Cloud MaaS - requires API key
 	if (apiConfiguration.huaweiCloudMaasApiKey) {

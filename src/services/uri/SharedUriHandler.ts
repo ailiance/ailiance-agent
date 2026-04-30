@@ -66,15 +66,6 @@ export class SharedUriHandler {
 					Logger.warn("SharedUriHandler: Missing prompt parameter for task creation")
 					return false
 				}
-				case "/hicap": {
-					const code = query.get("code")
-					if (code) {
-						await visibleWebview.controller.handleHicapCallback(code)
-						return true
-					}
-					Logger.warn("SharedUriHandler: Missing code parameter for Hicap callback")
-					return false
-				}
 				default:
 					Logger.warn(`SharedUriHandler: Unknown path: ${path}`)
 					return false

@@ -72,8 +72,6 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			return !!(config.difyBaseUrl && config.difyApiKey)
 		case "minimax":
 			return !!config.minimaxApiKey
-		case "hicap":
-			return !!config.hicapApiKey
 		case "huawei-cloud-maas":
 			return !!config.huaweiCloudMaasApiKey
 		case "vercel-ai-gateway":

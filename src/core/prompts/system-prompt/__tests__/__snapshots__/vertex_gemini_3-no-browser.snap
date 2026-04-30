@@ -8,6 +8,8 @@ PRIME DIRECTIVES
 
 TOOL USE
 
+- Prefer tools for communication; avoid redundant text in assistant responses.
+
 ACT MODE VS PLAN MODE
 
 In each user message, the environment_details will specify the current mode. There are two modes:

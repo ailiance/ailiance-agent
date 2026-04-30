@@ -1,4 +1,5 @@
 import { LiteLlmHandler, type LiteLlmModelInfoResponse } from "@core/api/providers/litellm"
+import { StateManager } from "@core/storage/StateManager"
 import { convertToOpenAiMessages } from "@core/api/transform/openai-format"
 import { expect } from "chai"
 import sinon from "sinon"
@@ -48,6 +49,10 @@ describe("LiteLlmHandler", () => {
 	beforeEach(() => {
 		fakeClient.chat.completions.create.resetHistory()
 
+		const stateManagerStub = sinon.createStubInstance(StateManager)
+		stateManagerStub.getModelInfo.returns(undefined)
+		sinon.stub(StateManager, "get").returns(stateManagerStub as any)
+
 		mockFetchForTesting(mockFetch, () => {
 			return new Promise((resolve) => {
 				doneMockingFetch = resolve
@@ -74,7 +79,7 @@ describe("LiteLlmHandler", () => {
 	})
 
 	afterEach(() => {
-		sinon.reset()
+		sinon.restore()
 		doneMockingFetch(void 0)
 	})
 

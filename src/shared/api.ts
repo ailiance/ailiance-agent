@@ -39,7 +39,6 @@ export type ApiProvider =
 	| "oca"
 	| "aihubmix"
 	| "minimax"
-	| "hicap"
 	| "nousResearch"
 	| "wandb"
 
@@ -81,7 +80,6 @@ export const ALL_PROVIDERS: ApiProvider[] = [
 	"oca",
 	"aihubmix",
 	"minimax",
-	"hicap",
 	"nousResearch",
 	"wandb",
 ]
@@ -232,21 +230,6 @@ export const GPT_5_4_PRO_TIERS = [
 		outputPrice: 270.0,
 	},
 ]
-
-export interface HicapCompatibleModelInfo extends ModelInfo {
-	temperature?: number
-}
-
-export const hicapModelInfoSaneDefaults: HicapCompatibleModelInfo = {
-	maxTokens: -1,
-	contextWindow: 128_000,
-	supportsImages: true,
-	supportsPromptCache: true,
-	inputPrice: 0,
-	supportsTools: true,
-	outputPrice: 0,
-	temperature: 1,
-}
 
 // Anthropic
 // https://docs.anthropic.com/en/docs/about-claude/models // prices updated 2025-01-02

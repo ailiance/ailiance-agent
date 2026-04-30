@@ -515,29 +515,6 @@ export class Controller {
 		return undefined
 	}
 
-	// Hicap
-	async handleHicapCallback(code: string) {
-		const apiKey: string = code
-
-		const hicap: ApiProvider = "hicap"
-		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-
-		// Update API configuration through cache service
-		const currentApiConfiguration = this.stateManager.getApiConfiguration()
-		const updatedConfig = {
-			...currentApiConfiguration,
-			planModeApiProvider: hicap,
-			actModeApiProvider: hicap,
-			hicapApiKey: apiKey,
-		}
-		this.stateManager.setApiConfiguration(updatedConfig)
-
-		await this.postStateToWebview()
-		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-		}
-	}
-
 	// Task history
 
 	async getTaskWithId(id: string): Promise<{

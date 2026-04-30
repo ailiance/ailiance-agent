@@ -540,7 +540,6 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 			const xaiApiKey = await context.secrets.get("xaiApiKey")
 			const sambanovaApiKey = await context.secrets.get("sambanovaApiKey")
 			const difyApiKey = await context.secrets.get("difyApiKey")
-			const hicapApiKey = await context.secrets.get("hicapApiKey")
 			// OpenAI Codex OAuth credentials
 			const openAiCodexCredentials = await context.secrets.get("openai-codex-oauth-credentials")
 
@@ -577,7 +576,6 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 				xaiApiKey,
 				sambanovaApiKey,
 				difyApiKey,
-				hicapApiKey,
 				openAiCodexCredentials,
 			].some((key) => key !== undefined)
 

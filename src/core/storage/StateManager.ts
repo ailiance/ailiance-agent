@@ -83,7 +83,6 @@ export class StateManager {
 		huggingFaceModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		requestyModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		huaweiCloudMaasModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		hicapModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		aihubmixModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		liteLlmModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		vercelModels: { data: Record<string, ModelInfo>; timestamp: number } | null
@@ -96,7 +95,6 @@ export class StateManager {
 		huggingFaceModels: null,
 		requestyModels: null,
 		huaweiCloudMaasModels: null,
-		hicapModels: null,
 		aihubmixModels: null,
 		liteLlmModels: null,
 		githubCopilotModels: null,
@@ -404,7 +402,6 @@ export class StateManager {
 			| "huggingFace"
 			| "requesty"
 			| "huaweiCloudMaas"
-			| "hicap"
 			| "aihubmix"
 			| "liteLlm"
 			| "vercel"
@@ -424,7 +421,6 @@ export class StateManager {
 			| "huggingFace"
 			| "requesty"
 			| "huaweiCloudMaas"
-			| "hicap"
 			| "aihubmix"
 			| "liteLlm"
 			| "vercel"
@@ -457,7 +453,6 @@ export class StateManager {
 			| "huggingFace"
 			| "requesty"
 			| "huaweiCloudMaas"
-			| "hicap"
 			| "aihubmix"
 			| "liteLlm",
 		modelId: string,

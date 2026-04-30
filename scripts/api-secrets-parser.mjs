@@ -302,7 +302,6 @@ export function generateApiKeyDisplayName(fieldName) {
 		vertexProjectId: "Vertex Project ID",
 		vertexRegion: "Vertex Region",
 		huaweiCloudMaasApiKey: "Huawei Cloud MaaS API Key",
-		hicapApiKey: "Hicap API Key",
 	}
 
 	if (specialCases[fieldName]) {

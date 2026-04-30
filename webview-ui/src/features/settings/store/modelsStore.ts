@@ -17,7 +17,6 @@ interface ModelsState {
 	diracModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
-	hicapModels: Record<string, ModelInfo>
 	liteLlmModels: Record<string, ModelInfo>
 	openAiModels: string[]
 	requestyModels: Record<string, ModelInfo>
@@ -30,7 +29,6 @@ interface ModelsState {
 	setDiracModels: (models: Record<string, ModelInfo> | null) => void
 	setOpenRouterModels: (models: Record<string, ModelInfo>) => void
 	setVercelAiGatewayModels: (models: Record<string, ModelInfo>) => void
-	setHicapModels: (models: Record<string, ModelInfo>) => void
 	setLiteLlmModels: (models: Record<string, ModelInfo>) => void
 	setOpenAiModels: (models: string[]) => void
 	setRequestyModels: (models: Record<string, ModelInfo>) => void
@@ -46,7 +44,6 @@ export const useModelsStore = create<ModelsState>((set) => ({
 		[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 	},
 	vercelAiGatewayModels: {},
-	hicapModels: {},
 	liteLlmModels: {},
 	openAiModels: [],
 	requestyModels: {
@@ -65,7 +62,6 @@ export const useModelsStore = create<ModelsState>((set) => ({
 	setDiracModels: (models) => set({ diracModels: models }),
 	setOpenRouterModels: (models) => set({ openRouterModels: models }),
 	setVercelAiGatewayModels: (models) => set({ vercelAiGatewayModels: models }),
-	setHicapModels: (models) => set({ hicapModels: models }),
 	setLiteLlmModels: (models) => set({ liteLlmModels: models }),
 	setOpenAiModels: (models) => set({ openAiModels: models }),
 	setRequestyModels: (models) => set({ requestyModels: models }),

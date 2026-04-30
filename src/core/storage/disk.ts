@@ -50,7 +50,6 @@ export const GlobalFileNames = {
 	vercelAiGatewayModels: "vercel_ai_gateway_models.json",
 	groqModels: "groq_models.json",
 	basetenModels: "baseten_models.json",
-	hicapModels: "hicap_models.json",
 	diracRules: ".diracrules",
 	workflows: ".diracrules/workflows",
 	hooksDir: ".diracrules/hooks",

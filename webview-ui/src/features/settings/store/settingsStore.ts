@@ -13,7 +13,6 @@ import {
 	openRouterDefaultModelInfo,
 	requestyDefaultModelId,
 	requestyDefaultModelInfo,
-	hicapModelInfoSaneDefaults,
 	liteLlmModelInfoSaneDefaults,
 } from "@shared/api"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
@@ -27,8 +26,6 @@ interface SettingsState {
 	navigateToAccount: () => void
 	setShowWelcome: (show: boolean) => void
 	availableTerminalProfiles: any[]
-	hicapModels: any
-	refreshHicapModels: () => void
 	diracModels: any
 	refreshDiracModels: () => void
 	openRouterModels: any
@@ -218,20 +215,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	navigateToAccount: () => {},
 	setShowWelcome: () => {},
 	availableTerminalProfiles: [],
-	hicapModels: {},
-	refreshHicapModels: async () => {
-		try {
-			const response = await ModelsServiceClient.refreshHicapModels(EmptyRequest.create())
-			set({
-				hicapModels: {
-					"": hicapModelInfoSaneDefaults,
-					...fromProtobufModels(response.models),
-				},
-			})
-		} catch (error) {
-			console.error("Failed to refresh HiCap models:", error)
-		}
-	},
 	diracModels: {},
 	refreshDiracModels: async () => {
 		try {

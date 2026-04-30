@@ -6,7 +6,7 @@ import fs from "fs"
 import os from "os"
 import path from "path"
 import sinon from "sinon"
-import { exportVSCodeStorageToSharedFiles } from "../vscode-to-file-migration"
+import { exportVSCodeStorageToSharedFiles, CURRENT_MIGRATION_VERSION, MIGRATION_VERSION_KEY } from "../vscode-to-file-migration"
 
 /**
  * Create a minimal mock of VSCode's ExtensionContext for migration testing.
@@ -62,6 +62,7 @@ function createMockVSCodeContext() {
 			},
 			setKeysForSync() {},
 		},
+		globalStorageUri: { fsPath: "/mock/storage" },
 		// Expose internal stores for test setup
 		_globalStateStore: globalStateStore,
 		_secretsStore: secretsStore,
@@ -105,14 +106,14 @@ describe("vscode-to-file-migration", () => {
 			result.globalStateCount.should.be.greaterThan(0)
 			storageContext.globalState.get("mode")!.should.equal("act")
 			// Both sentinels should be written
-			storageContext.globalState.get("__vscodeMigrationVersion")!.should.equal(1)
-			storageContext.workspaceState.get("__vscodeMigrationVersion")!.should.equal(1)
+			storageContext.globalState.get(MIGRATION_VERSION_KEY)!.should.equal(CURRENT_MIGRATION_VERSION)
+			storageContext.workspaceState.get(MIGRATION_VERSION_KEY)!.should.equal(CURRENT_MIGRATION_VERSION)
 		})
 
 		it("should skip everything when both sentinels are current version", async () => {
 			// Pre-set BOTH sentinels
-			storageContext.globalState.update("__vscodeMigrationVersion", 1)
-			storageContext.workspaceState.set("__vscodeMigrationVersion", 1)
+			storageContext.globalState.update(MIGRATION_VERSION_KEY, CURRENT_MIGRATION_VERSION)
+			storageContext.workspaceState.set(MIGRATION_VERSION_KEY, CURRENT_MIGRATION_VERSION)
 
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "plan")
@@ -131,8 +132,8 @@ describe("vscode-to-file-migration", () => {
 		})
 
 		it("should skip everything when both sentinels are higher version", async () => {
-			storageContext.globalState.update("__vscodeMigrationVersion", 999)
-			storageContext.workspaceState.set("__vscodeMigrationVersion", 999)
+			storageContext.globalState.update(MIGRATION_VERSION_KEY, 999)
+			storageContext.workspaceState.set(MIGRATION_VERSION_KEY, 999)
 
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "act")
@@ -143,8 +144,8 @@ describe("vscode-to-file-migration", () => {
 		})
 
 		it("should re-run migration if sentinels are lower version", async () => {
-			storageContext.globalState.update("__vscodeMigrationVersion", 0)
-			storageContext.workspaceState.set("__vscodeMigrationVersion", 0)
+			storageContext.globalState.update(MIGRATION_VERSION_KEY, 0)
+			storageContext.workspaceState.set(MIGRATION_VERSION_KEY, 0)
 
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "plan")
@@ -156,7 +157,7 @@ describe("vscode-to-file-migration", () => {
 
 		it("should migrate workspace state when globals already migrated (new workspace)", async () => {
 			// Simulate: globals+secrets already migrated, but this is a fresh workspace
-			storageContext.globalState.update("__vscodeMigrationVersion", 1)
+			storageContext.globalState.update(MIGRATION_VERSION_KEY, CURRENT_MIGRATION_VERSION)
 			// workspaceState has NO sentinel — this is a new workspace
 
 			const mockCtx = createMockVSCodeContext()
@@ -177,12 +178,12 @@ describe("vscode-to-file-migration", () => {
 			const stored = storageContext.workspaceState.get("localDiracRulesToggles") as any
 			stored.should.deepEqual({ "rule-1": true })
 			// Workspace sentinel should now be set
-			storageContext.workspaceState.get("__vscodeMigrationVersion")!.should.equal(1)
+			storageContext.workspaceState.get(MIGRATION_VERSION_KEY)!.should.equal(CURRENT_MIGRATION_VERSION)
 		})
 
 		it("should migrate globals when workspace already migrated", async () => {
 			// Edge case: workspace was somehow migrated but globals were not
-			storageContext.workspaceState.set("__vscodeMigrationVersion", 1)
+			storageContext.workspaceState.set(MIGRATION_VERSION_KEY, CURRENT_MIGRATION_VERSION)
 			// globalState has NO sentinel
 
 			const mockCtx = createMockVSCodeContext()
@@ -200,7 +201,7 @@ describe("vscode-to-file-migration", () => {
 			// Workspace state should NOT have been migrated
 			result.workspaceStateCount.should.equal(0)
 			// Global sentinel should now be set
-			storageContext.globalState.get("__vscodeMigrationVersion")!.should.equal(1)
+			storageContext.globalState.get(MIGRATION_VERSION_KEY)!.should.equal(CURRENT_MIGRATION_VERSION)
 		})
 	})
 
@@ -367,7 +368,7 @@ describe("vscode-to-file-migration", () => {
 			}
 
 			// Sentinel should NOT be written
-			const sentinel = storageContext.globalState.get("__vscodeMigrationVersion")
+			const sentinel = storageContext.globalState.get(MIGRATION_VERSION_KEY)
 			;(sentinel === undefined).should.be.true()
 		})
 	})

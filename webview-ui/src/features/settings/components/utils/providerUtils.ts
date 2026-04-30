@@ -21,7 +21,6 @@ import {
     geminiModels,
     groqDefaultModelId,
     groqModels,
-    hicapModelInfoSaneDefaults,
     huaweiCloudMaasDefaultModelId,
     huaweiCloudMaasModels,
     huggingFaceDefaultModelId,
@@ -82,11 +81,39 @@ export function supportsReasoningEffortForModelId(modelId?: string, modelInfo?: 
  * Some providers depend on configuration (qwen, zai) for region-specific models.
  */
 export function getModelsForProvider(
-	provider: ApiProvider,
-	apiConfiguration?: ApiConfiguration,
-	dynamicModels: { liteLlmModels?: Record<string, ModelInfo>; basetenModels?: Record<string, ModelInfo> } = {},
-): Record<string, ModelInfo> | undefined {
-	switch (provider) {
+	apiProvider: ApiProvider | undefined,
+	openRouterModels: Record<string, ModelInfo>,
+	diracModels: Record<string, ModelInfo> | null,
+	vercelAiGatewayModels: Record<string, ModelInfo>,
+	liteLlmModels: Record<string, ModelInfo>,
+	requestyModels: Record<string, ModelInfo>,
+	groqModels: Record<string, ModelInfo>,
+	basetenModels: Record<string, ModelInfo>,
+	huggingFaceModels: Record<string, ModelInfo>,
+	aihubmixModels: Record<string, ModelInfo>,
+	githubCopilotModels: Record<string, ModelInfo> | undefined,
+): Record<string, ModelInfo> {
+	switch (apiProvider) {
+		case "openrouter":
+			return openRouterModels
+		case "dirac":
+			return diracModels || {}
+		case "vercel-ai-gateway":
+			return vercelAiGatewayModels
+		case "litellm":
+			return liteLlmModels
+		case "requesty":
+			return requestyModels
+		case "groq":
+			return groqModels
+		case "baseten":
+			return basetenModels
+		case "huggingface":
+			return huggingFaceModels
+		case "aihubmix":
+			return aihubmixModels
+		case "github-copilot":
+			return githubCopilotModels || {}
 		case "anthropic":
 			return anthropicModels
 		case "claude-code":
@@ -103,8 +130,6 @@ export function getModelsForProvider(
 			return openAiCodexModels
 		case "deepseek":
 			return deepSeekModels
-		case "qwen":
-			return apiConfiguration?.qwenApiLine === "china" ? mainlandQwenModels : internationalQwenModels
 		case "qwen-code":
 			return qwenCodeModels
 		case "doubao":
@@ -123,38 +148,16 @@ export function getModelsForProvider(
 			return sambanovaModels
 		case "cerebras":
 			return cerebrasModels
-		case "groq":
-			return groqModels
-		case "baseten":
-			return dynamicModels?.basetenModels || basetenModels
 		case "huawei-cloud-maas":
 			return huaweiCloudMaasModels
-		case "zai":
-			return apiConfiguration?.zaiApiLine === "china" ? mainlandZAiModels : internationalZAiModels
 		case "fireworks":
 			return fireworksModels
 		case "minimax":
 			return minimaxModels
-		case "huggingface":
-			return huggingFaceModels
 		case "nousResearch":
 			return nousResearchModels
-		case "litellm":
-			return dynamicModels?.liteLlmModels
-		// Providers with dynamic models - return undefined
-		case "openrouter":
-		case "dirac":
-		case "openai":
-		case "lmstudio":
-		case "vscode-lm":
-		case "requesty":
-		case "hicap":
-		case "dify":
-		case "vercel-ai-gateway":
-		case "aihubmix":
-		case "together":
 		default:
-			return undefined
+			return {}
 	}
 }
 
@@ -293,14 +296,6 @@ export function normalizeApiConfiguration(
 				selectedProvider: provider,
 				selectedModelId: openAiModelId || "",
 				selectedModelInfo: openAiModelInfo || openAiModelInfoSaneDefaults,
-			}
-		case "hicap":
-			const hicapModelId =
-				currentMode === "plan" ? apiConfiguration?.planModeHicapModelId : apiConfiguration?.actModeHicapModelId
-			return {
-				selectedProvider: provider,
-				selectedModelId: hicapModelId || "",
-				selectedModelInfo: hicapModelInfoSaneDefaults,
 			}
 		case "lmstudio":
 			const lmStudioModelId =
@@ -485,136 +480,73 @@ export function normalizeApiConfiguration(
  * @returns Object containing mode-specific field values for clean destructuring
  */
 export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undefined, mode: Mode) {
-	if (!apiConfiguration) {
-		return {
-			// Core fields
-			apiProvider: undefined,
-			apiModelId: undefined,
-
-			// Provider-specific model IDs
-			togetherModelId: undefined,
-			fireworksModelId: undefined,
-			lmStudioModelId: undefined,
-			liteLlmModelId: undefined,
-			requestyModelId: undefined,
-			openAiModelId: undefined,
-			openRouterModelId: undefined,
-			diracModelId: undefined,
-			groqModelId: undefined,
-			basetenModelId: undefined,
-			huggingFaceModelId: undefined,
-			huaweiCloudMaasModelId: undefined,
-			hicapModelId: undefined,
-			aihubmixModelId: undefined,
-			nousResearchModelId: undefined,
-			vercelAiGatewayModelId: undefined,
-
-			// Model info objects
-			openAiModelInfo: undefined,
-			liteLlmModelInfo: undefined,
-			openRouterModelInfo: undefined,
-			diracModelInfo: undefined,
-			requestyModelInfo: undefined,
-			groqModelInfo: undefined,
-			basetenModelInfo: undefined,
-			huggingFaceModelInfo: undefined,
-			vsCodeLmModelSelector: undefined,
-			aihubmixModelInfo: undefined,
-
-			// AWS Bedrock fields
-			awsBedrockCustomSelected: undefined,
-			awsBedrockCustomModelBaseId: undefined,
-
-			// Huawei Cloud Maas Model Info
-			huaweiCloudMaasModelInfo: undefined,
-
-			// Other mode-specific fields
-			thinkingBudgetTokens: undefined,
-			reasoningEffort: undefined,
-		}
-	}
-
-	const openRouterModelId =
-		mode === "plan" ? apiConfiguration.planModeOpenRouterModelId : apiConfiguration.actModeOpenRouterModelId
-	const openRouterModelInfo =
-		mode === "plan" ? apiConfiguration.planModeOpenRouterModelInfo : apiConfiguration.actModeOpenRouterModelInfo
-
-	// Backward compatibility: Dirac previously stored model selection in OpenRouter keys.
-	const diracModelId =
-		(mode === "plan" ? apiConfiguration.planModeDiracModelId : apiConfiguration.actModeDiracModelId) || openRouterModelId
-	const diracModelInfo =
-		(mode === "plan" ? apiConfiguration.planModeDiracModelInfo : apiConfiguration.actModeDiracModelInfo) ||
-		openRouterModelInfo
+	const apiProvider = mode === "plan" ? apiConfiguration?.planModeApiProvider : apiConfiguration?.actModeApiProvider
 
 	return {
-		// Core fields
-		apiProvider: mode === "plan" ? apiConfiguration.planModeApiProvider : apiConfiguration.actModeApiProvider,
-		apiModelId: mode === "plan" ? apiConfiguration.planModeApiModelId : apiConfiguration.actModeApiModelId,
-
-		// Provider-specific model IDs
-		togetherModelId: mode === "plan" ? apiConfiguration.planModeTogetherModelId : apiConfiguration.actModeTogetherModelId,
-		fireworksModelId: mode === "plan" ? apiConfiguration.planModeFireworksModelId : apiConfiguration.actModeFireworksModelId,
-		lmStudioModelId: mode === "plan" ? apiConfiguration.planModeLmStudioModelId : apiConfiguration.actModeLmStudioModelId,
-		liteLlmModelId: mode === "plan" ? apiConfiguration.planModeLiteLlmModelId : apiConfiguration.actModeLiteLlmModelId,
-		requestyModelId: mode === "plan" ? apiConfiguration.planModeRequestyModelId : apiConfiguration.actModeRequestyModelId,
-		openAiModelId: mode === "plan" ? apiConfiguration.planModeOpenAiModelId : apiConfiguration.actModeOpenAiModelId,
-		openRouterModelId,
-		diracModelId,
-		groqModelId: mode === "plan" ? apiConfiguration.planModeGroqModelId : apiConfiguration.actModeGroqModelId,
-		basetenModelId: mode === "plan" ? apiConfiguration.planModeBasetenModelId : apiConfiguration.actModeBasetenModelId,
-		huggingFaceModelId:
-			mode === "plan" ? apiConfiguration.planModeHuggingFaceModelId : apiConfiguration.actModeHuggingFaceModelId,
-		huaweiCloudMaasModelId:
-			mode === "plan" ? apiConfiguration.planModeHuaweiCloudMaasModelId : apiConfiguration.actModeHuaweiCloudMaasModelId,
-		hicapModelId: mode === "plan" ? apiConfiguration.planModeHicapModelId : apiConfiguration.actModeHicapModelId,
-		aihubmixModelId: mode === "plan" ? apiConfiguration.planModeAihubmixModelId : apiConfiguration.actModeAihubmixModelId,
-		nousResearchModelId:
-			mode === "plan" ? apiConfiguration.planModeNousResearchModelId : apiConfiguration.actModeNousResearchModelId,
-		vercelAiGatewayModelId:
-			mode === "plan" ? apiConfiguration.planModeVercelAiGatewayModelId : apiConfiguration.actModeVercelAiGatewayModelId,
-
-		// Model info objects
-		openAiModelInfo: mode === "plan" ? apiConfiguration.planModeOpenAiModelInfo : apiConfiguration.actModeOpenAiModelInfo,
-		liteLlmModelInfo: mode === "plan" ? apiConfiguration.planModeLiteLlmModelInfo : apiConfiguration.actModeLiteLlmModelInfo,
-		openRouterModelInfo,
-		diracModelInfo,
-		requestyModelInfo:
-			mode === "plan" ? apiConfiguration.planModeRequestyModelInfo : apiConfiguration.actModeRequestyModelInfo,
-		groqModelInfo: mode === "plan" ? apiConfiguration.planModeGroqModelInfo : apiConfiguration.actModeGroqModelInfo,
-		basetenModelInfo: mode === "plan" ? apiConfiguration.planModeBasetenModelInfo : apiConfiguration.actModeBasetenModelInfo,
-		huggingFaceModelInfo:
-			mode === "plan" ? apiConfiguration.planModeHuggingFaceModelInfo : apiConfiguration.actModeHuggingFaceModelInfo,
+		apiProvider,
+		apiModelId: mode === "plan" ? apiConfiguration?.planModeApiModelId : apiConfiguration?.actModeApiModelId,
+		thinkingBudgetTokens:
+			mode === "plan" ? apiConfiguration?.planModeThinkingBudgetTokens : apiConfiguration?.actModeThinkingBudgetTokens,
+		reasoningEffort: mode === "plan" ? apiConfiguration?.planModeReasoningEffort : apiConfiguration?.actModeReasoningEffort,
 		vsCodeLmModelSelector:
-			mode === "plan" ? apiConfiguration.planModeVsCodeLmModelSelector : apiConfiguration.actModeVsCodeLmModelSelector,
-		hicapModelInfo: mode === "plan" ? apiConfiguration.planModeHicapModelInfo : apiConfiguration.actModeHicapModelInfo,
-		aihubmixModelInfo:
-			mode === "plan" ? apiConfiguration.planModeAihubmixModelInfo : apiConfiguration.actModeAihubmixModelInfo,
-		vercelAiGatewayModelInfo:
 			mode === "plan"
-				? apiConfiguration.planModeVercelAiGatewayModelInfo
-				: apiConfiguration.actModeVercelAiGatewayModelInfo,
-
-		// AWS Bedrock fields
+				? apiConfiguration?.planModeVsCodeLmModelSelector
+				: apiConfiguration?.actModeVsCodeLmModelSelector,
 		awsBedrockCustomSelected:
 			mode === "plan"
-				? apiConfiguration.planModeAwsBedrockCustomSelected
-				: apiConfiguration.actModeAwsBedrockCustomSelected,
+				? apiConfiguration?.planModeAwsBedrockCustomSelected
+				: apiConfiguration?.actModeAwsBedrockCustomSelected,
 		awsBedrockCustomModelBaseId:
 			mode === "plan"
-				? apiConfiguration.planModeAwsBedrockCustomModelBaseId
-				: apiConfiguration.actModeAwsBedrockCustomModelBaseId,
-
-		// Huawei Cloud Maas Model Info
+				? apiConfiguration?.planModeAwsBedrockCustomModelBaseId
+				: apiConfiguration?.actModeAwsBedrockCustomModelBaseId,
+		openRouterModelId:
+			mode === "plan" ? apiConfiguration?.planModeOpenRouterModelId : apiConfiguration?.actModeOpenRouterModelId,
+		openRouterModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeOpenRouterModelInfo : apiConfiguration?.actModeOpenRouterModelInfo,
+		diracModelId: mode === "plan" ? apiConfiguration?.planModeDiracModelId : apiConfiguration?.actModeDiracModelId,
+		diracModelInfo: mode === "plan" ? apiConfiguration?.planModeDiracModelInfo : apiConfiguration?.actModeDiracModelInfo,
+		openAiModelId: mode === "plan" ? apiConfiguration?.planModeOpenAiModelId : apiConfiguration?.actModeOpenAiModelId,
+		openAiModelInfo: mode === "plan" ? apiConfiguration?.planModeOpenAiModelInfo : apiConfiguration?.actModeOpenAiModelInfo,
+		lmStudioModelId: mode === "plan" ? apiConfiguration?.planModeLmStudioModelId : apiConfiguration?.actModeLmStudioModelId,
+		liteLlmModelId: mode === "plan" ? apiConfiguration?.planModeLiteLlmModelId : apiConfiguration?.actModeLiteLlmModelId,
+		liteLlmModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeLiteLlmModelInfo : apiConfiguration?.actModeLiteLlmModelInfo,
+		requestyModelId: mode === "plan" ? apiConfiguration?.planModeRequestyModelId : apiConfiguration?.actModeRequestyModelId,
+		requestyModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeRequestyModelInfo : apiConfiguration?.actModeRequestyModelInfo,
+		togetherModelId: mode === "plan" ? apiConfiguration?.planModeTogetherModelId : apiConfiguration?.actModeTogetherModelId,
+		fireworksModelId:
+			mode === "plan" ? apiConfiguration?.planModeFireworksModelId : apiConfiguration?.actModeFireworksModelId,
+		groqModelId: mode === "plan" ? apiConfiguration?.planModeGroqModelId : apiConfiguration?.actModeGroqModelId,
+		groqModelInfo: mode === "plan" ? apiConfiguration?.planModeGroqModelInfo : apiConfiguration?.actModeGroqModelInfo,
+		basetenModelId: mode === "plan" ? apiConfiguration?.planModeBasetenModelId : apiConfiguration?.actModeBasetenModelId,
+		basetenModelInfo: mode === "plan" ? apiConfiguration?.planModeBasetenModelInfo : apiConfiguration?.actModeBasetenModelInfo,
+		huggingFaceModelId:
+			mode === "plan" ? apiConfiguration?.planModeHuggingFaceModelId : apiConfiguration?.actModeHuggingFaceModelId,
+		huggingFaceModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeHuggingFaceModelInfo : apiConfiguration?.actModeHuggingFaceModelInfo,
+		huaweiCloudMaasModelId:
+			mode === "plan" ? apiConfiguration?.planModeHuaweiCloudMaasModelId : apiConfiguration?.actModeHuaweiCloudMaasModelId,
 		huaweiCloudMaasModelInfo:
 			mode === "plan"
-				? apiConfiguration.planModeHuaweiCloudMaasModelInfo
-				: apiConfiguration.actModeHuaweiCloudMaasModelInfo,
-
-		// Other mode-specific fields
-		thinkingBudgetTokens:
-			mode === "plan" ? apiConfiguration.planModeThinkingBudgetTokens : apiConfiguration.actModeThinkingBudgetTokens,
-		reasoningEffort: mode === "plan" ? apiConfiguration.planModeReasoningEffort : apiConfiguration.actModeReasoningEffort,
-		// Oracle Code Assist
+				? apiConfiguration?.planModeHuaweiCloudMaasModelInfo
+				: apiConfiguration?.actModeHuaweiCloudMaasModelInfo,
+		aihubmixModelId: mode === "plan" ? apiConfiguration?.planModeAihubmixModelId : apiConfiguration?.actModeAihubmixModelId,
+		aihubmixModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeAihubmixModelInfo : apiConfiguration?.actModeAihubmixModelInfo,
+		githubCopilotModelId:
+			mode === "plan" ? apiConfiguration?.planModeGithubCopilotModelId : apiConfiguration?.actModeGithubCopilotModelId,
+		githubCopilotModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeGithubCopilotModelInfo : apiConfiguration?.actModeGithubCopilotModelInfo,
+		nousResearchModelId:
+			mode === "plan" ? apiConfiguration?.planModeNousResearchModelId : apiConfiguration?.actModeNousResearchModelId,
+		vercelAiGatewayModelId:
+			mode === "plan" ? apiConfiguration?.planModeVercelAiGatewayModelId : apiConfiguration?.actModeVercelAiGatewayModelId,
+		vercelAiGatewayModelInfo:
+			mode === "plan"
+				? apiConfiguration?.planModeVercelAiGatewayModelInfo
+				: apiConfiguration?.actModeVercelAiGatewayModelInfo,
 	}
 }
 
@@ -679,7 +611,6 @@ export async function syncModeConfigurations(
 			updates.actModeOpenAiModelInfo = sourceFields.openAiModelInfo
 			break
 
-
 		case "lmstudio":
 			updates.planModeLmStudioModelId = sourceFields.lmStudioModelId
 			updates.actModeLmStudioModelId = sourceFields.lmStudioModelId
@@ -736,6 +667,7 @@ export async function syncModeConfigurations(
 			updates.planModeAwsBedrockCustomModelBaseId = sourceFields.awsBedrockCustomModelBaseId
 			updates.actModeAwsBedrockCustomModelBaseId = sourceFields.awsBedrockCustomModelBaseId
 			break
+
 		case "huawei-cloud-maas":
 			updates.planModeHuaweiCloudMaasModelId = sourceFields.huaweiCloudMaasModelId
 			updates.actModeHuaweiCloudMaasModelId = sourceFields.huaweiCloudMaasModelId
@@ -748,13 +680,6 @@ export async function syncModeConfigurations(
 			// The model is configured in the Dify application itself
 			break
 
-		case "hicap":
-			updates.planModeHicapModelId = sourceFields.hicapModelId
-			updates.actModeHicapModelId = sourceFields.hicapModelId
-			updates.planModeHicapModelInfo = sourceFields.hicapModelInfo
-			updates.actModeHicapModelInfo = sourceFields.hicapModelInfo
-			break
-
 		case "vercel-ai-gateway":
 			// Vercel AI Gateway uses its own model fields
 			updates.planModeVercelAiGatewayModelId = sourceFields.vercelAiGatewayModelId
@@ -762,6 +687,7 @@ export async function syncModeConfigurations(
 			updates.planModeVercelAiGatewayModelInfo = sourceFields.vercelAiGatewayModelInfo
 			updates.actModeVercelAiGatewayModelInfo = sourceFields.vercelAiGatewayModelInfo
 			break
+
 		case "nousResearch":
 			updates.planModeNousResearchModelId = sourceFields.nousResearchModelId
 			updates.actModeNousResearchModelId = sourceFields.nousResearchModelId
@@ -864,12 +790,6 @@ export const getProviderInfo = (
 				modelId: undefined,
 				baseUrl: apiConfiguration.difyBaseUrl,
 				helpText: "Configure your Dify workflow URL and API key",
-			}
-		case "hicap":
-			return {
-				modelId: effectiveMode === "plan" ? apiConfiguration.planModeHicapModelId : apiConfiguration.actModeHicapModelId,
-				baseUrl: undefined,
-				helpText: "Add your HiCap API key in settings",
 			}
 		case "aihubmix":
 			return {

@@ -43,10 +43,10 @@ import { GlobalStateAndSettingKeys, LocalStateKeys, SecretKeys } from "@/shared/
 import type { StorageContext } from "@/shared/storage/storage-context"
 
 /** Bump this when adding new migration steps. */
-const CURRENT_MIGRATION_VERSION = 2
+export const CURRENT_MIGRATION_VERSION = 2
 
 /** Sentinel key written to both globalState and workspaceState to track migration independently. */
-const MIGRATION_VERSION_KEY = "__vscodeMigrationVersion"
+export const MIGRATION_VERSION_KEY = "__vscodeMigrationVersion"
 
 /**
  * Keys that should NOT be migrated from VSCode storage.

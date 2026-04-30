@@ -141,10 +141,6 @@
 			"label": "MiniMax"
 		},
 		{
-			"value": "hicap",
-			"label": "Hicap"
-		},
-		{
 			"value": "aihubmix",
 			"label": "AIhubmix"
 		},

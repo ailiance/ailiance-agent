@@ -37,7 +37,6 @@ const ProviderKeyMap: Partial<Record<ApiProvider, string>> = {
 	baseten: "BasetenModelId",
 	huggingface: "HuggingFaceModelId",
 	aihubmix: "AihubmixModelId",
-	hicap: "HicapModelId",
 	nousResearch: "NousResearchModelId",
 	"vercel-ai-gateway": "VercelAiGatewayModelId",
 } as const
@@ -73,7 +72,6 @@ export const ProviderToApiKeyMap: Partial<Record<ApiProvider, keyof Secrets | (k
 	zai: "zaiApiKey",
 	aihubmix: "aihubmixApiKey",
 	minimax: "minimaxApiKey",
-	hicap: "hicapApiKey",
 	nousResearch: "nousResearchApiKey",
 	wandb: "wandbApiKey",
 } as const
@@ -94,7 +92,6 @@ const ProviderDefaultModelMap: Partial<Record<ApiProvider, string>> = {
 	"huawei-cloud-maas": huaweiCloudMaasDefaultModelId,
 	aihubmix: openRouterDefaultModelId,
 	bedrock: bedrockDefaultModelId,
-	hicap: "",
 	nousResearch: nousResearchDefaultModelId,
 	"vercel-ai-gateway": openRouterDefaultModelId,
 	xai: xaiDefaultModelId,
