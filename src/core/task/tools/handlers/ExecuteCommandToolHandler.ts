@@ -19,6 +19,8 @@ import { ToolResultUtils } from "../utils/ToolResultUtils"
 const DEFAULT_COMMAND_TIMEOUT_SECONDS = 30
 const LONG_RUNNING_COMMAND_TIMEOUT_SECONDS = 300
 const MAX_COMMAND_OUTPUT_SIZE = 10 * 1024 // 10KB limit to avoid context flooding, extra safety layer
+const MAX_PATH_LENGTH = 255 // Linux/macOS single path component limit
+
 
 const LONG_RUNNING_COMMAND_PATTERNS: RegExp[] = [
 	/\b(npm|pnpm|yarn|bun)\s+(install|ci|build|test)\b/i,
@@ -187,6 +189,25 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 		if (commandsToProcess.length === 0) {
 			return formatResponse.toolResult("No commands provided to execute.")
+		}
+
+		// 1b. Validate: reject path-like arguments exceeding OS filename length limit
+		for (const cmd of commandsToProcess) {
+			const parts = cmd.command.split(/\s+/)
+			for (const part of parts) {
+				if (
+					(part.startsWith("/") || part.startsWith("./") || part.startsWith("../") || part.includes("/")) &&
+					Buffer.byteLength(part) > MAX_PATH_LENGTH
+				) {
+					const preview = part.slice(0, 80)
+					const resultObj = {
+						ok: false,
+						error: "PATH_TOO_LONG",
+						message: `Path argument exceeds maximum allowed length (${MAX_PATH_LENGTH} bytes). Saw: ${preview}${part.length > 80 ? "..." : ""} (total ${Buffer.byteLength(part)} bytes). If you meant to pass file contents, use a pipe or write to a file first.`
+					}
+					return formatResponse.toolResult(JSON.stringify(resultObj, null, 2))
+				}
+			}
 		}
 
 		// Extract provider
