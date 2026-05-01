@@ -168,7 +168,7 @@ If everything checks out, call attempt_completion again with your final result.`
 		result: string,
 		taskPreview: string | undefined,
 		verificationInstructions: string,
-	): Promise<ToolResponse> {
+	): Promise<ToolResponse | undefined> {
 		const runner = new SubagentRunner(config, "verifier")
 
 		// UI state for subagent
@@ -284,11 +284,7 @@ Otherwise, respond with "VERIFICATION: FAILED" followed by all the details on wh
 			if (runResult.status === "completed") {
 				const isSuccess = runResult.result?.includes("VERIFICATION: SUCCESS")
 				if (isSuccess) {
-					config.taskState.doubleCheckCompletionPending = true
-					return `Verification Subagent Report:
-${runResult.result}
-
-The verification was successful.`
+					return undefined
 				} else {
 					return `Verification Subagent Report:
 ${runResult.result}
