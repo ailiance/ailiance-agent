@@ -75,18 +75,18 @@ export class AttemptCompletionHandler implements IToolHandler, IPartialBlockHand
 
 			const taskPreview = getInitialTaskPreview(config)
 			const taskSection = taskPreview ? `\n\n<initial_task>\n${taskPreview}\n</initial_task>` : ""
+			return `Verification Required: User wants you to fully verify your solution before submitting.
 
-			return formatResponse.toolError(
-				"Before completing, re-verify your work against the original task requirements. Check that:\n" +
-					"1. All requested changes have been made (verify using a script/`exceute_command` when possible)\n" +
-					"2. No steps were skipped or partially completed\n" +
-					"3. Edge cases and error handling are addressed\n" +
-					"4. The solution matches what was asked for, not just what was convenient\n" +
-					"5. Output files contain exactly what was specified - no extra columns, fields, debug output, or commentary\n" +
-					"6. If the task specifies numerical thresholds or accuracy targets, verify your result meets the criteria. If close but not passing, iterate rather than declaring completion" + 
-					taskSection +
-					"\n\nIf everything checks out, call attempt_completion again with your final result.",
-			)
+<verification_checklist>
+1. All requested changes have been made (verify using a test script/\`exceute_command\` when possible)
+2. No steps were skipped or partially completed
+3. Edge cases and error handling are addressed
+4. The solution matches what was asked for, not just what was convenient
+5. Output files contain exactly what was specified - no extra columns, fields, debug output, or commentary
+6. If the task specifies numerical thresholds or accuracy targets, verify your result meets the criteria. If close but not passing, iterate rather than declaring completion
+</verification_checklist>${taskSection}
+
+If everything checks out, call attempt_completion again with your final result.`
 		}
 		// Reset so the next attempt_completion pair triggers double-check again
 		config.taskState.doubleCheckCompletionPending = false

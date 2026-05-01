@@ -127,7 +127,13 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 				message.ask === "command" ||
 				message.ask === "browser_action_launch" ||
 				message.ask === "plan_mode_respond" ||
-				message.ask === "act_mode_respond")
+				message.ask === "act_mode_respond" ||
+				message.ask === "use_subagents" ||
+				message.ask === "completion_result" ||
+				message.ask === "new_task" ||
+				message.ask === "condense" ||
+				message.ask === "summarize_task" ||
+				message.ask === "report_bug")
 		) {
 			controller.task?.handleWebviewAskResponse("yesButtonClicked")
 		}
@@ -281,11 +287,66 @@ function handleMessageForPipeMode(
 		process.stderr.write(`${statusPrefix}Reasoning: ${reasoning}\n`)
 	}
 
-
 	// 2. Handle Tool Calls (Triggering actions)
 	const toolType = getToolType(message)
 	if (toolType) {
+		// Special handling for API requests to avoid raw JSON dump
+		if (message.say === "api_req_started" || message.say === "api_req_finished" || message.say === "api_req_retried") {
+			handleApiReqMessage(message, statusPrefix, isUpdate)
+			return
+		}
+
 		let label = "Tool Call"
+		let isTool = true
+
+		if (message.type === "say") {
+			switch (message.say) {
+				case "task":
+					label = "Task"
+					isTool = false
+					break
+				case "text":
+					label = "Assistant"
+					isTool = false
+					break
+				case "reasoning":
+					label = "Reasoning"
+					isTool = false
+					break
+				case "subagent":
+					label = "Subagent"
+					isTool = false
+					break
+				case "subagent_usage":
+					label = "Subagent Usage"
+					isTool = false
+					break
+				case "checkpoint_created":
+					label = "Checkpoint"
+					isTool = false
+					break
+			}
+		} else if (message.type === "ask") {
+			switch (message.ask) {
+				case "followup":
+					label = "Question"
+					isTool = false
+					break
+				case "plan_mode_respond":
+					label = "Plan"
+					isTool = false
+					break
+				case "act_mode_respond":
+					label = "Act"
+					isTool = false
+					break
+				case "completion_result":
+					label = "Completion"
+					isTool = false
+					break
+			}
+		}
+
 		let extra = ""
 		if (message.type === "ask") {
 			if (yolo) {
@@ -294,7 +355,12 @@ function handleMessageForPipeMode(
 				extra = " [waiting for approval]"
 			}
 		}
-		process.stderr.write(`${statusPrefix}${label}${extra}: ${toolType}: ${fullText}\n`)
+
+		if (isTool) {
+			process.stderr.write(`${statusPrefix}${label}${extra}: ${toolType}: ${fullText}\n`)
+		} else {
+			process.stderr.write(`${statusPrefix}${label}${extra}: ${fullText}\n`)
+		}
 		return
 	}
 
@@ -356,8 +422,35 @@ function handleMessageForPipeMode(
  * Identify if a message is a tool call and return its type/name
  */
 function getToolType(message: DiracMessage): string | null {
-	if (message.type === "say" && message.say === "tool") {
-		return "tool"
+	if (message.type === "say") {
+		const toolSays = [
+			"tool",
+			"command",
+			"browser_action",
+			"browser_action_launch",
+			"use_subagents",
+			"generate_explanation",
+			"task",
+			"text",
+			"reasoning",
+			"api_req_started",
+			"api_req_finished",
+			"api_req_retried",
+			"subagent",
+			"subagent_usage",
+			"checkpoint_created",
+		]
+		if (message.say && toolSays.includes(message.say as any)) {
+			if (message.say === "tool" && message.text) {
+				try {
+					const parsed = JSON.parse(message.text)
+					return parsed.tool || "tool"
+				} catch {
+					return "tool"
+				}
+			}
+			return message.say
+		}
 	}
 	if (message.type === "ask") {
 		const toolAsks = [
@@ -367,12 +460,28 @@ function getToolType(message: DiracMessage): string | null {
 			"plan_mode_respond",
 			"act_mode_respond",
 			"use_subagents",
+			"completion_result",
+			"followup",
+			"new_task",
+			"condense",
+			"summarize_task",
+			"report_bug",
+			"api_req_failed",
+			"resume_task",
 		]
-		if (message.ask && toolAsks.includes(message.ask)) {
+		if (message.ask && toolAsks.includes(message.ask as any)) {
+			if (message.ask === "tool" && message.text) {
+				try {
+					const parsed = JSON.parse(message.text)
+					return parsed.tool || "tool"
+				} catch {
+					return "tool"
+				}
+			}
 			return message.ask
 		}
 	}
-	return null
+	return message.say || message.ask || "unknown"
 }
 
 /**
