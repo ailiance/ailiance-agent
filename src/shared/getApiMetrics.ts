@@ -1,4 +1,4 @@
-import { DiracMessage } from "./ExtensionMessage"
+import { DiracApiReqInfo, DiracMessage } from "./ExtensionMessage"
 
 interface ApiMetrics {
 	totalTokensIn: number
@@ -101,4 +101,31 @@ export function getLastApiReqTotalTokens(messages: DiracMessage[]): number {
 		}
 	}
 	return 0
+}
+
+/**
+ * Gets the info from the last API request.
+ *
+ * This is used for context window progress display - it shows how much of the
+ * context window is used in the current/most recent request, not cumulative totals.
+ *
+ * @param messages - An array of DiracMessage objects to process.
+ * @returns A DiracApiReqInfo object from the last api_req_started message, or undefined if none found.
+ */
+export function getLastApiReqInfo(messages: DiracMessage[]): DiracApiReqInfo | undefined {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const msg = messages[i]
+		if (msg.type === "say" && msg.say === "api_req_started" && msg.text) {
+			try {
+				const info: DiracApiReqInfo = JSON.parse(msg.text)
+				const total = (info.tokensIn || 0) + (info.tokensOut || 0) + (info.cacheWrites || 0) + (info.cacheReads || 0)
+				if (total > 0) {
+					return info
+				}
+			} catch {
+				// Ignore JSON parse errors, continue searching
+			}
+		}
+	}
+	return undefined
 }

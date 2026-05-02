@@ -1,4 +1,4 @@
-import { Mode } from "@shared/ExtensionMessage"
+import { DiracApiReqInfo, Mode } from "@shared/ExtensionMessage"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import debounce from "debounce"
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -21,6 +21,7 @@ interface ContextWindowInfoProps {
 
 interface ContextWindowProgressProps {
 	onSendMessage?: (command: string, files: string[], images: string[]) => void
+	lastApiReqInfo?: DiracApiReqInfo
 }
 
 const ConfirmationDialog = memo<{
@@ -52,7 +53,7 @@ const ConfirmationDialog = memo<{
 ))
 ConfirmationDialog.displayName = "ConfirmationDialog"
 
-const ContextWindow: React.FC<ContextWindowProgressProps> = ({ onSendMessage }) => {
+const ContextWindow: React.FC<ContextWindowProgressProps> = ({ onSendMessage, lastApiReqInfo }) => {
 	const { apiConfiguration, mode } = useSettingsStore()
 	const { diracMessages } = useChatStore()
 
@@ -62,37 +63,18 @@ const ContextWindow: React.FC<ContextWindowProgressProps> = ({ onSendMessage }) 
 	)
 	const contextWindow = selectedModelInfo?.contextWindow || 0
 
-	const lastApiReqStartedMessage = useMemo(() => {
-		return [...diracMessages].reverse().find((m) => {
-			if (m.type !== "say" || m.say !== "api_req_started" || !m.text) {
-				return false
-			}
-			try {
-				const info = JSON.parse(m.text)
-				return info.tokensIn != null
-			} catch {
-				return false
-			}
-		})
-	}, [diracMessages])
-
 	const [tokensIn, tokensOut, cacheWrites, cacheReads, lastApiReqTotalTokens] = useMemo(() => {
-		if (lastApiReqStartedMessage?.text) {
-			try {
-				const info = JSON.parse(lastApiReqStartedMessage.text)
-				return [
-					info.tokensIn,
-					info.tokensOut,
-					info.cacheWrites,
-					info.cacheReads,
-					info.tokensIn + info.tokensOut + (info.cacheWrites || 0) + (info.cacheReads || 0),
-				]
-			} catch (e) {
-				console.error("Error parsing api_req_started in ContextWindow:", e)
-			}
+		if (lastApiReqInfo) {
+			return [
+				lastApiReqInfo.tokensIn,
+				lastApiReqInfo.tokensOut,
+				lastApiReqInfo.cacheWrites,
+				lastApiReqInfo.cacheReads,
+				(lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0),
+			]
 		}
 		return [0, 0, 0, 0, 0]
-	}, [lastApiReqStartedMessage])
+	}, [lastApiReqInfo])
 
 	const tokenData = useMemo(() => {
 		if (!contextWindow) {

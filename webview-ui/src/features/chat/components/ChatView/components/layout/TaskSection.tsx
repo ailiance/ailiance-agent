@@ -1,10 +1,11 @@
-import { DiracMessage } from "@shared/ExtensionMessage"
+import { DiracApiReqInfo, DiracMessage } from "@shared/ExtensionMessage"
 import React from "react"
 import TaskHeader from "@/features/chat/components/TaskHeader/TaskHeader"
 import { MessageHandlers } from "../../types/chatTypes"
 
 interface TaskSectionProps {
 	task: DiracMessage
+	lastApiReqInfo?: DiracApiReqInfo
 	apiMetrics: {
 		totalCost: number
 	}
@@ -17,6 +18,7 @@ interface TaskSectionProps {
  */
 export const TaskSection: React.FC<TaskSectionProps> = ({
 	task,
+	lastApiReqInfo,
 	apiMetrics,
 	messageHandlers,
 }) => {
@@ -26,6 +28,7 @@ export const TaskSection: React.FC<TaskSectionProps> = ({
 			onSendMessage={messageHandlers.handleSendMessage}
 			task={task}
 			totalCost={apiMetrics.totalCost}
+			lastApiReqInfo={lastApiReqInfo}
 		/>
 	)
 }

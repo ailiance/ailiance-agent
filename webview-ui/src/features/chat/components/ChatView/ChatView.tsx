@@ -3,7 +3,7 @@ import { combineCommandSequences } from "@shared/combineCommandSequences"
 import { combineErrorRetryMessages } from "@shared/combineErrorRetryMessages"
 import { combineHookSequences } from "@shared/combineHookSequences"
 import { Mode } from "@shared/ExtensionMessage"
-import { getApiMetrics, getLastApiReqTotalTokens } from "@shared/getApiMetrics"
+import { getApiMetrics, getLastApiReqInfo } from "@shared/getApiMetrics"
 import { BooleanRequest } from "@shared/proto/dirac/common"
 import { useCallback, useEffect, useMemo } from "react"
 import { useMount } from "react-use"
@@ -73,8 +73,9 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 	}, [messages, hooksEnabled])
 	// has to be after api_req_finished are all reduced into api_req_started messages
 	const apiMetrics = useMemo(() => getApiMetrics(modifiedMessages), [modifiedMessages])
+	const lastApiReqInfo = useMemo(() => getLastApiReqInfo(modifiedMessages), [modifiedMessages])
 
-	const lastApiReqTotalTokens = useMemo(() => getLastApiReqTotalTokens(modifiedMessages) || undefined, [modifiedMessages])
+	const lastApiReqTotalTokens = lastApiReqInfo ? (lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0) : undefined
 
 	// Use custom hooks for state management
 	const chatState = useChatState(messages)
@@ -187,6 +188,7 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 					{showNavbar && <Navbar />}
 					{task ? (
 						<TaskSection
+							lastApiReqInfo={lastApiReqInfo}
 							apiMetrics={apiMetrics}
 							messageHandlers={messageHandlers}
 							task={task}

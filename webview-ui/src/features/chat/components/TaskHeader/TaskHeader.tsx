@@ -1,4 +1,4 @@
-import { DiracMessage, Mode } from "@shared/ExtensionMessage"
+import { DiracApiReqInfo, DiracMessage, Mode } from "@shared/ExtensionMessage"
 import { useChatStore } from "@/features/chat/store/chatStore"
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import React, { useCallback, useLayoutEffect, useMemo, useState } from "react"
@@ -19,6 +19,7 @@ const IS_DEV = process.env.IS_DEV === '"true"'
 interface TaskHeaderProps {
 	task: DiracMessage
 	totalCost: number
+	lastApiReqInfo?: DiracApiReqInfo
 	onClose: () => void
 	onSendMessage?: (command: string, files: string[], images: string[]) => void
 }
@@ -34,6 +35,7 @@ const BUTTON_CLASS = "max-h-3 border-0 font-bold bg-transparent hover:opacity-10
 const TaskHeader: React.FC<TaskHeaderProps> = ({
 	task,
 	totalCost,
+	lastApiReqInfo,
 	onClose,
 	onSendMessage,
 }) => {
@@ -86,37 +88,18 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 	// Simplified computed values
 	const contextWindow = selectedModelInfo?.contextWindow || 0
 
-	const lastApiReqStartedMessage = useMemo(() => {
-		return [...diracMessages].reverse().find((m) => {
-			if (m.type !== "say" || m.say !== "api_req_started" || !m.text) {
-				return false
-			}
-			try {
-				const info = JSON.parse(m.text)
-				return info.tokensIn != null
-			} catch {
-				return false
-			}
-		})
-	}, [diracMessages])
-
 	const [tokensIn, tokensOut, cacheWrites, cacheReads, lastApiReqTotalTokens] = useMemo(() => {
-		if (lastApiReqStartedMessage?.text) {
-			try {
-				const info = JSON.parse(lastApiReqStartedMessage.text)
-				return [
-					info.tokensIn,
-					info.tokensOut,
-					info.cacheWrites,
-					info.cacheReads,
-					info.tokensIn + info.tokensOut + (info.cacheWrites || 0) + (info.cacheReads || 0),
-				]
-			} catch (e) {
-				console.error("Error parsing api_req_started in TaskHeader:", e)
-			}
+		if (lastApiReqInfo) {
+			return [
+				lastApiReqInfo.tokensIn,
+				lastApiReqInfo.tokensOut,
+				lastApiReqInfo.cacheWrites,
+				lastApiReqInfo.cacheReads,
+				(lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0),
+			]
 		}
 		return [0, 0, 0, 0, 0]
-	}, [lastApiReqStartedMessage])
+	}, [lastApiReqInfo])
 
 	const tokenPercentage = useMemo(() => {
 		if (!contextWindow || !lastApiReqTotalTokens) return 0
@@ -227,7 +210,7 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 						)}
 
 						<div className="border-t border-foreground/5 pt-2">
-							<ContextWindow onSendMessage={onSendMessage} />
+							<ContextWindow onSendMessage={onSendMessage} lastApiReqInfo={lastApiReqInfo} />
 						</div>
 					</div>
 				)}
