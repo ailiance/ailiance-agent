@@ -41,12 +41,27 @@ export async function createDirectoriesForFile(filePath: string): Promise<string
  * @param path - The path to check.
  * @returns A promise that resolves to true if the path exists, false otherwise.
  */
+/**
+ * Helper to check if an error indicates that a file or directory was not found.
+ */
+function isNotFound(error: any): boolean {
+	return error.code === "ENOENT"
+}
+
+function isNotADirectory(error: any): boolean {
+	return error.code === "ENOTDIR"
+}
+
+
 export async function fileExistsAtPath(filePath: string): Promise<boolean> {
 	try {
 		await fs.access(filePath)
 		return true
-	} catch {
-		return false
+	} catch (error: any) {
+		if (isNotFound(error) || isNotADirectory(error)) {
+			return false
+		}
+		throw error
 	}
 }
 
@@ -59,8 +74,11 @@ export async function isDirectory(filePath: string): Promise<boolean> {
 	try {
 		const stats = await fs.stat(filePath)
 		return stats.isDirectory()
-	} catch {
-		return false
+	} catch (error: any) {
+		if (isNotFound(error) || isNotADirectory(error)) {
+			return false
+		}
+		throw error
 	}
 }
 
@@ -74,8 +92,11 @@ export async function getFileSizeInKB(filePath: string): Promise<number> {
 		const stats = await fs.stat(filePath)
 		const fileSizeInKB = stats.size / 1000 // Convert bytes to KB (decimal) - matches OS file size display
 		return fileSizeInKB
-	} catch {
-		return 0
+	} catch (error: any) {
+		if (isNotFound(error) || isNotADirectory(error)) {
+			return 0
+		}
+		throw error
 	}
 }
 
@@ -147,8 +168,8 @@ export const readDirectory = async (directoryPath: string, excludedPaths: string
 			)
 
 		return filePaths
-	} catch {
-		throw new Error(`Error reading directory at ${directoryPath}`)
+	} catch (error: any) {
+		throw new Error(`Error reading directory at ${directoryPath}: ${error.message || error.code || error}`)
 	}
 }
 

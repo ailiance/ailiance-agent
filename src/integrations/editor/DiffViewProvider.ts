@@ -359,6 +359,11 @@ export abstract class DiffViewProvider {
 		// get the contents before save operation which may do auto-formatting
 		const preSaveContent = await this.getDocumentText()
 
+		if (!(await this.saveDocument())) {
+			throw new Error(`Failed to save changes to ${this.relPath}. The file may be read-only or the save operation was cancelled.`)
+		}
+
+
 		if (!this.relPath || !this.absolutePath || !this.newContent || preSaveContent === undefined) {
 			return {
 				newProblemsMessage: undefined,
@@ -368,7 +373,6 @@ export abstract class DiffViewProvider {
 			}
 		}
 
-		await this.saveDocument()
 		// get text after save in case there is any auto-formatting done by the editor
 		const postSaveContent = (await this.getDocumentText()) || ""
 

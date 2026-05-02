@@ -198,11 +198,10 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 		if (!this.activeDiffEditor.document.isDirty) {
 			return false
 		}
-		await pTimeout(this.activeDiffEditor.document.save(), {
+		return await pTimeout(this.activeDiffEditor.document.save(), {
 			milliseconds: 10_000,
 			message: "Failed to save document in VS Code within 10 seconds",
 		})
-		return true
 	}
 
 	protected async closeAllDiffViews(): Promise<void> {

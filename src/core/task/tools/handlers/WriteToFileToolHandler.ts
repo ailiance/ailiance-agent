@@ -1,4 +1,5 @@
 import path from "node:path"
+import fs from "node:fs/promises"
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
@@ -6,7 +7,6 @@ import { getWorkspaceBasename, resolveWorkspacePath } from "@core/workspace"
 import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { DiracSayTool } from "@shared/ExtensionMessage"
 import { getLastApiReqTotalTokens } from "@shared/getApiMetrics"
-import { fileExistsAtPath } from "@utils/fs"
 import { stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { applyPatch } from "diff"
@@ -20,7 +20,6 @@ import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { captureAccepted, captureRejected, getModelInfo } from "../utils/AiOutputTelemetry"
 import { applyModelContentFixes } from "../utils/ModelContentProcessor"
-import { ToolDisplayUtils } from "../utils/ToolDisplayUtils"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 export class WriteToFileToolHandler implements IFullyManagedTool {
@@ -46,7 +45,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 
 		// Creates file if it doesn't exist, and opens editor to stream content in. We don't want to handle this in the try/catch below since the error handler for it resets the diff view, which wouldn't be open if this failed.
 		const result = await this.validateAndPrepareFileOperation(config, block, rawRelPath, undefined, rawContent)
-		if (!result) {
+		if ("error" in result) {
 			return
 		}
 
@@ -143,8 +142,8 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 
 		try {
 			const result = await this.validateAndPrepareFileOperation(config, block, rawRelPath, undefined, rawContent)
-			if (!result) {
-				return "" // can only happen if the sharedLogic adds an error to userMessages
+			if ("error" in result) {
+				return result.error
 			}
 
 			const { relPath, absolutePath, fileExists, content, newContent, workspaceContext } = result
@@ -387,9 +386,25 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 	 * @param _diff Ignored (legacy parameter)
 	 * @param content Optional direct content for write operations
 	 * @returns Object containing validated path, file existence status, content, and constructed new content,
-	 *          or undefined if validation fails
+	 *          or an object with an error message if validation fails
 	 */
-	async validateAndPrepareFileOperation(config: TaskConfig, block: ToolUse, relPath: string, _diff?: string, content?: string) {
+	async validateAndPrepareFileOperation(
+		config: TaskConfig,
+		block: ToolUse,
+		relPath: string,
+		_diff?: string,
+		content?: string,
+	): Promise<
+		| {
+				relPath: string
+				absolutePath: string
+				fileExists: boolean
+				content: string | undefined
+				newContent: string
+				workspaceContext: any
+		  }
+		| { error: string }
+	> {
 		// Parse workspace hint and resolve path for multi-workspace support
 		const pathResult = resolveWorkspacePath(config, relPath, "WriteToFileToolHandler.validateAndPrepareFileOperation")
 		const { absolutePath, resolvedPath } =
@@ -409,24 +424,16 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 		// Check diracignore access first
 		const accessValidation = this.validator.checkDiracIgnorePath(resolvedPath)
 		if (!accessValidation.ok) {
-			// Show error and return early (full original behavior)
+			// Show error to user
 			await config.callbacks.say("diracignore_error", resolvedPath)
 
-			// Push tool result and save checkpoint using existing utilities
 			const errorResponse = formatResponse.toolError(formatResponse.diracIgnoreError(resolvedPath))
-			ToolResultUtils.pushToolResult(
-				errorResponse,
-				block,
-				config.taskState.userMessageContent,
-				ToolDisplayUtils.getToolDescription,
-				config.coordinator,
-				config.taskState.toolUseIdMap,
-			)
+
 			if (!config.enableParallelToolCalling) {
 				config.taskState.didAlreadyUseTool = true
 			}
 
-			return
+			return { error: errorResponse }
 		}
 
 		// Check if file exists to determine the correct UI message
@@ -434,8 +441,11 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 		if (config.services.diffViewProvider.editType !== undefined) {
 			fileExists = config.services.diffViewProvider.editType === "modify"
 		} else {
-			fileExists = await fileExistsAtPath(absolutePath)
-			config.services.diffViewProvider.editType = fileExists ? "modify" : "create"
+			const validation = await this.validateFileAccess(config, block, relPath, absolutePath)
+			if (!validation.ok) {
+				return { error: validation.errorResponse || "Unknown validation error" }
+			}
+			fileExists = validation.fileExists
 		}
 
 		let newContent: string
@@ -459,9 +469,64 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			newContent = applyModelContentFixes(newContent, config.api.getModel().id, resolvedPath)
 		} else {
 			// can't happen, since we already checked for content/diff above. but need to do this for type error
-			return
+			return { error: "Missing content for file operation" }
 		}
 
 		return { relPath, absolutePath, fileExists, content, newContent, workspaceContext }
 	}
+	private async validateFileAccess(
+		config: TaskConfig,
+		block: ToolUse,
+		relPath: string,
+		absolutePath: string,
+	): Promise<{ fileExists: boolean; ok: boolean; errorResponse?: string }> {
+		try {
+			const stats = await fs.stat(absolutePath)
+			if (stats.isDirectory()) {
+				const errorResponse = formatResponse.toolError(`Cannot write to '${relPath}' because it is a directory.`)
+				await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but it is a directory.`)
+				return { fileExists: true, ok: false, errorResponse }
+			}
+
+			// If it's a file, check if we have write permission
+			try {
+				await fs.access(absolutePath, fs.constants.W_OK)
+			} catch (error: any) {
+				if (error.code === "EACCES") {
+					const errorResponse = formatResponse.toolError(formatResponse.filePermissionError(relPath, "write to"))
+					await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but permission was denied.`)
+					return { fileExists: true, ok: false, errorResponse }
+				}
+ else if (error.code === "EROFS") {
+					const errorResponse = formatResponse.toolError(formatResponse.readOnlyError(relPath))
+					await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but the file system is read-only.`)
+					return { fileExists: true, ok: false, errorResponse }
+				}
+				// Ignore other access errors here, they will be caught by the outer try/catch if they are critical
+			}
+
+			config.services.diffViewProvider.editType = "modify"
+			return { fileExists: true, ok: true }
+		} catch (error: any) {
+			if (error.code === "ENOENT") {
+				config.services.diffViewProvider.editType = "create"
+				return { fileExists: false, ok: true }
+			} else if (error.code === "ENOTDIR") {
+				const errorResponse = formatResponse.toolError(formatResponse.pathConflictError(relPath))
+				await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but a parent component is not a directory.`)
+				return { fileExists: false, ok: false, errorResponse }
+			} else if (error.code === "EACCES") {
+				const errorResponse = formatResponse.toolError(formatResponse.filePermissionError(relPath, "access"))
+				await config.callbacks.say("error", `Dirac tried to access '${relPath}', but permission was denied.`)
+				return { fileExists: false, ok: false, errorResponse }
+			} else if (error.code === "EROFS") {
+				const errorResponse = formatResponse.toolError(formatResponse.readOnlyError(relPath))
+				await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but the file system is read-only.`)
+				return { fileExists: false, ok: false, errorResponse }
+			} else {
+				throw error
+			}
+		}
+	}
+
 }

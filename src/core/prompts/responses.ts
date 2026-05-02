@@ -29,6 +29,15 @@ export const formatResponse = {
 	diracIgnoreError: (path: string) =>
 		`Access to ${path} is blocked by the .diracignore file settings. You must try to continue in the task without using this file, or ask the user to update the .diracignore file.`,
 
+	pathConflictError: (path: string) =>
+		`Cannot write to '${path}' because one of the parent components is a file, not a directory.`,
+
+	filePermissionError: (path: string, operation: string) =>
+		`Cannot ${operation} '${path}': Permission denied. You may need to ask the user to check file permissions or try a different path.`,
+
+	readOnlyError: (path: string) =>
+		`Cannot write to '${path}': Read-only file system.`,
+
 	permissionDeniedError: (reason: string) =>
 		`Command execution blocked by DIRAC_COMMAND_PERMISSIONS: ${reason}. You must try a different approach or ask the user to update the permission settings.`,
 

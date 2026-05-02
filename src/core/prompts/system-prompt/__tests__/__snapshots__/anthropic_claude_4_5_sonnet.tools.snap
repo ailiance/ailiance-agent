@@ -450,7 +450,7 @@
   },
   {
     "name": "use_subagents",
-    "description": "Run between two and five focused in-process subagents in parallel. Each subagent gets its own prompt and returns a comprehensive research result. Default timeout is 300 seconds. Particularly effective for investigating multiple independent paths simultaneously without consuming the your context window.",
+    "description": "Run upto five focused in-process subagents in parallel. Each subagent gets its own prompt and returns a comprehensive research result. Default timeout is 300 seconds. Particularly effective for investigating multiple independent paths simultaneously without consuming the your context window.",
     "input_schema": {
       "type": "object",
       "properties": {
@@ -488,8 +488,7 @@
         }
       },
       "required": [
-        "prompt_1",
-        "prompt_2"
+        "prompt_1"
       ]
     }
   },
