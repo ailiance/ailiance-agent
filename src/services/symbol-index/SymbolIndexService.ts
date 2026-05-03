@@ -110,7 +110,7 @@ export class SymbolIndexService {
 	private static readonly MAX_FILE_SIZE = 1024 * 1024 // 1MB
 
 	// Performance and behavior constants
-	private static readonly FILES_PER_BATCH = 50
+	private static readonly FILES_PER_BATCH = 10
 	private static readonly PARALLEL_PARSING_LIMIT = 10
 	private static readonly INDEX_DIR = ".dirac-symbol-index"
 	private static readonly INDEX_FILE = "data.db"
@@ -197,11 +197,9 @@ export class SymbolIndexService {
 				this.db = await SymbolIndexDatabase.create(dbPath)
 			}
 			this.isFullScanInProgress = true
-
 			Logger.info("[SymbolIndexService] Starting full scan")
 			await this.runFullScan()
 			Logger.info("[SymbolIndexService] Full scan completed")
-			this.scheduleSave()
 		} finally {
 			this.isFullScanInProgress = false
 			this.isScanningInternal = false
@@ -370,9 +368,7 @@ export class SymbolIndexService {
 						)
 						const previousIndexed = filesIndexed
 						filesIndexed += validResults.length
-						if (!this.isFullScanInProgress || Math.floor(previousIndexed / 5000) < Math.floor(filesIndexed / 5000)) {
-							this.scheduleSave()
-						}
+						// No need to schedule save with better-sqlite3 as it handles persistence automatically
 						Logger.info(`[SymbolIndexService] Indexed ${validResults.length} files in this batch`)
 					}
 				} catch (error) {
@@ -467,46 +463,23 @@ export class SymbolIndexService {
 	}
 
 	async updateFile(absolutePath: string): Promise<void> {
-		const relPath = path.relative(this.projectRoot, absolutePath)
-		if (!this.shouldIndexFile(relPath)) return
-
-		if (this.pendingUpdates.has(absolutePath)) return
-		this.pendingUpdates.add(absolutePath)
+		if (!this.shouldIndexFile(absolutePath)) return
 
 		try {
+			const relPath = path.relative(this.projectRoot, absolutePath)
 			const languageParsers = await loadRequiredLanguageParsers([absolutePath])
 			const entry = await this.indexFile(absolutePath, languageParsers)
 			if (entry && this.db) {
 				this.db.updateFileSymbols(relPath, entry.mtime, entry.size, entry.symbols)
-				this.scheduleSave()
 			}
-		} finally {
-			this.pendingUpdates.delete(absolutePath)
+		} catch (error) {
+			Logger.error(`[SymbolIndexService] Error updating file ${absolutePath}:`, error)
 		}
 	}
 
 	async removeFile(absolutePath: string): Promise<void> {
 		const relPath = path.relative(this.projectRoot, absolutePath)
 		this.db?.removeFile(relPath)
-		this.scheduleSave()
-	}
-
-	private scheduleSave(): void {
-		if (this.isFullScanInProgress && this.saveTimeout) {
-			return // Don't reset timeout during full scan if one is already pending
-		}
-		if (!this.isPersistenceEnabled) {
-			return
-		}
-		if (this.saveTimeout) {
-			clearTimeout(this.saveTimeout)
-		}
-		this.saveTimeout = setTimeout(() => {
-			this.saveTimeout = null
-			if (this.db) {
-				this.db.save()
-			}
-		}, SymbolIndexService.SAVE_DEBOUNCE_MS)
 	}
 
 	public dispose(): void {
