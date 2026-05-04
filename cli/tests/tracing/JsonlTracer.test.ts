@@ -47,6 +47,52 @@ describe("scrubSecrets", () => {
 		circ.self = circ
 		expect(() => scrubSecrets(circ)).not.toThrow()
 	})
+
+	it("redacts AWS access key IDs in strings", () => {
+		const out = scrubSecrets({ msg: "key=AKIAIOSFODNN7EXAMPLE in log" }) as { msg: string }
+		expect(out.msg).not.toContain("AKIAIOSFODNN7EXAMPLE")
+		expect(out.msg).toContain("[REDACTED]")
+	})
+
+	it("redacts PEM private key blocks", () => {
+		const pem =
+			"-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX\nfake-pem-body-here\n-----END RSA PRIVATE KEY-----"
+		const out = scrubSecrets({ note: `before\n${pem}\nafter` }) as { note: string }
+		expect(out.note).not.toContain("fake-pem-body-here")
+		expect(out.note).not.toContain("BEGIN RSA PRIVATE KEY")
+		expect(out.note).toContain("[REDACTED]")
+	})
+
+	it("redacts URL credentials (scheme://user:pass@host)", () => {
+		const out = scrubSecrets({ dsn: "postgresql://user:password@host/db" }) as { dsn: string }
+		expect(out.dsn).toBe("postgresql://[REDACTED]:[REDACTED]@host/db")
+	})
+
+	it("redacts object value when key is private_key", () => {
+		const out = scrubSecrets({ private_key: "-----BEGIN-----xxx", other: 1 }) as Record<string, unknown>
+		expect(out.private_key).toBe("[REDACTED]")
+		expect(out.other).toBe(1)
+	})
+
+	it("redacts object value when key is aws_secret_access_key", () => {
+		const out = scrubSecrets({ aws_secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" }) as Record<
+			string,
+			unknown
+		>
+		expect(out.aws_secret_access_key).toBe("[REDACTED]")
+	})
+
+	it("redacts object value when key is credential", () => {
+		const out = scrubSecrets({ credential: "topsecret", credentials: "more" }) as Record<string, unknown>
+		expect(out.credential).toBe("[REDACTED]")
+		expect(out.credentials).toBe("[REDACTED]")
+	})
+
+	it("redacts string aws_secret_access_key=value form", () => {
+		const out = scrubSecrets({ env: "aws_secret_access_key=wJalrXUtnFEMIabc and more" }) as { env: string }
+		expect(out.env).not.toContain("wJalrXUtnFEMIabc")
+		expect(out.env).toContain("[REDACTED]")
+	})
 })
 
 describe("JsonlTracer", () => {

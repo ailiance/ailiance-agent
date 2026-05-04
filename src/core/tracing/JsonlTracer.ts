@@ -16,11 +16,21 @@ export const TRACING_SCHEMA_VERSION = "1.0.0"
 export const TRACING_DIR_NAME = ".agent-kiki/runs"
 
 // "key: value" / "key=value" / "Authorization: Bearer <token>" shapes.
+// The optional [A-Za-z0-9_-]* between the keyword and the separator catches
+// suffixed fields like aws_secret_access_key=... or api_key_v2: ....
 const SECRET_KV_PATTERN =
-	/((?:password|token|api[_-]?key|secret)["'\s]*[=:]["'\s]*)([^\s,;"'}\)]+)/gi
+	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'}\)]+)/gi
 const BEARER_PATTERN = /(authorization["'\s]*[=:]["'\s]*(?:bearer|basic)\s+)([A-Za-z0-9._\-+/=]+)/gi
+// Well-known token shapes:
+//   - sk-..., ghp_..., xox?-..., JWT (eyJ...)
+//   - AWS access key IDs (AKIA[A-Z0-9]{16})
+//   - PEM key blocks (BEGIN...END, multiline)
 const SECRET_VALUE_PATTERN =
-	/\b(sk-[A-Za-z0-9_\-]{16,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)\b/g
+	/\b(sk-[A-Za-z0-9_\-]{16,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+|AKIA[A-Z0-9]{16})\b/g
+const PEM_PATTERN =
+	/-----BEGIN [A-Z ]+(?:PRIVATE )?KEY-----[\s\S]*?-----END [A-Z ]+(?:PRIVATE )?KEY-----/g
+// scheme://user:pass@host -> scheme://[REDACTED]:[REDACTED]@host
+const URL_CREDENTIAL_PATTERN = /(\w[\w+.\-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/g
 const REDACTED = "[REDACTED]"
 
 export interface WorkerInfo {
@@ -100,7 +110,11 @@ function scrubValue(value: unknown, seen: WeakSet<object>): unknown {
 	}
 	const out: Record<string, unknown> = {}
 	for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-		if (/password|token|api[_-]?key|secret|bearer|authorization/i.test(k)) {
+		if (
+			/password|token|api[_-]?key|secret|bearer|authorization|credential|credentials|private[_-]?key|conn(?:ection)?[_-]?str|passphrase|ssh[_-]?key|signing[_-]?key|certificate|aws[_-]?secret|aws[_-]?access[_-]?key/i.test(
+				k,
+			)
+		) {
 			out[k] = REDACTED
 		} else {
 			out[k] = scrubValue(v, seen)
@@ -110,7 +124,13 @@ function scrubValue(value: unknown, seen: WeakSet<object>): unknown {
 }
 
 function scrubString(str: string): string {
-	let result = str.replace(SECRET_VALUE_PATTERN, REDACTED)
+	// PEM blocks first — they span multiple lines and would confuse the
+	// other patterns if we kept them around.
+	let result = str.replace(PEM_PATTERN, REDACTED)
+	// Well-known token shapes (sk-..., ghp_..., AKIA..., JWTs, ...)
+	result = result.replace(SECRET_VALUE_PATTERN, REDACTED)
+	// scheme://user:pass@host
+	result = result.replace(URL_CREDENTIAL_PATTERN, (_m, scheme: string) => `${scheme}${REDACTED}:${REDACTED}@`)
 	// Authorization: Bearer <token> / Authorization: Basic <token>
 	result = result.replace(BEARER_PATTERN, (_match, prefix: string) => `${prefix}${REDACTED}`)
 	// Generic key=value / key: value
