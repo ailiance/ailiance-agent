@@ -83,6 +83,14 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 			stateManager.setSessionOverride("planModeApiProvider", envProvider)
 		}
 	}
+	// agent-kiki fork: eu-kiki default fallback (touches: cli/src/init.ts)
+	const { applyEuKikiDefault } = await import("./utils/eu-kiki-default")
+	const euKikiDecision = applyEuKikiDefault(stateManager)
+	if (euKikiDecision.applied) {
+		outputChannel.appendLine(
+			`eu-kiki default applied (${euKikiDecision.reason}) gateway=${euKikiDecision.gatewayUrl}`,
+		)
+	}
 	await ErrorService.initialize()
 
 	const webview = HostProvider.get().createDiracWebviewProvider() as any
