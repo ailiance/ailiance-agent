@@ -35,6 +35,14 @@ function createConfig() {
 			}
 			return { finalContent: lastContent }
 		}),
+		applyAndSaveSilently: sinon.stub().callsFake(async (path: string, content: string) => {
+			await fs.writeFile(path, content)
+			return { finalContent: content }
+		}),
+		showReview: sinon.stub().resolves(),
+		scrollToFirstDiff: sinon.stub().resolves(),
+		hideReview: sinon.stub().resolves(),
+		undoUserEdits: sinon.stub().resolves(),
 	}
 
 
