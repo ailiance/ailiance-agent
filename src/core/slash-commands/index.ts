@@ -11,10 +11,12 @@ import {
 	newRuleToolResponse,
 	newTaskToolResponse,
 	reportBugToolResponse,
+	askDiracToolResponse,
 } from "../prompts/commands"
 import { StateManager } from "../storage/StateManager"
 import { getSkillContent } from "../context/instructions/user-instructions/skills"
 import { SkillMetadata } from "@/shared/skills"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
 
 type FileBasedWorkflow = {
 	fullPath: string
@@ -42,19 +44,22 @@ export async function parseSlashCommands(
 	ulid: string,
 	providerInfo?: ApiProviderInfo,
 	availableSkills: SkillMetadata[] = [],
-	permissionController?: CommandPermissionController
-): Promise<{ processedText: string; needsDiracrulesFileCheck: boolean }> {
-	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions"]
+	permissionController?: CommandPermissionController,
+	extensionPath?: string,
+	sourceDir: string = getExtensionSourceDir(),
+): Promise<{ processedText: string; needsDiracrulesFileCheck: boolean; isDirectResponse?: boolean; directResponseText?: string }> {
+
+	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions", "askDirac"]
 
 	const willUseNativeTools = true
-
-	const commandReplacements: Record<string, string> = {
+	const commandReplacements: Record<string, string | Promise<string>> = {
 		newtask: newTaskToolResponse(),
 		smol: condenseToolResponse(),
 		compact: condenseToolResponse(),
 		newrule: newRuleToolResponse(),
 		reportbug: reportBugToolResponse(),
 		"explain-changes": explainChangesToolResponse(),
+		askDirac: askDiracToolResponse(extensionPath, sourceDir),
 	}
 
 	// Regex patterns to extract content from different XML tags
@@ -79,7 +84,7 @@ export async function parseSlashCommands(
 	//   - File paths: "some/path/newtask" - same reason
 	//   - Partial words: "foo/bar" - same reason
 	//
-	// Only ONE slash command per message is processed (first match found).
+	// Telemetry: Only ONE slash command per message is processed (first match found).
 	const slashCommandInTextRegex = /(^|\s)\/([a-zA-Z0-9_.:@-]+)(?=\s|$)/
 
 	// Helper function to calculate positions and remove slash command from text
@@ -134,7 +139,12 @@ export async function parseSlashCommands(
 
 				// remove the slash command and add custom instructions at the top of this message
 				const textWithoutSlashCommand = removeSlashCommand(text, tagContent, contentStartIndex, slashMatch)
-				const processedText = commandReplacements[commandName] + textWithoutSlashCommand
+
+				// For help command, we always want to enrich the prompt with source code access
+				// even if there is no additional query text.
+
+				const replacement = commandReplacements[commandName]
+				const processedText = (typeof replacement === "string" ? replacement : await replacement) + textWithoutSlashCommand
 
 				// Track telemetry for builtin slash command usage
 				telemetryService.captureSlashCommandUsed(ulid, commandName, "builtin")
@@ -241,3 +251,4 @@ export async function parseSlashCommands(
 	// if no supported commands are found, return the original text
 	return { processedText: text, needsDiracrulesFileCheck: false }
 }
+

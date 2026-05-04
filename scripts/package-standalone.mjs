@@ -133,7 +133,7 @@ async function zipDistribution() {
 
 	// Exclude the same files as the VCE vscode extension packager.
 	// Also ignore the dist directory, the build directory for the extension.
-	const isIgnored = createIsIgnored(["dist/**"])
+	const isIgnored = createIsIgnored(["dist/**", "!dist/source/**", "!cli/dist/source/**"])
 
 	// Add the whole dirac directory under "extension", except the for the ignored files.
 	archive.directory(process.cwd(), "extension", (entry) => {

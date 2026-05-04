@@ -61,9 +61,9 @@ import { useIsSpinnerActive } from "../hooks/useStateSubscriber"
 import { useTextInput } from "../hooks/useTextInput"
 import { setTerminalTitle } from "../utils/display"
 import {
-	checkAndWarnRipgrepMissing,
-	extractMentionQuery,
-	type FileSearchResult, searchWorkspaceFiles
+    checkAndWarnRipgrepMissing,
+    extractMentionQuery,
+    type FileSearchResult, searchWorkspaceFiles
 } from "../utils/file-search"
 import { jsonParseSafe, parseImagesFromInput } from "../utils/parser"
 import { extractSlashQuery, filterCommands, sortCommandsWorkflowsFirst } from "../utils/slash-commands"
@@ -85,11 +85,11 @@ import { useChatInputHandler } from "../hooks/useChatInputHandler"
 import { useChatMessages } from "../hooks/useChatMessages"
 import { useChatTask } from "../hooks/useChatTask"
 import {
-	expandPastedTexts,
-	getAskPromptType,
-	getInputStorageKey,
-	isYoloSuppressed,
-	parseAskOptions,
+    expandPastedTexts,
+    getAskPromptType,
+    getInputStorageKey,
+    isYoloSuppressed,
+    parseAskOptions,
 } from "../utils/chat"
 import { getGitBranch, getGitDiffStats, type GitDiffStats } from "../utils/git"
 
@@ -244,7 +244,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 		return stateManager.getGlobalSettingsKey("mode") || "act"
 	})
 
-	const [yolo] = useState<boolean>(() => StateManager.get().getGlobalSettingsKey("yoloModeToggled") ?? false)
+	const [yolo, setYolo] = useState<boolean>(() => StateManager.get().getGlobalSettingsKey("yoloModeToggled") ?? false)
 	const [autoApproveAll, setAutoApproveAll] = useState<boolean>(
 		() => StateManager.get().getGlobalSettingsKey("autoApproveAllToggled") ?? false,
 	)
@@ -306,28 +306,59 @@ export const ChatView: React.FC<ChatViewProps> = ({
 		}
 	}, [taskState.mode, mode])
 
-	const toggleAutoApproveAll = useCallback(() => {
+	useEffect(() => {
+		if (taskState.yoloModeToggled !== undefined && taskState.yoloModeToggled !== yolo) {
+			setYolo(taskState.yoloModeToggled)
+		}
+	}, [taskState.yoloModeToggled, yolo])
+
+	useEffect(() => {
+		if (taskState.autoApproveAllToggled !== undefined && taskState.autoApproveAllToggled !== autoApproveAll) {
+			setAutoApproveAll(taskState.autoApproveAllToggled)
+		}
+	}, [taskState.autoApproveAllToggled, autoApproveAll])
+
+	const toggleAutoApproveAll = useCallback(async () => {
 		const newValue = !autoApproveAll
 		setAutoApproveAll(newValue)
 		StateManager.get().setGlobalState("autoApproveAllToggled", newValue)
-	}, [autoApproveAll])
+		await ctrl?.postStateToWebview()
+	}, [autoApproveAll, ctrl])
 
 	const provider = useMemo(() => {
-		const stateManager = StateManager.get()
 		const providerKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
-		return (stateManager.getGlobalSettingsKey(providerKey) as string) || ""
-	}, [mode])
+		// In CLI, StateManager is the source of truth for settings and is updated synchronously.
+		// We prefer it over taskState.apiConfiguration which might be lagging due to async state updates.
+		const stateManagerValue = StateManager.get().getGlobalSettingsKey(providerKey) as string
+		if (stateManagerValue) {
+			return stateManagerValue
+		}
+		const configValue = (taskState.apiConfiguration as any)?.[providerKey] as string | undefined
+		if (configValue !== undefined) {
+			return configValue
+		}
+		return (StateManager.get().getGlobalSettingsKey(providerKey) as string) || ""
+	}, [mode, taskState.apiConfiguration])
 
 	const modelId = useMemo(() => {
 		if (!provider) return ""
-		const stateManager = StateManager.get()
 		const modelKey = getProviderModelIdKey(provider as ApiProvider, mode)
+		// In CLI, StateManager is the source of truth for settings and is updated synchronously.
+		// We prefer it over taskState.apiConfiguration which might be lagging due to async state updates.
+		const stateManagerValue = StateManager.get().getGlobalSettingsKey(modelKey) as string
+		if (stateManagerValue) {
+			return stateManagerValue
+		}
+		const configValue = (taskState.apiConfiguration as any)?.[modelKey] as string | undefined
+		if (configValue !== undefined) {
+			return configValue
+		}
 		return (
-			(stateManager.getGlobalSettingsKey(modelKey) as string) ||
+			(StateManager.get().getGlobalSettingsKey(modelKey) as string) ||
 			getProviderDefaultModelId(provider as ApiProvider) ||
 			""
 		)
-	}, [mode, provider])
+	}, [mode, provider, taskState.apiConfiguration])
 
 	const toggleMode = useCallback(async () => {
 		const newMode: Mode = mode === "act" ? "plan" : "act"

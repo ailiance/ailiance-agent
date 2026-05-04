@@ -589,6 +589,7 @@ export class Controller {
 		const mode = this.stateManager.getGlobalSettingsKey("mode")
 		const strictPlanModeEnabled = this.stateManager.getGlobalSettingsKey("strictPlanModeEnabled")
 		const yoloModeToggled = this.stateManager.getGlobalSettingsKey("yoloModeToggled")
+		const autoApproveAllToggled = this.stateManager.getGlobalSettingsKey("autoApproveAllToggled")
 		const useAutoCondense = this.stateManager.getGlobalSettingsKey("useAutoCondense")
 		const subagentsEnabled = this.stateManager.getGlobalSettingsKey("subagentsEnabled")
 		const telemetrySetting = this.stateManager.getGlobalSettingsKey("telemetrySetting")
@@ -679,6 +680,7 @@ export class Controller {
 			mode,
 			strictPlanModeEnabled,
 			yoloModeToggled,
+			autoApproveAllToggled,
 			useAutoCondense,
 			subagentsEnabled,
 			telemetrySetting,

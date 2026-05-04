@@ -57,6 +57,7 @@ import { featureFlagsService } from "@services/feature-flags"
 import { telemetryService } from "@services/telemetry"
 import { ApiConfiguration } from "@shared/api"
 import { findLastIndex } from "@shared/array"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracClient } from "@shared/dirac"
 import { DiracApiReqCancelReason, DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
@@ -126,6 +127,7 @@ type TaskParams = {
 	taskId: string
 	taskLockAcquired: boolean
 }
+
 
 export class Task {
 	// Core task variables
@@ -534,6 +536,9 @@ export class Task {
 			diracIgnoreController: this.diracIgnoreController,
 			taskState: this.taskState,
 			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
+			extensionPath: HostProvider.get().extensionFsPath,
+			sourceDir: getExtensionSourceDir(),
+
 			getEnvironmentDetails: this.getEnvironmentDetails.bind(this),
 			commandPermissionController: this.commandPermissionController,
 		})
@@ -712,7 +717,7 @@ export class Task {
 		userContent: DiracContent[],
 		includeFileDetails = false,
 		useCompactPrompt = false,
-	): Promise<[DiracContent[], string, boolean, SkillMetadata[]]> {
+	): Promise<[DiracContent[], string, boolean, SkillMetadata[], boolean, string?]> {
 		return this.contextLoader.loadContext(userContent, includeFileDetails, useCompactPrompt)
 	}
 
@@ -1370,6 +1375,12 @@ ${notice}`
 		userContent = apiRequestData.userContent
 		const lastApiReqIndex = apiRequestData.lastApiReqIndex
 
+		if (apiRequestData.isDirectResponse && apiRequestData.directResponseText) {
+			await this.say("text", apiRequestData.directResponseText)
+			return true
+		}
+
+
 		try {
 			const taskMetrics: {
 				cacheWriteTokens: number
@@ -1835,7 +1846,7 @@ ${notice}`
 		providerId: string
 		modelId: string
 		mode: string
-	}): Promise<{ userContent: DiracContent[]; lastApiReqIndex: number }> {
+	}): Promise<{ userContent: DiracContent[]; lastApiReqIndex: number; isDirectResponse?: boolean; directResponseText?: string }> {
 		return this.apiConversationManager.prepareApiRequest(params)
 	}
 

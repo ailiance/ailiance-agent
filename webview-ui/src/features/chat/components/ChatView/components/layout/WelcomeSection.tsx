@@ -329,6 +329,12 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 						</div>
 					)}
 				</div>
+					<div className="flex flex-col items-center gap-2 mt-4 px-5 mb-4">
+						<p className="text-xs text-[var(--vscode-descriptionForeground)] text-center">
+							Questions about Dirac? Query the code (v{version}) directly using <span className="text-[var(--vscode-textLink-foreground)] font-mono">/askDirac</span>
+						</p>
+					</div>
+
 			</div>
 
 			{/* Quick launch worktree modal */}
@@ -337,6 +343,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 				open={showCreateWorktreeModal}
 				openAfterCreate={true}
 			/>
+
 		</div>
 	)
 }

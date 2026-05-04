@@ -8,6 +8,8 @@
 import { Text } from "ink"
 import { render } from "ink-testing-library"
 import React from "react"
+import { version as CLI_VERSION } from "../../package.json"
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ChatView } from "./ChatView"
 
@@ -299,7 +301,7 @@ describe("ChatView UI State During Exit", () => {
 
 		// Footer contains auto-approve toggle
 		expect(lastFrame()).toContain("Auto-approve")
-		expect(lastFrame()).toContain("What can I do for you?")
+		expect(lastFrame()).toContain(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)
 		expect(lastFrame()).toContain("Input:")
 
 		// Fire shutdown event
@@ -309,7 +311,7 @@ describe("ChatView UI State During Exit", () => {
 		const frameAfter = lastFrame()
 
 		// Static content should still be present
-		expect(frameAfter).toContain("What can I do for you?")
+		expect(frameAfter).toContain(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)
 		// Footer should still be present (only input is hidden)
 		expect(frameAfter).toContain("Auto-approve")
 		// Input should be hidden

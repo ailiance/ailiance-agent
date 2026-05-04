@@ -2,6 +2,8 @@ import React from "react"
 import { Box, Text } from "ink"
 import { AsciiMotionCli, StaticRobotFrame } from "./AsciiMotionCli"
 import { centerText } from "../utils/display"
+import { version as CLI_VERSION } from "../../package.json"
+
 
 interface ChatHeaderProps {
 	isWelcomeState?: boolean
@@ -19,7 +21,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ isWelcomeState, quote, o
 			)}
 			<Text> </Text>
 			<Text bold color="white">
-				{centerText("What can I do for you?")}
+				{centerText(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)}
 			</Text>
 			{isWelcomeState && quote ? (
 				<Box marginTop={1}>

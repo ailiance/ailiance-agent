@@ -11,13 +11,15 @@ import type { ApiProvider } from "@/shared/api"
 import { getProviderDefaultModelId, getProviderModelIdKey, Mode, SettingsKey } from "@/shared/storage"
 import { useStdinContext } from "../context/StdinContext"
 import { centerText } from "../utils/display"
+import { version as CLI_VERSION } from "../../package.json"
+
 import {
-	checkAndWarnRipgrepMissing,
-	extractMentionQuery,
-	type FileSearchResult,
-	getRipgrepInstallInstructions,
-	insertMention,
-	searchWorkspaceFiles,
+    checkAndWarnRipgrepMissing,
+    extractMentionQuery,
+    type FileSearchResult,
+    getRipgrepInstallInstructions,
+    insertMention,
+    searchWorkspaceFiles,
 } from "../utils/file-search"
 import { isMouseEscapeSequence } from "../utils/input"
 import { parseImagesFromInput } from "../utils/parser"
@@ -254,7 +256,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 			{/* Main prompt - centered, bold */}
 			<Box alignItems="center" flexDirection="column" marginTop={1}>
 				<Text bold color="white">
-					{centerText("What can I do for you?")}
+					{centerText(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)}
 				</Text>
 
 				<Box marginTop={1}>

@@ -123,11 +123,13 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		}
 	}, [modelRefreshKey, stateManager])
 
-	const rebuildTaskApi = useCallback(() => {
-		if (!controller?.task) return
+	const rebuildTaskApi = useCallback(async () => {
 		const currentMode = stateManager.getGlobalSettingsKey("mode")
 		const apiConfig = stateManager.getApiConfiguration()
-		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
+		if (controller?.task) {
+			controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
+		}
+		await controller?.postStateToWebview()
 	}, [controller, stateManager])
 
 	const {

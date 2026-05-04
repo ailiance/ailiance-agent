@@ -337,7 +337,7 @@ export class ContextLoader {
         providerInfo: any,
         includePathContext: boolean,
         availableSkills: SkillMetadata[]
-    ): Promise<{ enrichedText: string; needsDiracrulesFileCheck: boolean }> {
+    ): Promise<{ enrichedText: string; needsDiracrulesFileCheck: boolean; isDirectResponse?: boolean; directResponseText?: string }> {
         const parsedText = await parseMentions(
             text,
             cwd,
@@ -346,19 +346,21 @@ export class ContextLoader {
             this.workspaceManager,
         )
 
-        const { processedText, needsDiracrulesFileCheck } = await parseSlashCommands(
+        const { processedText, needsDiracrulesFileCheck, isDirectResponse, directResponseText } = await parseSlashCommands(
             parsedText,
             localWorkflowToggles,
             globalWorkflowToggles,
             ulid,
             providerInfo,
             availableSkills,
-            this.dependencies.commandPermissionController
+            this.dependencies.commandPermissionController,
+            this.dependencies.extensionPath,
+            this.dependencies.sourceDir
         )
 
         // Skip automatic path and symbol detection for subsequent turns
         if (!includePathContext) {
-            return { enrichedText: processedText, needsDiracrulesFileCheck }
+            return { enrichedText: processedText, needsDiracrulesFileCheck, isDirectResponse, directResponseText }
         }
 
         const { filePaths, directoryPaths, symbols } = await this.extractContext(text, cwd)
@@ -377,18 +379,22 @@ export class ContextLoader {
             }
         }
 
-        return { enrichedText: processedText, needsDiracrulesFileCheck }
+        return { enrichedText: processedText, needsDiracrulesFileCheck, isDirectResponse, directResponseText }
     }
+
     async loadContext(
         userContent: DiracContent[],
         includeFileDetails = false,
         useCompactPrompt = false,
-    ): Promise<[DiracContent[], string, boolean, SkillMetadata[]]> {
+    ): Promise<[DiracContent[], string, boolean, SkillMetadata[], boolean, string?]> {
         let needsDiracrulesFileCheck = false
 
         // Pre-fetch necessary data to avoid redundant calls within loops
         const ulid = this.dependencies.ulid
         const providerInfo = this.dependencies.getCurrentProviderInfo()
+        const extensionPath = this.dependencies.extensionPath
+        const sourceDir = this.dependencies.sourceDir
+
         const cwd = this.dependencies.cwd
         const { localWorkflowToggles, globalWorkflowToggles } = await refreshWorkflowToggles(this.dependencies.controller, cwd)
 
@@ -406,8 +412,10 @@ export class ContextLoader {
             return USER_CONTENT_TAGS.some((tag: string) => text.includes(tag))
         }
 
+        let isDirectResponse = false
+        let directResponseText: string | undefined
         const parseTextBlock = async (text: string): Promise<string> => {
-            const { enrichedText, needsDiracrulesFileCheck: needsCheck } = await this.enrichContext(
+            const { enrichedText, needsDiracrulesFileCheck: needsCheck, isDirectResponse: direct, directResponseText: directText } = await this.enrichContext(
                 text,
                 cwd,
                 localWorkflowToggles,
@@ -420,6 +428,11 @@ export class ContextLoader {
 
             if (needsCheck) {
                 needsDiracrulesFileCheck = true
+            }
+
+            if (direct) {
+                directResponseText = directText
+                isDirectResponse = true
             }
 
             return enrichedText
@@ -494,8 +507,9 @@ export class ContextLoader {
             ? await ensureLocalDiracDirExists(this.dependencies.cwd, GlobalFileNames.diracRules)
             : false
 
-        return [processedUserContent, environmentDetails, diracrulesError, availableSkills]
+        return [processedUserContent, environmentDetails, diracrulesError, availableSkills, isDirectResponse, directResponseText]
     }
+
 
     private get urlContentFetcher() {
         return this.dependencies.urlContentFetcher

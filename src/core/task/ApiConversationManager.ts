@@ -121,14 +121,18 @@ export class ApiConversationManager {
 		includeFileDetails: boolean
 		useCompactPrompt: boolean
 		previousApiReqIndex: number
+		directResponseText?: string
+		popover?: boolean
 		isFirstRequest: boolean
 		providerId: string
 		modelId: string
 		mode: string
-	}): Promise<{ userContent: DiracContent[]; lastApiReqIndex: number }> {
+	}): Promise<{ userContent: DiracContent[]; lastApiReqIndex: number; isDirectResponse?: boolean; directResponseText?: string }> {
 		let parsedUserContent: DiracContent[]
 		let environmentDetails: string
 		let diracrulesError: boolean
+		let isDirectResponse = false
+		let directResponseText = params.directResponseText
 
 		if (params.shouldCompact) {
 			// When compacting, skip full context loading (use summarize_task instead)
@@ -138,11 +142,27 @@ export class ApiConversationManager {
 			this.dependencies.taskState.lastAutoCompactTriggerIndex = params.previousApiReqIndex
 		} else {
 			// When NOT compacting, load full context with mentions parsing and slash commands
-			;[parsedUserContent, environmentDetails, diracrulesError] = await this.dependencies.loadContext(
+			const [
+				parsedUserContentResult,
+				environmentDetailsResult,
+				diracrulesErrorResult,
+				,
+				isDirectResponseResult,
+				directResponseTextResult,
+			] = await this.dependencies.loadContext(
 				params.userContent,
 				params.includeFileDetails,
 				params.useCompactPrompt,
-			) as any // Ignore 4th return value here as it's already in taskState
+			)
+			parsedUserContent = parsedUserContentResult
+			environmentDetails = environmentDetailsResult
+			diracrulesError = diracrulesErrorResult
+			isDirectResponse = isDirectResponseResult
+			directResponseText = directResponseTextResult
+		}
+
+		if (isDirectResponse && directResponseText) {
+			return { userContent: [{ type: "text", text: directResponseText }], lastApiReqIndex: -1, isDirectResponse: true, directResponseText }
 		}
 
 		// error handling if the user uses the /newrule command & their .diracrules is a file, for file read operations didnt work properly
@@ -196,6 +216,8 @@ export class ApiConversationManager {
 			params.modelId,
 			"user",
 			params.mode as Mode,
+			undefined,
+			this.dependencies.taskState.useNativeToolCalls,
 		)
 
 		// Capture task initialization timing telemetry for the first API request
@@ -222,6 +244,7 @@ export class ApiConversationManager {
 
 		await this.dependencies.postStateToWebview()
 
-		return { userContent, lastApiReqIndex }
+		return { userContent, lastApiReqIndex, directResponseText }
 	}
+
 }

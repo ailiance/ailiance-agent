@@ -6,6 +6,7 @@
 import { fileURLToPath } from "node:url"
 import os from "os"
 import path from "path"
+import fs from "node:fs"
 import { ExtensionRegistryInfo } from "@/registry"
 import { DiracExtensionContext } from "@/shared/dirac"
 import type { DiracMemento } from "@/shared/storage/DiracStorage"
@@ -118,7 +119,16 @@ export function initializeCliContext(config: CliContextConfig = {}): CliContextR
 	const WORKSPACE_STORAGE_DIR = storageContext.workspaceStoragePath
 
 	// For CLI, extension dir is the package root (one level up from dist/)
-	const EXTENSION_DIR = path.resolve(__dirname, "..")
+	let EXTENSION_DIR = path.resolve(__dirname, "..")
+
+	// If we're running from a bundled CLI, __dirname might be inside dist/
+	// and we want to make sure we can find the source code.
+	if (process.env.IS_CLI === "true" && !fs.existsSync(path.join(EXTENSION_DIR, "package.json"))) {
+		// Try to find the repo root or the directory containing 'dist/source'
+		if (fs.existsSync(path.join(__dirname, "source"))) {
+			EXTENSION_DIR = __dirname
+		}
+	}
 	const EXTENSION_MODE = process.env.IS_DEV === "true" ? ExtensionMode.Development : ExtensionMode.Production
 
 	const extension: DiracExtensionContext["extension"] = {

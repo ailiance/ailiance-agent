@@ -49,7 +49,7 @@ In each user message, the environment_details will specify the current mode. The
  - In ACT MODE, you use tools to accomplish the user's task. Once you've completed the user's task, you use the attempt_completion tool to present the result of the task to the user.
 - PLAN MODE: In this special mode, you have access to the plan_mode_respond tool.
  - In PLAN MODE, start by getting precise understanding of what the user wants in this task.
- - In PLAN MODE, the goal is to gather information and get context to create a detailed plan for accomplishing the task, which the user will review and approve before they switch you to ACT MODE to implement the solution.
+ - In PLAN MODE, the goal is to gather information and present a plan, which the user will review and approve before they switch you to ACT MODE to implement the solution. If it is a simple question, answer promptly. Not all tasks sent to you are deep research tasks.
 
 
 SYSTEM INFO

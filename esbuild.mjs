@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { copySourceCode } from "./scripts/copy-source.mjs"
+
 import * as esbuild from "esbuild"
 
 const __filename = fileURLToPath(import.meta.url)
@@ -148,6 +150,9 @@ const copyAssets = {
 				const filename = `tree-sitter-${lang}.wasm`
 				fs.copyFileSync(path.join(languageWasmDir, filename), path.join(targetDir, filename))
 			})
+
+			// Copy source code for /askDirac command
+			copySourceCode(__dirname, path.join(__dirname, destDir))
 
 			// Copy better-sqlite3 and bindings
 			const modulesToCopy = ["better-sqlite3", "bindings"]

@@ -3,6 +3,9 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import dotenv from "dotenv"
 import * as esbuild from "esbuild"
+// @ts-ignore
+import { copySourceCode } from "../scripts/copy-source.mjs"
+
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -209,6 +212,9 @@ const copyWasmFiles: esbuild.Plugin = {
 					}
 				})
 			}
+
+			// Copy source code for /askDirac command
+			copySourceCode(rootDir, path.join(__dirname, "dist"))
 		})
 	},
 }

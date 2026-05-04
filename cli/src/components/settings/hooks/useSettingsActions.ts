@@ -133,8 +133,11 @@ export function useSettingsActions({
 			const newValue = !features[key]
 			setFeatures((prev) => ({ ...prev, [key]: newValue }))
 			stateManager.setGlobalState(config.stateKey, newValue)
+
+			rebuildTaskApi()
+
 		},
-		[features, stateManager, setFeatures],
+		[features, stateManager, setFeatures, rebuildTaskApi],
 	)
 
 	const setReasoningEffortForMode = useCallback(
@@ -149,6 +152,8 @@ export function useSettingsActions({
 			} else {
 				setPlanReasoningEffort(effort)
 				stateManager.setGlobalState("planModeReasoningEffort", effort)
+
+
 			}
 			rebuildTaskApi()
 		},
@@ -331,6 +336,7 @@ export function useSettingsActions({
 			}
 			setAutoApproveSettings(newSettings)
 			stateManager.setGlobalState("autoApprovalSettings", newSettings)
+			rebuildTaskApi()
 			return
 		}
 
@@ -346,6 +352,7 @@ export function useSettingsActions({
 		const newSettings = { ...autoApproveSettings, version: (autoApproveSettings.version ?? 1) + 1, actions: newActions }
 		setAutoApproveSettings(newSettings)
 		stateManager.setGlobalState("autoApprovalSettings", newSettings)
+		rebuildTaskApi()
 	}, [
 		items,
 		selectedIndex,
@@ -403,9 +410,12 @@ export function useSettingsActions({
 					stateManager.setGlobalState("preferredLanguage", editValue)
 					break
 			}
+
+			rebuildTaskApi()
+
 			setIsEditing(false)
 		},
-		[items, selectedIndex, separateModels, stateManager, setPreferredLanguage, setIsEditing],
+		[items, selectedIndex, separateModels, stateManager, setPreferredLanguage, setIsEditing, rebuildTaskApi],
 	)
 
 	const handleProviderSelect = useCallback(
@@ -531,7 +541,7 @@ export function useSettingsActions({
 			}
 
 			await stateManager.flushPendingState()
-			rebuildTaskApi()
+			await rebuildTaskApi()
 			refreshModelIds()
 			setIsPickingModel(false)
 			setPickingModelKey(null)
@@ -591,8 +601,11 @@ export function useSettingsActions({
 			setPreferredLanguage(language)
 			stateManager.setGlobalState("preferredLanguage", language)
 			setIsPickingLanguage(false)
+
+			rebuildTaskApi()
+
 		},
-		[stateManager, setPreferredLanguage, setIsPickingLanguage],
+		[stateManager, setPreferredLanguage, setIsPickingLanguage, rebuildTaskApi],
 	)
 
 	const navigateItems = useCallback(

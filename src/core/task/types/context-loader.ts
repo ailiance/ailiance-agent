@@ -19,6 +19,9 @@ export interface ContextLoaderDependencies {
 	diracIgnoreController: DiracIgnoreController
 	commandPermissionController: CommandPermissionController
 	taskState: TaskState
+	extensionPath: string
+	sourceDir: string
+
 	getCurrentProviderInfo: () => ApiProviderInfo
 	getEnvironmentDetails: (includeFileDetails?: boolean) => Promise<string>
 }

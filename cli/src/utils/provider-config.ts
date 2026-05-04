@@ -143,6 +143,9 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 		const currentMode = stateManager.getGlobalSettingsKey("mode")
 		const apiConfig = stateManager.getApiConfiguration()
 		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
+
+	await controller?.postStateToWebview()
+
 	}
 }
 
@@ -237,4 +240,7 @@ export async function applyBedrockConfig(options: ApplyBedrockConfigOptions): Pr
 		const apiConfig = stateManager.getApiConfiguration()
 		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
 	}
+
+	await controller?.postStateToWebview()
+
 }

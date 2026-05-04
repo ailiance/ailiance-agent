@@ -30,6 +30,19 @@ export const BASE_SLASH_COMMANDS: SlashCommand[] = [
 		section: "default",
 		cliCompatible: true,
 	},
+	{
+		name: "askDirac",
+		description: "Get help with Dirac's internal workings and source code",
+		section: "default",
+		cliCompatible: true,
+	},
+	{
+		name: "help",
+		description: "Learn how to use Dirac CLI",
+		section: "default",
+		cliCompatible: true,
+	},
+
 ]
 
 // VS Code-only slash commands
@@ -43,12 +56,6 @@ export const VSCODE_ONLY_COMMANDS: SlashCommand[] = [
 
 // CLI-only slash commands (handled locally, not sent to backend)
 export const CLI_ONLY_COMMANDS: SlashCommand[] = [
-	{
-		name: "help",
-		description: "Learn how to use Dirac CLI",
-		section: "default",
-		cliCompatible: true,
-	},
 	{
 		name: "settings",
 		description: "Change API provider, auto-approve, and feature settings",

@@ -79,6 +79,7 @@ export interface ExtensionState {
 	partial?: boolean
 	strictPlanModeEnabled?: boolean
 	yoloModeToggled?: boolean
+	autoApproveAllToggled?: boolean
 	useAutoCondense?: boolean
 	subagentsEnabled?: boolean
 	diracWebToolsEnabled?: DiracFeatureSetting

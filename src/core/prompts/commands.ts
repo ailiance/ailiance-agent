@@ -1,3 +1,7 @@
+import fs from "node:fs/promises"
+import path from "node:path"
+
+
 
 export const newTaskToolResponse = () => {
 	const xmlExample = `
@@ -279,6 +283,36 @@ Use the generate_explanation tool with:
 - **from_ref**: The git reference for the "before" state
 - **to_ref**: The git reference for the "after" state (optional)
 Below is the user's input describing what changes they want explained. If no input is provided, default to analyzing uncommitted changes in the working directory (may or may not be staged).
-</explicit_instructions>\n
+</explicit_instructions>
 `
 
+
+export const askDiracToolResponse = async (extensionPath?: string, sourceDir: string = "dist/source") => {
+	const sourcePath = extensionPath ? path.join(extensionPath, sourceDir) : `the '${sourceDir}' directory within the extension installation`
+
+	let tree = ""
+	if (extensionPath) {
+		const treePath = path.join(extensionPath, sourceDir, "tree.txt")
+		try {
+			tree = await fs.readFile(treePath, "utf8")
+		} catch (e) {
+			// Ignore if tree.txt doesn't exist
+		}
+	}
+
+	const treeSection = tree ? `
+
+Directory structure of the source code:
+\`\`\`
+${tree}
+\`\`\`` : ""
+
+	return `<explicit_instructions type="askDirac">
+The user is asking for help or has questions about Dirac's internal workings.
+You have READONLY access to Dirac's own functional source code to help you answer these questions accurately for the current version.
+
+The source code is located at: ${sourcePath}${treeSection}
+
+in the first pass, answer quickly without doing deep research (for latency reasons). If user asks a followup, then do a target research to answer it.</explicit_instructions>
+`
+}
