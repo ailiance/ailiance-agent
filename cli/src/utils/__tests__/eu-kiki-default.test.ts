@@ -110,6 +110,23 @@ describe("eu-kiki default fallback", () => {
 		expect(sm.globalState.actModeApiProvider).toBeUndefined()
 	})
 
+	it("setSecret receives EU_KIKI_DEFAULT_API_KEY by reference (not a literal copy)", () => {
+		// Guard against drift: any setSecret call for the eu-kiki default
+		// must pass the exported constant, so a future rename or rotation
+		// updates every call site uniformly. Strict reference equality
+		// (Object.is) catches both string-literal copies and accidental
+		// trimmed/reformatted variants.
+		const sm = makeFakeStateManager()
+		applyEuKikiDefault(sm as any, { env: {} })
+		expect(Object.is(sm.secrets.openAiApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm.secrets.openAiCompatibleCustomApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+
+		const sm2 = makeFakeStateManager()
+		applyEuKikiDefault(sm2 as any, { env: { AGENT_KIKI_GATEWAY: "http://x:9300" } })
+		expect(Object.is(sm2.secrets.openAiApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm2.secrets.openAiCompatibleCustomApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+	})
+
 	it("skips when the user has already onboarded", () => {
 		const sm = makeFakeStateManager()
 		sm.globalState.welcomeViewCompleted = true

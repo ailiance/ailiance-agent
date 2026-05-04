@@ -16,6 +16,19 @@ import type { StateManager } from "@/core/storage/StateManager"
 
 export const EU_KIKI_DEFAULT_GATEWAY = "http://studio:9300"
 export const EU_KIKI_DEFAULT_MODEL = "eu-kiki"
+
+/**
+ * Sentinel value, never a real credential. The eu-kiki gateway does not
+ * validate API keys — it is an internal LiteLLM proxy on the trusted
+ * network. This string is required only because the openai-compatible
+ * provider code path expects a non-empty key field; passing "" would
+ * cause the SDK client to refuse to construct.
+ *
+ * Important: any code that passes a key to setSecret("openAiApiKey", ...)
+ * for the eu-kiki default MUST reference this constant by name rather
+ * than re-inlining the literal "unused", so a future rename / rotation
+ * cannot leave a stray copy behind. No telemetry path logs this value.
+ */
 export const EU_KIKI_DEFAULT_API_KEY = "unused"
 
 export type EuKikiDefaultReason =
