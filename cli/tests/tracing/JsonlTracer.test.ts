@@ -1,0 +1,172 @@
+// agent-kiki fork: tracing tests (located under cli/tests so the cli
+// vitest config picks them up — the source lives in @core/tracing).
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { JsonlTracer, scrubSecrets, TRACING_DIR_NAME, TRACING_SCHEMA_VERSION } from "@core/tracing"
+
+let tmpDir: string
+
+beforeEach(() => {
+	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aki-trace-"))
+})
+
+afterEach(() => {
+	fs.rmSync(tmpDir, { recursive: true, force: true })
+})
+
+describe("scrubSecrets", () => {
+	it("redacts obvious secret-like keys in objects", () => {
+		const input = { api_key: "abc", token: "xyz", harmless: 1 }
+		const out = scrubSecrets(input)
+		expect(out).toEqual({ api_key: "[REDACTED]", token: "[REDACTED]", harmless: 1 })
+	})
+
+	it("redacts inline secret patterns inside strings", () => {
+		const out = scrubSecrets({ msg: "got token=abcdef and password: hunter2 here" })
+		expect((out as { msg: string }).msg).not.toContain("abcdef")
+		expect((out as { msg: string }).msg).not.toContain("hunter2")
+	})
+
+	it("redacts well-known token shapes", () => {
+		const fakeKey = "sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		const out = scrubSecrets({ key: `prefix ${fakeKey} suffix`, other: "ok" })
+		expect((out as { key: string }).key).toContain("[REDACTED]")
+		expect((out as { key: string }).key).not.toContain(fakeKey)
+	})
+
+	it("handles arrays and nested structures", () => {
+		const out = scrubSecrets([{ secret: "x" }, { ok: 1 }]) as Array<Record<string, unknown>>
+		expect(out[0].secret).toBe("[REDACTED]")
+		expect(out[1].ok).toBe(1)
+	})
+
+	it("survives circular refs", () => {
+		const circ: Record<string, unknown> = { a: 1 }
+		circ.self = circ
+		expect(() => scrubSecrets(circ)).not.toThrow()
+	})
+})
+
+describe("JsonlTracer", () => {
+	it("creates the run directory and writes meta.json", () => {
+		const tracer = new JsonlTracer("task-123", tmpDir)
+		tracer.writeMeta({
+			task: "task-123",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		const metaPath = path.join(tmpDir, TRACING_DIR_NAME, "task-123", "meta.json")
+		expect(fs.existsSync(metaPath)).toBe(true)
+		const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"))
+		expect(meta.schema_version).toBe(TRACING_SCHEMA_VERSION)
+		expect(meta.run_id).toBe("task-123")
+		expect(meta.gateway_url).toBe("http://studio:9300")
+		expect(meta.ended_at).toBeNull()
+		expect(meta.exit_code).toBeNull()
+	})
+
+	it("appends valid JSON lines to trace.jsonl with monotonic turns", () => {
+		const tracer = new JsonlTracer("task-abc", tmpDir)
+		tracer.writeMeta({
+			task: "task-abc",
+			mode: "act",
+			approval_mode: "yolo",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.appendTurn({
+			phase: "execute",
+			tool_execution: {
+				tool_name: "read_file",
+				tool_args: { path: "/tmp/x" },
+				tool_result: "ok",
+				latency_ms: 5,
+				success: true,
+			},
+		})
+		tracer.appendTurn({
+			phase: "execute",
+			tool_execution: {
+				tool_name: "execute_command",
+				tool_args: { command: "ls" },
+				tool_result: "out",
+				latency_ms: 8,
+				success: true,
+			},
+		})
+		const tracePath = path.join(tmpDir, TRACING_DIR_NAME, "task-abc", "trace.jsonl")
+		const lines = fs.readFileSync(tracePath, "utf8").trim().split("\n")
+		expect(lines).toHaveLength(2)
+		const first = JSON.parse(lines[0])
+		const second = JSON.parse(lines[1])
+		expect(first.turn).toBe(1)
+		expect(second.turn).toBe(2)
+		expect(first.tool_execution.tool_name).toBe("read_file")
+		expect(first.schema_version).toBe(TRACING_SCHEMA_VERSION)
+		expect(first.errors).toEqual([])
+	})
+
+	it("scrubs secrets from tool args before they hit disk", () => {
+		const tracer = new JsonlTracer("task-secrets", tmpDir)
+		tracer.writeMeta({
+			task: "task-secrets",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.appendTurn({
+			phase: "execute",
+			tool_execution: {
+				tool_name: "execute_command",
+				tool_args: { command: "curl -H 'Authorization: Bearer abcdefghij' http://x" },
+				tool_result: { api_key: "should-not-appear" },
+				latency_ms: 1,
+				success: true,
+			},
+		})
+		const tracePath = path.join(tmpDir, TRACING_DIR_NAME, "task-secrets", "trace.jsonl")
+		const raw = fs.readFileSync(tracePath, "utf8")
+		expect(raw).not.toContain("should-not-appear")
+		expect(raw).not.toContain("abcdefghij")
+		expect(raw).toContain("[REDACTED]")
+	})
+
+	it("close() finalises meta.json with ended_at and exit code", () => {
+		const tracer = new JsonlTracer("task-close", tmpDir)
+		tracer.writeMeta({
+			task: "task-close",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.close("attempt_completion", 0, { turns: 3 })
+		const meta = JSON.parse(
+			fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-close", "meta.json"), "utf8"),
+		)
+		expect(meta.ended_at).toMatch(/T/)
+		expect(meta.exit_reason).toBe("attempt_completion")
+		expect(meta.exit_code).toBe(0)
+		expect(meta.stats.turns).toBe(3)
+	})
+
+	it("is a no-op when taskId or cwd are missing", () => {
+		const tracer = new JsonlTracer("", tmpDir)
+		expect(tracer.isEnabled).toBe(false)
+		// must not throw
+		tracer.writeMeta({
+			task: "x",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://x",
+		})
+		tracer.appendTurn({ phase: "execute" })
+		tracer.close("aborted", 1)
+	})
+})

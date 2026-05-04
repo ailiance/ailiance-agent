@@ -63,6 +63,8 @@ export const GlobalFileNames = {
 	windsurfRules: ".windsurfrules",
 	agentsRulesFile: "AGENTS.md",
 	taskMetadata: "task_metadata.json",
+	// agent-kiki fork: EU AI Act-compliant per-task JSONL trace dir
+	tracingDir: ".agent-kiki/runs",
 	remoteConfig: (orgId: string) => `remote_config_${orgId}.json`,
 }
 

@@ -17,6 +17,8 @@ import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
+// agent-kiki fork: tracing hook
+import { JsonlTracer } from "../tracing"
 import { WorkspaceRootManager } from "../workspace"
 import { ToolResponse } from "."
 import { MessageStateHandler } from "./message-state"
@@ -41,6 +43,9 @@ export function canonicalizeAttemptCompletionParams(block: ToolUse): boolean {
 export class ToolExecutor {
 	private autoApprover: AutoApprove
 	private coordinator: ToolExecutorCoordinator
+	// agent-kiki fork: tracing hook
+	private tracer: JsonlTracer | null = null
+	private traceMetaWritten = false
 
 	// Auto-approval methods using the AutoApprove class
 	private shouldAutoApproveTool(toolName: DiracDefaultTool): boolean | [boolean, boolean] {
@@ -129,6 +134,82 @@ export class ToolExecutor {
 		// Initialize the coordinator and register all tool handlers
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
+
+		// agent-kiki fork: tracing hook — per-task JSONL trace dir
+		try {
+			this.tracer = new JsonlTracer(this.taskId, this.cwd)
+		} catch (_err) {
+			this.tracer = null
+		}
+	}
+
+	// agent-kiki fork: tracing hook helpers
+	private ensureTraceMeta(): void {
+		if (!this.tracer || this.traceMetaWritten) return
+		try {
+			const apiConfig = this.stateManager.getApiConfiguration() as Record<string, unknown>
+			const mode = (this.stateManager.getGlobalSettingsKey("mode") as string) || "act"
+			const providerId =
+				(mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) ?? "unknown"
+			const modelInfo = this.api.getModel?.() as { id?: string } | undefined
+			const gatewayUrl =
+				(apiConfig.openAiBaseUrl as string | undefined) ||
+				(apiConfig.liteLlmBaseUrl as string | undefined) ||
+				""
+			const yolo = this.stateManager.getGlobalSettingsKey("yoloModeToggled")
+			this.tracer.writeMeta({
+				task: this.taskId,
+				mode,
+				approval_mode: yolo ? "yolo" : "manual",
+				agent_kiki_version: "0.1.0",
+				gateway_url: gatewayUrl,
+				workers: {
+					default: {
+						model: modelInfo?.id || "unknown",
+						adapter: String(providerId),
+						endpoint: gatewayUrl,
+					},
+				},
+			})
+			this.traceMetaWritten = true
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
+	private recordToolTurn(
+		block: ToolUse,
+		toolResult: unknown,
+		success: boolean,
+		startTime: number,
+		errors: string[] = [],
+	): void {
+		if (!this.tracer) return
+		this.ensureTraceMeta()
+		try {
+			this.tracer.appendTurn({
+				phase: "execute",
+				tool_execution: {
+					tool_name: block.name,
+					tool_args: (block.params ?? {}) as Record<string, unknown>,
+					tool_result: typeof toolResult === "string" ? toolResult : (toolResult as unknown),
+					latency_ms: Date.now() - startTime,
+					success,
+				},
+				errors,
+			})
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
+	public closeTrace(exitReason: string, exitCode: number): void {
+		if (!this.tracer) return
+		try {
+			this.tracer.close(exitReason, exitCode)
+		} catch (_err) {
+			// non-fatal
+		}
 	}
 
 	// Create a properly typed TaskConfig object for handlers
@@ -601,6 +682,12 @@ export class ToolExecutor {
 
 			this.pushToolResult(toolResult, block)
 
+			// agent-kiki fork: tracing hook (success path)
+			this.recordToolTurn(block, toolResult, true, executionStartTime)
+			if (block.name === "attempt_completion") {
+				this.closeTrace("attempt_completion", 0)
+			}
+
 			// Check abort before running PostToolUse hook (success path)
 			if (this.taskState.abort) {
 				return
@@ -624,6 +711,9 @@ export class ToolExecutor {
 		} catch (error) {
 			executionSuccess = false
 			toolResult = formatResponse.toolError(`Tool execution failed: ${error}`)
+
+			// agent-kiki fork: tracing hook (error path)
+			this.recordToolTurn(block, toolResult, false, executionStartTime, [String((error as Error)?.message ?? error)])
 
 			// Check abort before running PostToolUse hook (error path)
 			if (this.taskState.abort) {
