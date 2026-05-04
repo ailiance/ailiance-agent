@@ -1,8 +1,8 @@
 {
-	"name": "dirac",
-	"displayName": "Dirac",
-	"description": "Reduces API costs by more than 50%, produces better and faster work. Uses Hash anchored parallel edits, AST manipulation and a whole lot of neat optimizations. Fully Open Source.",
-	"version": "0.3.22",
+	"name": "agent-kiki",
+	"displayName": "agent-kiki",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to eu-kiki LLM gateway by default",
+	"version": "0.1.0",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
 		".",
@@ -15,12 +15,12 @@
 		"name": "Dirac Delta Labs"
 	},
 	"license": "Apache-2.0",
-	"publisher": "dirac-run",
+	"publisher": "l-electron-rare",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/dirac-run/dirac"
+		"url": "git+https://github.com/L-electron-Rare/agent-kiki.git"
 	},
-	"homepage": "https://dirac.run",
+	"homepage": "https://github.com/L-electron-Rare/agent-kiki",
 	"categories": [
 		"AI",
 		"Chat",

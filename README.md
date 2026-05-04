@@ -1,3 +1,15 @@
+# agent-kiki
+
+> Fork of [Dirac](https://github.com/dirac-run/dirac), itself based on [Cline](https://github.com/cline/cline). Adds EU AI Act-compliant JSONL tracing, defaults to the [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) sovereign serving stack, and keeps strict compatibility with upstream tools.
+>
+> CLI: `aki` (alias `agent-kiki`). Default provider: eu-kiki gateway at `http://studio:9300`.
+>
+> License: Apache-2.0 (preserved from upstream).
+
+---
+
+<original Dirac README below>
+
 # Dirac - Accurate & Highly Token Efficient Open Source AI Agent
 
 > **Dirac topped the [Terminal-Bench-2 leaderboard](https://huggingface.co/datasets/harborframework/terminal-bench-2-leaderboard/discussions/145) for `gemini-3-flash-preview` with a 65.2% score!**
