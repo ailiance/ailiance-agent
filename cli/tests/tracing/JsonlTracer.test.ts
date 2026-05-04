@@ -201,6 +201,44 @@ describe("JsonlTracer", () => {
 		expect(meta.stats.turns).toBe(3)
 	})
 
+	it("close() is idempotent — second call does not overwrite ended_at", () => {
+		const tracer = new JsonlTracer("task-idem", tmpDir)
+		tracer.writeMeta({
+			task: "task-idem",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.close("aborted", 130)
+		const metaPath = path.join(tmpDir, TRACING_DIR_NAME, "task-idem", "meta.json")
+		const first = JSON.parse(fs.readFileSync(metaPath, "utf8"))
+		// Second call must not change anything (idempotent).
+		tracer.close("error", 1)
+		const second = JSON.parse(fs.readFileSync(metaPath, "utf8"))
+		expect(second.ended_at).toBe(first.ended_at)
+		expect(second.exit_reason).toBe("aborted")
+		expect(second.exit_code).toBe(130)
+	})
+
+	it("close('aborted', 130) sets the abort exit reason and SIGINT code", () => {
+		const tracer = new JsonlTracer("task-abort", tmpDir)
+		tracer.writeMeta({
+			task: "task-abort",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.close("aborted", 130)
+		const meta = JSON.parse(
+			fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-abort", "meta.json"), "utf8"),
+		)
+		expect(meta.ended_at).toMatch(/T/)
+		expect(meta.exit_reason).toBe("aborted")
+		expect(meta.exit_code).toBe(130)
+	})
+
 	it("is a no-op when taskId or cwd are missing", () => {
 		const tracer = new JsonlTracer("", tmpDir)
 		expect(tracer.isEnabled).toBe(false)

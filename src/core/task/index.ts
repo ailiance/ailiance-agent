@@ -826,7 +826,17 @@ export class Task {
 		return this.hookManager.shouldRunTaskCancelHook()
 	}
 
-	async abortTask() {
+	async abortTask(reason: string = "aborted", exitCode: number = 130) {
+		// agent-kiki fork: tracing close hook — finalise the JSONL trace meta
+		// even when the task ends via abort/cancel/error rather than via a
+		// successful attempt_completion. Run before the lifecycle abort so
+		// that disposed dependencies cannot interfere; closeTrace itself is
+		// idempotent and best-effort, so failures here cannot block abort.
+		try {
+			this.toolExecutor.closeTrace(reason, exitCode)
+		} catch (_err) {
+			// non-fatal — tracing must never break abort
+		}
 		return this.lifecycleManager.abortTask()
 	}
 
@@ -1744,7 +1754,10 @@ ${notice}`
 						)
 					}
 
-					this.abortTask()
+					// agent-kiki fork: tracing close hook — distinguish the
+					// streaming-failure path from a user-initiated abort so the
+					// trace meta carries exit_reason="error".
+					this.abortTask("error", 1)
 					await abortStream("streaming_failed", errorMessage)
 					await this.reinitExistingTaskFromId(this.taskId)
 				}
