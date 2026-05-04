@@ -239,6 +239,18 @@ describe("JsonlTracer", () => {
 		expect(meta.exit_code).toBe(130)
 	})
 
+	it("rejects taskId with path traversal segments", () => {
+		expect(() => new JsonlTracer("../etc/passwd", tmpDir)).toThrow(/invalid taskId/)
+	})
+
+	it("rejects taskId with embedded slashes", () => {
+		expect(() => new JsonlTracer("task/with/slashes", tmpDir)).toThrow(/invalid taskId/)
+	})
+
+	it("accepts a valid ULID-shaped taskId", () => {
+		expect(() => new JsonlTracer("01ARZ3NDEKTSV4RRFFQ69G5FAV", tmpDir)).not.toThrow()
+	})
+
 	it("is a no-op when taskId or cwd are missing", () => {
 		const tracer = new JsonlTracer("", tmpDir)
 		expect(tracer.isEnabled).toBe(false)

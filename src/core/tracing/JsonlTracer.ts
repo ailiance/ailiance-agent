@@ -152,6 +152,14 @@ export class JsonlTracer {
 		private readonly taskCwd: string,
 	) {
 		this.enabled = !!taskId && !!taskCwd
+		// Allowlist taskId before joining it into a filesystem path. Anything
+		// outside [A-Za-z0-9_-] could escape the runs/ subtree (e.g. "..", "/")
+		// or break shell tooling that scans the trace dir. We surface the bug
+		// loudly rather than silently sanitising — a malformed taskId means an
+		// upstream caller is broken and should be fixed.
+		if (this.enabled && !/^[a-zA-Z0-9_-]+$/.test(taskId)) {
+			throw new Error(`invalid taskId for trace: ${taskId}`)
+		}
 		this.runDir = path.join(taskCwd || ".", TRACING_DIR_NAME, taskId || "unknown")
 		this.metaPath = path.join(this.runDir, "meta.json")
 		this.tracePath = path.join(this.runDir, "trace.jsonl")
