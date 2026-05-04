@@ -216,7 +216,7 @@ export class BatchProcessor {
 
             if (!shouldAutoApprove) {
                 await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
-                await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
+                await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
 
                 // Show the diff for this specific file
                 await config.services.diffViewProvider.showReview([{
@@ -293,7 +293,7 @@ export class BatchProcessor {
         await this.processDiagnosticsAndFormatResults(config, preparedBatches, appliedResults, providers, preDiagnostics, results)
 
         await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
-        await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
+        await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
         const successfulBatches = preparedBatches.filter((b) => appliedResults.has(b.absolutePath))
         const finalMessage = await this.buildEditMessage(config, successfulBatches)
         await config.callbacks.say("tool", JSON.stringify(finalMessage), undefined, undefined, false)
@@ -430,7 +430,7 @@ export class BatchProcessor {
         while (true) {
             const completeMessage = await this.buildEditMessage(config, batches)
             await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
-            await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
+            await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
 
             const result = await ToolResultUtils.askApprovalAndPushFeedback("tool", JSON.stringify(completeMessage), config)
             const { response, userEdits } = result

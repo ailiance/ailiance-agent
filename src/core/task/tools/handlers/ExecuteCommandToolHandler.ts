@@ -251,6 +251,8 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 
+		let wasManuallyApproved = false;
+
 		if (commandsRequiringApproval.length > 0) {
 			showNotificationForApproval(
 				`Dirac wants to execute ${commandsRequiringApproval.length} commands`,
@@ -286,6 +288,8 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				
 				return formatResponse.toolResult("Commands denied by user.")
 			}
+
+			wasManuallyApproved = true;
 
 			// Clear requiresApproval flag for all commands since they were approved
 			for (const cmdState of multiCommandState.commands) {
@@ -360,7 +364,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 			// Permission validation
 			const permissionResult = config.services.commandPermissionController.validateCommand(actualCommand)
-			if (!permissionResult.allowed) {
+			if (!permissionResult.allowed && !wasManuallyApproved) {
 				let errorMessage = `Command "${actualCommand}" was denied by DIRAC_COMMAND_PERMISSIONS.`
 				if (permissionResult.failedSegment) {
 					errorMessage += ` Segment "${permissionResult.failedSegment}" ${permissionResult.reason}.`

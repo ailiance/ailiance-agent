@@ -28,7 +28,7 @@ export interface StronglyTypedUIHelpers {
 
 	// Utility methods
 	removeClosingTag: (block: ToolUse, tag: ToolParamName, text?: any) => string
-	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: DiracAsk | DiracSay) => Promise<void>
+	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial?: boolean) => Promise<void>
 
 	// Approval methods
 	shouldAutoApproveTool: (toolName: DiracDefaultTool) => boolean | [boolean, boolean]
@@ -51,7 +51,7 @@ export function createUIHelpers(config: TaskConfig): StronglyTypedUIHelpers {
 		say: config.callbacks.say,
 		ask: config.callbacks.ask,
 		removeClosingTag: (block: ToolUse, tag: ToolParamName, text?: any) => removeClosingTag(block, tag, text),
-		removeLastPartialMessageIfExistsWithType: config.callbacks.removeLastPartialMessageIfExistsWithType,
+		removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial?: boolean) => config.callbacks.removeLastPartialMessageIfExistsWithType(type, askOrSay, onlyPartial),
 		shouldAutoApproveTool: (toolName: DiracDefaultTool) => config.autoApprover.shouldAutoApproveTool(toolName),
 		shouldAutoApproveToolWithPath: config.callbacks.shouldAutoApproveToolWithPath,
 		askApproval: async (messageType: DiracAsk, message: string): Promise<boolean> => {

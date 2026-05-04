@@ -350,13 +350,13 @@ export class TaskMessenger {
 		return formatResponse.toolError(formatResponse.missingToolParameterError(paramName, example))
 	}
 
-	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay) {
+	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial: boolean = true) {
 		const diracMessages = this.dependencies.messageStateHandler.getDiracMessages()
 		// Search backwards for the last partial message of the same type and subtype
 		let indexToRemove = -1
 		for (let i = diracMessages.length - 1; i >= 0; i--) {
 			const msg = diracMessages[i]
-			if (msg.partial && msg.type === type && (msg.ask === askOrSay || msg.say === askOrSay)) {
+			if ((!onlyPartial || msg.partial) && msg.type === type && (msg.ask === askOrSay || msg.say === askOrSay)) {
 				indexToRemove = i
 				break
 			}

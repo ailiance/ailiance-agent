@@ -102,7 +102,7 @@ export interface TaskCallbacks {
 
 	sayAndCreateMissingParamError: (toolName: DiracDefaultTool, paramName: string, relPath?: string) => Promise<any>
 
-	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: DiracAsk | DiracSay) => Promise<void>
+	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial?: boolean) => Promise<void>
 
 	executeCommandTool: (
 		command: string,

@@ -746,8 +746,8 @@ export class Task {
 		return this.taskMessenger.sayAndCreateMissingParamError(toolName, paramName, relPath)
 	}
 
-	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay) {
-		return this.taskMessenger.removeLastPartialMessageIfExistsWithType(type, askOrSay)
+	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial: boolean = true) {
+		return this.taskMessenger.removeLastPartialMessageIfExistsWithType(type, askOrSay, onlyPartial)
 	}
 
 	private async saveCheckpointCallback(isAttemptCompletionMessage?: boolean, completionMessageTs?: number): Promise<void> {
