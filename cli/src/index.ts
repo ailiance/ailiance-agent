@@ -308,6 +308,42 @@ proxyCmd
 		return runProxyStatus()
 	})
 
+// Jina semantic router management
+const routerCmd = program.command("router").description("Manage local Jina semantic router")
+
+routerCmd
+	.command("install")
+	.description("Install Jina router in dedicated venv (~/.aki/jina-router-venv)")
+	.action(async () => {
+		const { runRouterInstall } = await import("./commands/router")
+		return runRouterInstall()
+	})
+
+routerCmd
+	.command("start")
+	.description("Start the Jina semantic router (first run downloads ~80 MB model from Hugging Face)")
+	.option("-p, --port <port>", "port to listen on", "5000")
+	.action(async (opts) => {
+		const { runRouterStart } = await import("./commands/router")
+		return runRouterStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+routerCmd
+	.command("stop")
+	.description("Stop the Jina semantic router")
+	.action(async () => {
+		const { runRouterStop } = await import("./commands/router")
+		return runRouterStop()
+	})
+
+routerCmd
+	.command("status")
+	.description("Get Jina semantic router status")
+	.action(async () => {
+		const { runRouterStatus } = await import("./commands/router")
+		return runRouterStatus()
+	})
+
 // Parse and run
 if (process.env.VITEST !== "true") {
 	program.parse()
