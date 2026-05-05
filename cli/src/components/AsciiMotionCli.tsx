@@ -29,19 +29,29 @@ const _ER_COLORS = {
 	component: '#3F3F46',
 };
 
-// ASCII art ER logo (Electron Rare). Block letters E + R, large
-// enough to read at a glance, with small PCB pad/component hints
-// (●R1/●C3 on E, ●U2 on R) referencing the original logo.
+// ASCII art ER logo (Electron Rare). Block letters E + R modeled
+// on the PCB-trace logo at /Users/electron/Business OS/logo ER.png.
+// Small PCB pad/component hints (●R1/●C3 on E, ●U2 on R) reference
+// the original.
+//
+//  E layout:           R layout:
+//  ████████            ███████
+//  █                   █     █
+//  █                   █     █
+//  █████               ██████      <- "head" of R
+//  █                   █  █
+//  █                   █   █
+//  ████████            █    █      <- "leg" of R
 const ER_LOGO = [
-	"████████          ████████   ",
-	"█●R1              █●U2      ●",
-	"█                 █          ╲",
-	"█                 █           ●",
-	"█████●            █████●      ",
-	"█                 █     ╲     ",
-	"█                 █      ●    ",
-	"█●C3              █       ╲   ",
-	"████████          █        ●  ",
+	"████████          ███████        ",
+	"█●R1              █     █        ",
+	"█                 █     █  ●U2   ",
+	"█                 █     █        ",
+	"█████             ███████        ",
+	"█                 █  █           ",
+	"█                 █   █          ",
+	"█●C3              █    █         ",
+	"████████          █     █        ",
 ];
 
 export const StaticRobotFrame: React.FC<{ hasDarkBackground?: boolean }> = () => {
