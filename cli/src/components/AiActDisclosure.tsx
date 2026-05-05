@@ -4,6 +4,8 @@
  */
 
 import { Box, Text, useInput } from "ink"
+// biome-ignore lint/correctness/noUnusedImports: required by tsconfig jsx: "react"
+import React from "react"
 import type { FunctionComponent } from "react"
 
 interface AiActDisclosureProps {
