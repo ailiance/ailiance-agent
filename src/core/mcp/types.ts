@@ -16,3 +16,17 @@ export interface ConnectedClient {
 	transport: StdioClientTransport
 	startedAt: Date
 }
+
+export interface McpToolMetadata {
+	qualifiedName: string
+	serverId: string
+	pluginName: string
+	rawName: string
+	description?: string
+	inputSchema: object
+}
+
+export function makeQualifiedToolName(plugin: string, server: string, tool: string): string {
+	const sanitize = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "_")
+	return `mcp__${sanitize(plugin)}_${sanitize(server)}__${sanitize(tool)}`
+}

@@ -1,12 +1,15 @@
 import { Client } from "@modelcontextprotocol/sdk/client"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
+import { Logger } from "../../shared/services/Logger"
 import { loadMcpConfigsFromPlugins } from "./McpServerConfigLoader"
-import type { ConnectedClient, McpServerConfig } from "./types"
+import type { ConnectedClient, McpServerConfig, McpToolMetadata } from "./types"
+import { makeQualifiedToolName } from "./types"
 
 class McpClientManager {
 	private clients = new Map<string, ConnectedClient>()
 	private configs = new Map<string, McpServerConfig>()
+	private tools = new Map<string, McpToolMetadata[]>()
 
 	async loadFromPlugins(): Promise<McpServerConfig[]> {
 		const configs = await loadMcpConfigsFromPlugins()
@@ -66,6 +69,51 @@ class McpClientManager {
 
 	getKnownServerIds(): string[] {
 		return [...this.configs.keys()]
+	}
+
+	async listTools(serverId: string): Promise<McpToolMetadata[]> {
+		const cached = this.tools.get(serverId)
+		if (cached) return cached
+
+		const client = await this.connect(serverId)
+		const config = this.configs.get(serverId)!
+		const result = await client.listTools()
+		const metadata: McpToolMetadata[] = result.tools.map((t) => ({
+			qualifiedName: makeQualifiedToolName(config.pluginName, serverId, t.name),
+			serverId,
+			pluginName: config.pluginName,
+			rawName: t.name,
+			description: t.description,
+			inputSchema: t.inputSchema as object,
+		}))
+		this.tools.set(serverId, metadata)
+		return metadata
+	}
+
+	async listAllTools(): Promise<McpToolMetadata[]> {
+		const all: McpToolMetadata[] = []
+		for (const serverId of this.configs.keys()) {
+			try {
+				const tools = await this.listTools(serverId)
+				all.push(...tools)
+			} catch (err) {
+				Logger.warn(`Failed to list tools for MCP server "${serverId}":`, err)
+			}
+		}
+		return all
+	}
+
+	findTool(qualifiedName: string): McpToolMetadata | undefined {
+		for (const tools of this.tools.values()) {
+			const found = tools.find((t) => t.qualifiedName === qualifiedName)
+			if (found) return found
+		}
+		return undefined
+	}
+
+	invalidateToolCache(serverId?: string): void {
+		if (serverId) this.tools.delete(serverId)
+		else this.tools.clear()
 	}
 }
 

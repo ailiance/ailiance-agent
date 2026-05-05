@@ -49,9 +49,7 @@ describe("McpServerConfigLoader", () => {
 			name: "plugin-no-mcp",
 		})
 
-		const original = pluginDiscoveryModule.pluginDiscoveryService.discover.bind(
-			pluginDiscoveryModule.pluginDiscoveryService,
-		)
+		const original = pluginDiscoveryModule.pluginDiscoveryService.discover.bind(pluginDiscoveryModule.pluginDiscoveryService)
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
 
 		const { loadMcpConfigsFromPlugins } = loaderModule
