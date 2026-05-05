@@ -26,6 +26,12 @@ export interface McpToolMetadata {
 	inputSchema: object
 }
 
+export interface McpToolResult {
+	qualifiedName: string
+	isError: boolean
+	content: unknown // raw from SDK; usually Array<{ type: "text"; text: string } | ...>
+}
+
 export function makeQualifiedToolName(plugin: string, server: string, tool: string): string {
 	const sanitize = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "_")
 	return `mcp__${sanitize(plugin)}_${sanitize(server)}__${sanitize(tool)}`

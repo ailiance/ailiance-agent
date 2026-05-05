@@ -196,7 +196,9 @@ describe("McpClientManager", () => {
 		const manager = mcpClientManager as any
 
 		const fakeClient = {
-			listTools: sinon.stub().resolves({ tools: [{ name: "my_tool", description: "desc", inputSchema: { type: "object" } }] }),
+			listTools: sinon
+				.stub()
+				.resolves({ tools: [{ name: "my_tool", description: "desc", inputSchema: { type: "object" } }] }),
 			close: sinon.stub().resolves(),
 		}
 		const cfg: McpServerConfig = {
@@ -227,8 +229,22 @@ describe("McpClientManager", () => {
 			close: sinon.stub().resolves(),
 		})
 
-		const cfgA: McpServerConfig = { id: "srv-a", pluginName: "plg-a", pluginRoot: "/tmp", type: "stdio", command: "fake", args: [] }
-		const cfgB: McpServerConfig = { id: "srv-b", pluginName: "plg-b", pluginRoot: "/tmp", type: "stdio", command: "fake", args: [] }
+		const cfgA: McpServerConfig = {
+			id: "srv-a",
+			pluginName: "plg-a",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		const cfgB: McpServerConfig = {
+			id: "srv-b",
+			pluginName: "plg-b",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
 
 		manager.clients.set("srv-a", { config: cfgA, client: makeClient("tool_a"), transport: {}, startedAt: new Date() })
 		manager.clients.set("srv-b", { config: cfgB, client: makeClient("tool_b"), transport: {}, startedAt: new Date() })
@@ -242,6 +258,89 @@ describe("McpClientManager", () => {
 		expect(names).to.include("tool_b")
 	})
 
+	it("callTool routes to the correct serverId/rawName via stub", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		const fakeClient = {
+			listTools: sinon.stub().resolves({
+				tools: [{ name: "do_thing", description: "Does thing", inputSchema: {} }],
+			}),
+			callTool: sinon.stub().resolves({ isError: false, content: [{ type: "text", text: "ok" }] }),
+			close: sinon.stub().resolves(),
+		}
+
+		const cfg: McpServerConfig = {
+			id: "call-server",
+			pluginName: "call-plugin",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		manager.clients.set("call-server", { config: cfg, client: fakeClient, transport: {}, startedAt: new Date() })
+		manager.configs.set("call-server", cfg)
+
+		// Populate cache
+		await mcpClientManager.listTools("call-server")
+
+		const result = await mcpClientManager.callTool("mcp__call-plugin_call-server__do_thing", { x: 1 })
+
+		expect(fakeClient.callTool.calledOnce).to.be.true
+		const callArgs = fakeClient.callTool.firstCall.args[0]
+		expect(callArgs.name).to.equal("do_thing")
+		expect(callArgs.arguments).to.deep.equal({ x: 1 })
+		expect(result.qualifiedName).to.equal("mcp__call-plugin_call-server__do_thing")
+		expect(result.isError).to.be.false
+	})
+
+	it("callTool lazy-calls listAllTools when cache is empty, throws if still unknown", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		// No client, no cache — listAllTools will return empty (configs empty too)
+		let threw = false
+		let errorMsg = ""
+		try {
+			await mcpClientManager.callTool("mcp__nope_nope__ghost", {})
+		} catch (err: any) {
+			threw = true
+			errorMsg = err.message
+		}
+		expect(threw).to.be.true
+		expect(errorMsg).to.include("Unknown MCP tool")
+	})
+
+	it("callTool propagates isError: true from SDK result", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		const fakeClient = {
+			listTools: sinon.stub().resolves({
+				tools: [{ name: "bad_tool", inputSchema: {} }],
+			}),
+			callTool: sinon.stub().resolves({ isError: true, content: [{ type: "text", text: "oops" }] }),
+			close: sinon.stub().resolves(),
+		}
+
+		const cfg: McpServerConfig = {
+			id: "err-server",
+			pluginName: "err-plugin",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		manager.clients.set("err-server", { config: cfg, client: fakeClient, transport: {}, startedAt: new Date() })
+		manager.configs.set("err-server", cfg)
+
+		await mcpClientManager.listTools("err-server")
+
+		const result = await mcpClientManager.callTool("mcp__err-plugin_err-server__bad_tool", {})
+		expect(result.isError).to.be.true
+		expect(result.content).to.deep.equal([{ type: "text", text: "oops" }])
+	})
+
 	it("listAllTools skips failing servers and continues", async () => {
 		const { mcpClientManager } = McpClientManagerModule
 		const manager = mcpClientManager as any
@@ -250,9 +349,23 @@ describe("McpClientManager", () => {
 			listTools: sinon.stub().resolves({ tools: [{ name: "ok_tool", inputSchema: {} }] }),
 			close: sinon.stub().resolves(),
 		}
-		const cfgGood: McpServerConfig = { id: "srv-good", pluginName: "plg", pluginRoot: "/tmp", type: "stdio", command: "fake", args: [] }
+		const cfgGood: McpServerConfig = {
+			id: "srv-good",
+			pluginName: "plg",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
 		// srv-bad has no client (will throw in connect)
-		const cfgBad: McpServerConfig = { id: "srv-bad", pluginName: "plg", pluginRoot: "/tmp", type: "stdio", command: "fake", args: [] }
+		const cfgBad: McpServerConfig = {
+			id: "srv-bad",
+			pluginName: "plg",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
 
 		manager.clients.set("srv-good", { config: cfgGood, client: goodClient, transport: {}, startedAt: new Date() })
 		manager.configs.set("srv-good", cfgGood)

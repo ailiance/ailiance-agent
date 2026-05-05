@@ -3,7 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 import { Logger } from "../../shared/services/Logger"
 import { loadMcpConfigsFromPlugins } from "./McpServerConfigLoader"
-import type { ConnectedClient, McpServerConfig, McpToolMetadata } from "./types"
+import type { ConnectedClient, McpServerConfig, McpToolMetadata, McpToolResult } from "./types"
 import { makeQualifiedToolName } from "./types"
 
 class McpClientManager {
@@ -114,6 +114,35 @@ class McpClientManager {
 	invalidateToolCache(serverId?: string): void {
 		if (serverId) this.tools.delete(serverId)
 		else this.tools.clear()
+	}
+
+	/**
+	 * Execute an MCP tool via its qualified name.
+	 * Lazy-spawns the underlying server if not connected yet.
+	 * Returns the raw MCP result (text + isError).
+	 */
+	async callTool(qualifiedName: string, args: Record<string, unknown>): Promise<McpToolResult> {
+		let meta = this.findTool(qualifiedName)
+		if (!meta) {
+			// Lazy: populate cache via listAllTools, then retry
+			await this.listAllTools()
+			meta = this.findTool(qualifiedName)
+			if (!meta) {
+				throw new Error(`Unknown MCP tool: ${qualifiedName}`)
+			}
+		}
+
+		const client = await this.connect(meta.serverId)
+		const result = await client.callTool({
+			name: meta.rawName,
+			arguments: args,
+		})
+
+		return {
+			qualifiedName,
+			isError: result.isError === true,
+			content: result.content,
+		}
 	}
 }
 
