@@ -52,6 +52,8 @@ import { MessageStateHandler } from "./message-state"
 import { ResponseProcessor } from "./ResponseProcessor"
 import { StreamResponseHandler } from "./StreamResponseHandler"
 import type { TaskDependencies } from "./TaskDependencies"
+import { initializeMcpForTask } from "@core/mcp/bootstrap"
+import { mcpClientManager } from "@core/mcp/McpClientManager"
 import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
@@ -548,6 +550,10 @@ export class Task {
 	}
 
 	public async startTask(task?: string, images?: string[], files?: string[]): Promise<void> {
+		// Initialize MCP tools before starting the task so the LLM sees them
+		// on its first request. Failures are swallowed — agent-kiki must work
+		// without plugins.
+		await initializeMcpForTask(this.toolExecutor)
 		return this.lifecycleManager.startTask(task, images, files)
 	}
 
@@ -574,6 +580,10 @@ export class Task {
 		} catch (_err) {
 			// non-fatal — tracing must never break abort
 		}
+		// Disconnect MCP servers; no-op if none were connected.
+		mcpClientManager.disconnectAll().catch((_err) => {
+			// non-fatal — MCP cleanup must never block abort
+		})
 		return this.lifecycleManager.abortTask()
 	}
 

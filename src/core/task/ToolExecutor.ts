@@ -314,6 +314,14 @@ export class ToolExecutor {
 	}
 
 	/**
+	 * Register a dynamic MCP tool handler with the coordinator.
+	 * Called during MCP bootstrap after tool discovery.
+	 */
+	public registerMcpTool(toolName: string, handler: import("@core/task/tools/ToolExecutorCoordinator").IToolHandler): void {
+		this.coordinator.registerDynamicTool(toolName, handler)
+	}
+
+	/**
 	 * Updates the browser settings
 	 */
 	public async applyLatestBrowserSettings() {
