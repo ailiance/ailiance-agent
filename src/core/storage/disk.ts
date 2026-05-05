@@ -323,7 +323,7 @@ export async function saveTaskMetadata(taskId: string, metadata: TaskMetadata) {
 	try {
 		const taskDir = await ensureTaskDirectoryExists(taskId)
 		const filePath = path.join(taskDir, GlobalFileNames.taskMetadata)
-		await fs.writeFile(filePath, JSON.stringify(metadata, null, 2))
+		await atomicWriteFile(filePath, JSON.stringify(metadata, null, 2))
 	} catch (error) {
 		Logger.error("Failed to save task metadata:", error)
 	}
@@ -424,7 +424,7 @@ export async function writeTaskSettingsToStorage(taskId: string, settings: Parti
 		}
 
 		const updatedSettings = { ...existingSettings, ...settings }
-		await fs.writeFile(settingsFilePath, JSON.stringify(updatedSettings, null, 2))
+		await atomicWriteFile(settingsFilePath, JSON.stringify(updatedSettings, null, 2))
 	} catch (error) {
 		Logger.error("[Disk] Failed to write task settings:", error)
 		throw error
@@ -449,7 +449,7 @@ export async function readRemoteConfigFromCache(organizationId: string): Promise
 export async function writeRemoteConfigToCache(organizationId: string, config: RemoteConfig): Promise<void> {
 	try {
 		const remoteConfigFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.remoteConfig(organizationId))
-		await fs.writeFile(remoteConfigFilePath, JSON.stringify(config))
+		await atomicWriteFile(remoteConfigFilePath, JSON.stringify(config))
 	} catch (error) {
 		Logger.error("Failed to write remote config to cache:", error)
 	}
