@@ -1,35 +1,17 @@
-import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ApiHandler, ApiProviderInfo } from "@core/api"
 import { ApiStream } from "@core/api/transform/stream"
 import { ToolUse } from "@core/assistant-message"
 import { ContextManager } from "@core/context/context-management/ContextManager"
-import { checkContextWindowExceededError } from "@core/context/context-management/context-error-handling"
 
 import { EnvironmentContextTracker } from "@core/context/context-tracking/EnvironmentContextTracker"
 import { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
 import { ModelContextTracker } from "@core/context/context-tracking/ModelContextTracker"
-import {
-	getGlobalDiracRules,
-	getLocalDiracRules,
-	refreshDiracRulesToggles,
-} from "@core/context/instructions/user-instructions/dirac-rules"
-
-import {
-	getLocalAgentsRules,
-	getLocalCursorRules,
-	getLocalWindsurfRules,
-	refreshExternalRulesToggles,
-} from "@core/context/instructions/user-instructions/external-rules"
 
 import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
 
 import { CommandPermissionController } from "@core/permissions"
 
 import { formatResponse } from "@core/prompts/responses"
-import type { SystemPromptContext } from "@core/prompts/system-prompt"
-import { getSystemPrompt } from "@core/prompts/system-prompt"
-import { ensureRulesDirectoryExists, ensureTaskDirectoryExists } from "@core/storage/disk"
-import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { HostProvider } from "@hosts/host-provider"
 import { ICheckpointManager } from "@integrations/checkpoints/types"
@@ -41,13 +23,8 @@ import { type CommandExecutionOptions, CommandExecutor, StandaloneTerminalManage
 import { ITerminalManager } from "@integrations/terminal/types"
 import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
-import { DiracError, DiracErrorType, ErrorService } from "@services/error"
-import { featureFlagsService } from "@services/feature-flags"
-import { findLastIndex } from "@shared/array"
-import { DiracClient } from "@shared/dirac"
-import { DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
+import { DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
-import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
 import { DiracContent, DiracStorageMessage, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
 import { Logger } from "@shared/services/Logger"
@@ -60,17 +37,13 @@ import Mutex from "p-mutex"
 import * as path from "path"
 import { ulid } from "ulid"
 import { SkillMetadata } from "@/shared/skills"
-import { getAvailableCores } from "@/utils/os"
-import { detectBestShell } from "@/utils/shell-detection"
-import { RuleContextBuilder } from "../context/instructions/user-instructions/RuleContextBuilder"
-
-import { getOrDiscoverSkills } from "../context/instructions/user-instructions/skills"
 
 import { Controller } from "../controller"
 
 import { StateManager } from "../storage/StateManager"
 import { AgentLoopRunner } from "./AgentLoopRunner"
 import { ApiConversationManager } from "./ApiConversationManager"
+import { ApiRequestHandler } from "./ApiRequestHandler"
 import { ContextLoader } from "./ContextLoader"
 import { EnvironmentManager } from "./EnvironmentManager"
 import { HookManager } from "./HookManager"
@@ -83,7 +56,6 @@ import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
 import { ToolExecutor } from "./ToolExecutor"
-import { updateApiReqMsg } from "./utils"
 
 export type ToolResponse = DiracToolResponseContent
 
@@ -153,7 +125,7 @@ export class Task {
 	contextManager: ContextManager
 	diffViewProvider: DiffViewProvider
 	public checkpointManager?: ICheckpointManager
-	private diracIgnoreController: DiracIgnoreController
+	diracIgnoreController: DiracIgnoreController
 	private commandPermissionController: CommandPermissionController
 	toolExecutor: ToolExecutor
 	/**
@@ -165,7 +137,7 @@ export class Task {
 
 	streamHandler: StreamResponseHandler
 
-	private terminalExecutionMode: "vscodeTerminal" | "backgroundExec"
+	terminalExecutionMode: "vscodeTerminal" | "backgroundExec"
 
 	// Metadata tracking
 	private fileContextTracker: FileContextTracker
@@ -186,7 +158,7 @@ export class Task {
 	private cancelTask: () => Promise<void>
 
 	// Cache service
-	private stateManager: StateManager
+	stateManager: StateManager
 
 	// Message and conversation state
 	messageStateHandler: MessageStateHandler
@@ -210,6 +182,9 @@ export class Task {
 
 	/** Sprint 2 PR3: drives the outer ReAct loop (extracted from initiateTaskLoop). */
 	private agentLoopRunner!: AgentLoopRunner
+
+	/** Sprint 2 PR4: handles attemptApiRequest (extracted from Task). */
+	private apiRequestHandler!: ApiRequestHandler
 
 	constructor(params: TaskParams) {
 		const {
@@ -419,6 +394,9 @@ export class Task {
 
 		// Sprint 2 PR3: instantiate after all fields are ready (needs this as Task facade).
 		this.agentLoopRunner = new AgentLoopRunner(this, this.taskState)
+
+		// Sprint 2 PR4: instantiate after all fields are ready (needs this as Task facade).
+		this.apiRequestHandler = new ApiRequestHandler(this, this.taskState)
 	}
 
 	async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[], isStreamComplete = false) {
@@ -429,9 +407,7 @@ export class Task {
 		return this.environmentManager.getEnvironmentDetails(includeFileDetails)
 	}
 
-	async handleMistakeLimitReached(
-		userContent: DiracContent[],
-	): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
+	async handleMistakeLimitReached(userContent: DiracContent[]): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
 		if (this.taskState.consecutiveMistakeCount < this.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
 			return { didEndLoop: false, userContent }
 		}
@@ -546,7 +522,7 @@ export class Task {
 	 * 1. User has enabled it in settings, OR
 	 * 2. The current model/provider supports native tool calling and handles parallel tools well
 	 */
-	private isParallelToolCallingEnabled(): boolean {
+	isParallelToolCallingEnabled(): boolean {
 		const enableParallelSetting = this.stateManager.getGlobalSettingsKey("enableParallelToolCalling")
 		const providerInfo = this.getCurrentProviderInfo()
 		return isParallelToolCallingEnabled(enableParallelSetting, providerInfo)
@@ -631,7 +607,7 @@ export class Task {
 		return { model, providerId, customPrompt, mode }
 	}
 
-	private async writePromptMetadataArtifacts(params: {
+	async writePromptMetadataArtifacts(params: {
 		systemPrompt: string
 		providerInfo: ApiProviderInfo
 		tools?: any[]
@@ -722,7 +698,7 @@ export class Task {
 		}
 	}
 
-	private getApiRequestIdSafe(): string | undefined {
+	getApiRequestIdSafe(): string | undefined {
 		const apiLike = this.api as Partial<{
 			getLastRequestId: () => string | undefined
 			lastGenerationId?: string
@@ -730,370 +706,12 @@ export class Task {
 		return apiLike.getLastRequestId?.() ?? apiLike.lastGenerationId
 	}
 
-	private async handleContextWindowExceededError(): Promise<void> {
+	async handleContextWindowExceededError(): Promise<void> {
 		return this.apiConversationManager.handleContextWindowExceededError()
 	}
 
 	async *attemptApiRequest(previousApiReqIndex: number, shouldCompact?: boolean): ApiStream {
-		const providerInfo = this.getCurrentProviderInfo()
-		const host = await HostProvider.env.getHostVersion({})
-		const ide = host?.platform || "Unknown"
-		const isCliEnvironment = host.diracType === DiracClient.Cli
-		const browserSettings = this.stateManager.getGlobalSettingsKey("browserSettings")
-		const disableBrowserTool = browserSettings.disableToolUse ?? false
-		// dirac browser tool uses image recognition for navigation (requires model image support).
-		const modelSupportsBrowserUse = providerInfo.model.info.supportsImages ?? false
-
-		const supportsBrowserUse = modelSupportsBrowserUse && !disableBrowserTool // only enable browser use if the model supports it and the user hasn't disabled it
-		const preferredLanguageRaw = this.stateManager.getGlobalSettingsKey("preferredLanguage")
-		const preferredLanguage = getLanguageKey(preferredLanguageRaw as LanguageDisplay)
-		const preferredLanguageInstructions =
-			preferredLanguage && preferredLanguage !== DEFAULT_LANGUAGE_SETTINGS
-				? `# Preferred Language\n\nSpeak in ${preferredLanguage}.`
-				: ""
-
-		const { globalToggles, localToggles } = await refreshDiracRulesToggles(this.controller, this.cwd)
-		const { windsurfLocalToggles, cursorLocalToggles, agentsLocalToggles } = await refreshExternalRulesToggles(
-			this.controller,
-			this.cwd,
-		)
-
-		const evaluationContext = await RuleContextBuilder.buildEvaluationContext({
-			cwd: this.cwd,
-			messageStateHandler: this.messageStateHandler,
-			workspaceManager: this.workspaceManager,
-		})
-
-		const globalDiracRulesFilePath = await ensureRulesDirectoryExists()
-		const globalRules = await getGlobalDiracRules(globalDiracRulesFilePath, globalToggles, { evaluationContext })
-		const globalDiracRulesFileInstructions = globalRules.instructions
-
-		const localRules = await getLocalDiracRules(this.cwd, localToggles, { evaluationContext })
-		const localDiracRulesFileInstructions = localRules.instructions
-		const [localCursorRulesFileInstructions, localCursorRulesDirInstructions] = await getLocalCursorRules(
-			this.cwd,
-			cursorLocalToggles,
-		)
-		const localWindsurfRulesFileInstructions = await getLocalWindsurfRules(this.cwd, windsurfLocalToggles)
-
-		const localAgentsRulesFileInstructions = await getLocalAgentsRules(this.cwd, agentsLocalToggles)
-		this.diracIgnoreController.yoloMode = !!this.stateManager.getGlobalSettingsKey("yoloModeToggled")
-
-		const isYolo = !!this.stateManager.getGlobalSettingsKey("yoloModeToggled")
-		const diracIgnoreContent = this.diracIgnoreController.diracIgnoreContent
-		let diracIgnoreInstructions: string | undefined
-		if (diracIgnoreContent && !isYolo) {
-			diracIgnoreInstructions = formatResponse.diracIgnoreInstructions(diracIgnoreContent)
-		}
-
-		// Prepare multi-root workspace information if enabled
-		let workspaceRoots: Array<{ path: string; name: string; vcs?: string }> | undefined
-		const multiRootEnabled = isMultiRootEnabled(this.stateManager)
-		if (multiRootEnabled && this.workspaceManager) {
-			workspaceRoots = this.workspaceManager.getRoots().map((root) => ({
-				path: root.path,
-				name: root.name || path.basename(root.path), // Fallback to basename if name is undefined
-				vcs: root.vcs as string | undefined, // Cast VcsType to string
-			}))
-		}
-
-		// Discover and filter available skills
-		const resolvedSkills = await getOrDiscoverSkills(this.cwd, this.taskState)
-
-		// Filter skills by toggle state (enabled by default)
-		const globalSkillsToggles = this.stateManager.getGlobalSettingsKey("globalSkillsToggles") ?? {}
-		const localSkillsToggles = this.stateManager.getWorkspaceStateKey("localSkillsToggles") ?? {}
-		const availableSkills = resolvedSkills.filter((skill) => {
-			const toggles = skill.source === "global" ? globalSkillsToggles : localSkillsToggles
-			// If toggle exists, use it; otherwise default to enabled (true)
-			return toggles[skill.path] !== false
-		})
-
-		this.taskState.availableSkills = availableSkills
-
-		// Snapshot editor tabs so prompt tools can decide whether to include
-		// filetype-specific instructions (e.g. notebooks) without adding bespoke flags.
-		const openTabPaths = (await HostProvider.window.getOpenTabs({})).paths || []
-		const visibleTabPaths = (await HostProvider.window.getVisibleTabs({})).paths || []
-		const cap = 50
-		const editorTabs = {
-			open: openTabPaths.slice(0, cap),
-			visible: visibleTabPaths.slice(0, cap),
-		}
-
-		const shellInfo = detectBestShell()
-
-		const promptContext: SystemPromptContext = {
-			cwd: this.cwd,
-			ide,
-			providerInfo,
-			editorTabs,
-			supportsBrowserUse,
-			skills: availableSkills,
-			globalDiracRulesFileInstructions,
-			localDiracRulesFileInstructions,
-			localCursorRulesFileInstructions,
-			localCursorRulesDirInstructions,
-			localWindsurfRulesFileInstructions,
-			localAgentsRulesFileInstructions,
-			diracIgnoreInstructions,
-			preferredLanguageInstructions,
-			browserSettings: this.stateManager.getGlobalSettingsKey("browserSettings"),
-			yoloModeToggled: this.stateManager.getGlobalSettingsKey("yoloModeToggled"),
-			subagentsEnabled: this.stateManager.getGlobalSettingsKey("subagentsEnabled"),
-			diracWebToolsEnabled:
-				this.stateManager.getGlobalSettingsKey("diracWebToolsEnabled") && featureFlagsService.getWebtoolsEnabled(),
-			isMultiRootEnabled: multiRootEnabled,
-			workspaceRoots,
-			isSubagentRun: false,
-			isCliEnvironment,
-			enableParallelToolCalling: this.isParallelToolCallingEnabled(),
-			terminalExecutionMode: this.terminalExecutionMode,
-			activeShellType: shellInfo.type,
-			activeShellPath: shellInfo.path,
-			activeShellIsPosix: shellInfo.isPosix,
-			availableCores: getAvailableCores(),
-			shouldCompact,
-		}
-
-		// Notify user if any conditional rules were applied for this request
-		const activatedConditionalRules = [...globalRules.activatedConditionalRules, ...localRules.activatedConditionalRules]
-		if (activatedConditionalRules.length > 0) {
-			await this.say("conditional_rules_applied", JSON.stringify({ rules: activatedConditionalRules }))
-		}
-
-		const { systemPrompt, tools } = await getSystemPrompt(promptContext)
-		this.taskState.useNativeToolCalls = !!tools?.length
-
-		const contextManagementMetadata = await this.contextManager.getNewContextMessagesAndMetadata(
-			this.messageStateHandler.getApiConversationHistory(),
-			this.messageStateHandler.getDiracMessages(),
-			this.api,
-			this.taskState.conversationHistoryDeletedRange,
-			previousApiReqIndex,
-			await ensureTaskDirectoryExists(this.taskId),
-			this.stateManager.getGlobalSettingsKey("useAutoCondense"),
-		)
-
-		await this.writePromptMetadataArtifacts({
-			systemPrompt,
-			providerInfo,
-			tools,
-			fullHistory: this.messageStateHandler.getApiConversationHistory(),
-			deletedRange: this.taskState.conversationHistoryDeletedRange,
-		})
-
-		if (contextManagementMetadata.updatedConversationHistoryDeletedRange) {
-			this.taskState.conversationHistoryDeletedRange = contextManagementMetadata.conversationHistoryDeletedRange
-			await this.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-			// saves task history item which we use to keep track of conversation history deleted range
-		}
-
-		// If we're not using auto-condense, we should explicitly notify the model that history was truncated
-		const useAutoCondense = this.stateManager.getGlobalSettingsKey("useAutoCondense")
-		if (!useAutoCondense) {
-			const lastMessage =
-				contextManagementMetadata.truncatedConversationHistory[
-					contextManagementMetadata.truncatedConversationHistory.length - 1
-				]
-			if (lastMessage && lastMessage.role === "user") {
-				const notice = formatResponse.contextTruncationNotice()
-				if (typeof lastMessage.content === "string") {
-					lastMessage.content += `
-
-${notice}`
-				} else if (Array.isArray(lastMessage.content)) {
-					lastMessage.content.push({
-						type: "text",
-						text: notice,
-					})
-				}
-			}
-		}
-
-		// Response API requires native tool calls to be enabled
-		const stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory as any, tools)
-
-		const iterator = stream[Symbol.asyncIterator]()
-
-		try {
-			// awaiting first chunk to see if it will throw an error
-			this.taskState.isWaitingForFirstChunk = true
-			const firstChunk = await iterator.next()
-			yield firstChunk.value
-			this.taskState.isWaitingForFirstChunk = false
-		} catch (error) {
-			const isContextWindowExceededError = checkContextWindowExceededError(error)
-			const { model, providerId } = this.getCurrentProviderInfo()
-			const diracError = ErrorService.get().toDiracError(error, model.id, providerId)
-
-			// Capture provider failure telemetry using diracError
-			ErrorService.get().logMessage(diracError.message)
-
-			if (isContextWindowExceededError && !this.taskState.didAutomaticallyRetryFailedApiRequest) {
-				await this.handleContextWindowExceededError()
-			} else {
-				// request failed after retrying automatically once, ask user if they want to retry again
-				// note that this api_req_failed ask is unique in that we only present this option if the api hasn't streamed any content yet (ie it fails on the first chunk due), as it would allow them to hit a retry button. However if the api failed mid-stream, it could be in any arbitrary state where some tools may have executed, so that error is handled differently and requires cancelling the task entirely.
-
-				if (isContextWindowExceededError) {
-					const truncatedConversationHistory = this.contextManager.getTruncatedMessages(
-						this.messageStateHandler.getApiConversationHistory(),
-						this.taskState.conversationHistoryDeletedRange,
-					)
-
-					// If the conversation has more than 3 messages, we can truncate again. If not, then the conversation is bricked.
-					// ToDo: Allow the user to change their input if this is the case.
-					if (truncatedConversationHistory.length > 3) {
-						diracError.message = "Context window exceeded. Click retry to truncate the conversation and try again."
-						this.taskState.didAutomaticallyRetryFailedApiRequest = false
-					}
-				}
-
-				const streamingFailedMessage = diracError.serialize()
-
-				// Update the 'api_req_started' message to reflect final failure before asking user to manually retry
-				const lastApiReqStartedIndex = findLastIndex(
-					this.messageStateHandler.getDiracMessages(),
-					(m) => m.say === "api_req_started",
-				)
-				if (lastApiReqStartedIndex !== -1) {
-					const diracMessages = this.messageStateHandler.getDiracMessages()
-					const currentApiReqInfo: DiracApiReqInfo = JSON.parse(diracMessages[lastApiReqStartedIndex].text || "{}")
-					delete currentApiReqInfo.retryStatus
-
-					await this.messageStateHandler.updateDiracMessage(lastApiReqStartedIndex, {
-						text: JSON.stringify({
-							...currentApiReqInfo, // Spread the modified info (with retryStatus removed)
-							// cancelReason: "retries_exhausted", // Indicate that automatic retries failed
-							streamingFailedMessage,
-						} satisfies DiracApiReqInfo),
-					})
-					// this.ask will trigger postStateToWebview, so this change should be picked up.
-				}
-
-				const isAuthError = diracError.isErrorType(DiracErrorType.Auth)
-
-				// Check if this is a Dirac provider insufficient credits error - don't auto-retry these
-				const isDiracProviderInsufficientCredits = (() => {
-					if (providerId !== "dirac") {
-						return false
-					}
-					try {
-						const parsedError = DiracError.transform(error, model.id, providerId)
-						return parsedError.isErrorType(DiracErrorType.Balance)
-					} catch {
-						return false
-					}
-				})()
-
-				let response: DiracAskResponse
-				// Skip auto-retry for Dirac provider insufficient credits or auth errors
-				if (!isDiracProviderInsufficientCredits && !isAuthError && this.taskState.autoRetryAttempts < 3) {
-					// Auto-retry enabled with max 3 attempts: automatically approve the retry
-					this.taskState.autoRetryAttempts++
-
-					// Calculate delay: 2s, 4s, 8s
-					const delay = 2000 * 2 ** (this.taskState.autoRetryAttempts - 1)
-
-					await updateApiReqMsg({
-						partial: true,
-						messageStateHandler: this.messageStateHandler,
-						lastApiReqIndex: lastApiReqStartedIndex,
-						inputTokens: 0,
-						reasoningTokens: 0,
-						outputTokens: 0,
-						cacheWriteTokens: 0,
-						cacheReadTokens: 0,
-						totalCost: undefined,
-						api: this.api,
-						cancelReason: "streaming_failed",
-						streamingFailedMessage,
-					})
-					await this.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-					await this.postStateToWebview()
-
-					response = "yesButtonClicked"
-					await this.say(
-						"error_retry",
-						JSON.stringify({
-							attempt: this.taskState.autoRetryAttempts,
-							maxAttempts: 3,
-							delaySeconds: delay / 1000,
-							errorMessage: streamingFailedMessage,
-						}),
-					)
-
-					// Clear streamingFailedMessage now that error_retry contains it
-					// This prevents showing the error in both ErrorRow and error_retry
-					const autoRetryApiReqIndex = findLastIndex(
-						this.messageStateHandler.getDiracMessages(),
-						(m) => m.say === "api_req_started",
-					)
-					if (autoRetryApiReqIndex !== -1) {
-						const diracMessages = this.messageStateHandler.getDiracMessages()
-						const currentApiReqInfo: DiracApiReqInfo = JSON.parse(diracMessages[autoRetryApiReqIndex].text || "{}")
-						delete currentApiReqInfo.streamingFailedMessage
-						await this.messageStateHandler.updateDiracMessage(autoRetryApiReqIndex, {
-							text: JSON.stringify(currentApiReqInfo),
-						})
-					}
-
-					await setTimeoutPromise(delay)
-				} else {
-					// Show error_retry with failed flag to indicate all retries exhausted (but not for insufficient credits)
-					if (!isDiracProviderInsufficientCredits && !isAuthError) {
-						await this.say(
-							"error_retry",
-							JSON.stringify({
-								attempt: 3,
-								maxAttempts: 3,
-								delaySeconds: 0,
-								failed: true, // Special flag to indicate retries exhausted
-								errorMessage: streamingFailedMessage,
-							}),
-						)
-					}
-					const askResult = await this.ask("api_req_failed", streamingFailedMessage)
-					response = askResult.response
-					if (response === "yesButtonClicked") {
-						this.taskState.autoRetryAttempts = 0
-					}
-				}
-
-				if (response !== "yesButtonClicked") {
-					// this will never happen since if noButtonClicked, we will clear current task, aborting this instance
-					throw new Error("API request failed")
-				}
-
-				// Clear streamingFailedMessage when user manually retries
-				const manualRetryApiReqIndex = findLastIndex(
-					this.messageStateHandler.getDiracMessages(),
-					(m) => m.say === "api_req_started",
-				)
-				if (manualRetryApiReqIndex !== -1) {
-					const diracMessages = this.messageStateHandler.getDiracMessages()
-					const currentApiReqInfo: DiracApiReqInfo = JSON.parse(diracMessages[manualRetryApiReqIndex].text || "{}")
-					delete currentApiReqInfo.streamingFailedMessage
-					await this.messageStateHandler.updateDiracMessage(manualRetryApiReqIndex, {
-						text: JSON.stringify(currentApiReqInfo),
-					})
-				}
-
-				await this.say("api_req_retried")
-
-				// Reset the automatic retry flag so the request can proceed
-				this.taskState.didAutomaticallyRetryFailedApiRequest = false
-			}
-			// delegate generator output from the recursive call
-			yield* this.attemptApiRequest(previousApiReqIndex, shouldCompact)
-			return
-		}
-
-		// no error, so we can continue to yield all remaining chunks
-		// (needs to be placed outside of try/catch since it we want caller to handle errors not with api_req_failed as that is reserved for first chunk failures only)
-		// this delegates to another generator or iterable object. In this case, it's saying "yield all remaining values from this iterator". This effectively passes along all subsequent chunks from the original stream.
-		yield* iterator
+		yield* this.apiRequestHandler.attempt(previousApiReqIndex, shouldCompact)
 	}
 
 	async presentAssistantMessage() {
