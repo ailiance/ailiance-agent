@@ -19,6 +19,9 @@ import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
 // agent-kiki fork: tracing hook
 import { JsonlTracer } from "../tracing"
+// agent-kiki fork: source the version from package.json so trace meta and
+// the package binary never drift apart at release time.
+import { version as AGENT_KIKI_VERSION } from "../../../package.json"
 import { WorkspaceRootManager } from "../workspace"
 import { ToolResponse } from "."
 import { MessageStateHandler } from "./message-state"
@@ -161,7 +164,7 @@ export class ToolExecutor {
 				task: this.taskId,
 				mode,
 				approval_mode: yolo ? "yolo" : "manual",
-				agent_kiki_version: "0.1.0",
+				agent_kiki_version: AGENT_KIKI_VERSION,
 				gateway_url: gatewayUrl,
 				workers: {
 					default: {
