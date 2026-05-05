@@ -1,8 +1,8 @@
 import * as assert from "assert"
 import * as sinon from "sinon"
-import { LocalStackManager } from "../LocalStackManager"
-import * as litellmModule from "../../litellm/LiteLLMProxyManager"
 import * as jinaModule from "../../jina-router/JinaRouterManager"
+import * as litellmModule from "../../litellm/LiteLLMProxyManager"
+import { LocalStackManager } from "../LocalStackManager"
 
 describe("LocalStackManager", () => {
 	let manager: LocalStackManager

@@ -1,4 +1,5 @@
 import * as fs from "node:fs"
+import * as path from "node:path"
 import * as assert from "assert"
 import * as sinon from "sinon"
 import { LiteLLMProxyManager } from "../LiteLLMProxyManager"
@@ -51,6 +52,17 @@ describe("LiteLLMProxyManager", () => {
 			assert.ok(unlinkStub.called, "should have removed stale PID file")
 
 			killStub.restore()
+		})
+	})
+
+	describe("DEFAULT_CONFIG_YAML (regression)", () => {
+		it("does not contain general_settings, master_key, or database_url", () => {
+			// Read the source file directly to assert the embedded YAML constant
+			const src = fs.readFileSync(path.resolve(__dirname, "../LiteLLMProxyManager.ts"), "utf8")
+			const forbidden = ["general_settings", "master_key", "database_url"]
+			for (const term of forbidden) {
+				assert.ok(!src.includes(`  ${term}:`), `Source must not contain ${term}: in config YAML`)
+			}
 		})
 	})
 

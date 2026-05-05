@@ -39,7 +39,7 @@ const DEFAULT_ROUTES = {
 }
 
 export class JinaRouterManager {
-	static readonly DEFAULT_PORT = 5000
+	static readonly DEFAULT_PORT = 5050
 	static readonly VENV_PATH = path.join(os.homedir(), ".aki", "jina-router-venv")
 	static readonly SCRIPT_PATH = path.join(os.homedir(), ".aki", "jina-router", "server.py")
 	static readonly ROUTES_PATH = path.join(os.homedir(), ".aki", "jina-router", "routes.json")
@@ -66,6 +66,16 @@ export class JinaRouterManager {
 	}
 
 	private async findPython(): Promise<string | null> {
+		// Prefer versioned Python ≤ 3.13: uvloop (dep of uvicorn[standard]) does not support 3.14+
+		for (const name of ["python3.12", "python3.13", "python3.11"]) {
+			try {
+				const { stdout } = await execFileAsync("which", [name])
+				const p = stdout.trim()
+				if (p) return p
+			} catch {
+				// not found
+			}
+		}
 		for (const candidate of ["/opt/homebrew/bin/python3", "/usr/bin/python3", "/usr/local/bin/python3"]) {
 			try {
 				await fs.access(candidate)
@@ -153,8 +163,10 @@ export class JinaRouterManager {
 		if (!venvExists) {
 			try {
 				if (uv) {
-					await execFileAsync(uv, ["venv", JinaRouterManager.VENV_PATH])
+					// Pin Python ≤ 3.13: uvloop (dep of uvicorn[standard]) does not support 3.14+
+					await execFileAsync(uv, ["venv", JinaRouterManager.VENV_PATH, "--python", "3.12"])
 				} else {
+					// python is already a compatible version (findPython prefers 3.12/3.13/3.11)
 					await execFileAsync(python!, ["-m", "venv", JinaRouterManager.VENV_PATH])
 				}
 			} catch (err) {
@@ -163,7 +175,8 @@ export class JinaRouterManager {
 		}
 
 		// Install Python dependencies
-		const deps = ["fastapi", "uvicorn", "httpx", "sentence-transformers", "numpy", "pydantic"]
+		// Pin transformers<5: jina-embeddings-v2 uses transformers.onnx removed in v5
+		const deps = ["fastapi", "uvicorn", "httpx", "sentence-transformers", "numpy", "pydantic", "transformers<5"]
 		try {
 			if (uv) {
 				await execFileAsync(uv, ["pip", "install", "--python", venvPython, ...deps])

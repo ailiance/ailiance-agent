@@ -3,7 +3,7 @@
 agent-kiki can run a local stack that routes LLM requests intelligently:
 
 ```
-aki  →  Jina router (:5000)  →  LiteLLM proxy (:4000)  →  endpoints
+aki  →  Jina router (:5050)  →  LiteLLM proxy (:4000)  →  endpoints
 ```
 
 ## Quick start
@@ -18,7 +18,7 @@ aki stack start
 # 3. Configure aki to use the local stack
 # Edit your aki settings (or pass via VS Code config):
 #   apiProvider: "litellm"
-#   liteLlmBaseUrl: "http://127.0.0.1:5000"
+#   liteLlmBaseUrl: "http://127.0.0.1:5050"
 #   liteLlmApiKey: "sk-aki-local-master-key"
 #   liteLlmModelId: "auto"   # let the router pick
 
@@ -39,7 +39,7 @@ aki stack stop
 - RAM: ~300 MB
 - Edit the config to add/remove models. Required env vars: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.
 
-### Jina semantic router (port 5000)
+### Jina semantic router (port 5050)
 
 - Embeds incoming queries via `jinaai/jina-embeddings-v2-small-en` (~80 MB model, ~150 MB RAM)
 - Classifies intent into: `code`, `chat`, `search`, `agent`

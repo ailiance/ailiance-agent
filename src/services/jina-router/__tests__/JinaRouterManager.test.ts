@@ -52,6 +52,19 @@ describe("JinaRouterManager", () => {
 			assert.strictEqual(result.ok, false)
 			assert.ok(result.msg.toLowerCase().includes("python"), `msg should mention python, got: ${result.msg}`)
 		})
+
+		it("install() error message for copy failure mentions server script", () => {
+			// Regression guard: verify the source code returns the expected error phrase
+			// when copyFile fails, so callers can identify the root cause.
+			const src = require("node:fs").readFileSync(
+				require("node:path").resolve(__dirname, "../JinaRouterManager.ts"),
+				"utf8",
+			) as string
+			assert.ok(
+				src.includes("Failed to copy server script"),
+				"install() must return 'Failed to copy server script' on copyFile failure",
+			)
+		})
 	})
 
 	describe("start()", () => {
