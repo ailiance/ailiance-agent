@@ -189,7 +189,7 @@ export const SubagentMessage: React.FC<SubagentMessageProps> = ({ message, mode,
 			return (
 				<Box flexDirection="column" marginBottom={1} width="100%">
 					<DotRow color={toolColor}>
-						<Text color={toolColor}>Dirac wants to run subagents:</Text>
+						<Text color={toolColor}>agent-kiki wants to run subagents:</Text>
 					</DotRow>
 				</Box>
 			)

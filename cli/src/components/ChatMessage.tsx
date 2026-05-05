@@ -234,7 +234,7 @@ const ResultRow: React.FC<{ children: React.ReactNode; isFirst?: boolean }> = ({
 )
 
 /**
- * Render a tool call in webview style: "Dirac wants to read this file:" / "Dirac read this file:"
+ * Render a tool call in webview style: "agent-kiki wants to read this file:" / "agent-kiki read this file:"
  */
 const ToolCallText: React.FC<{
 	toolName: string
