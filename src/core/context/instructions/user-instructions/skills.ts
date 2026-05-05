@@ -1,12 +1,11 @@
 import { pluginDiscoveryService } from "@core/plugins/PluginDiscoveryService"
 import { getSkillsDirectoriesForScan } from "@core/storage/disk"
 import type { SkillContent, SkillMetadata } from "@shared/skills"
+import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { fileExistsAtPath, isDirectory } from "@utils/fs"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { Logger } from "@/shared/services/Logger"
-import { parseYamlFrontmatter } from "@utils/frontmatter"
-
 
 /**
  * Scan a directory for skill subdirectories containing SKILL.md files.
@@ -170,7 +169,6 @@ export async function listSupportingFiles(skillMdPath: string): Promise<{ docs: 
 
 	return { docs, scripts }
 }
-
 
 export async function getSkillContent(skillName: string, availableSkills: SkillMetadata[]): Promise<SkillContent | null> {
 	const skill = availableSkills.find((s) => s.name === skillName)
