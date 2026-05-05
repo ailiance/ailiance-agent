@@ -83,6 +83,7 @@ import { MessageStateHandler } from "./message-state"
 import { ResponseProcessor } from "./ResponseProcessor"
 import { StreamChunkCoordinator } from "./StreamChunkCoordinator"
 import { StreamResponseHandler } from "./StreamResponseHandler"
+import { AgentLoopRunner } from "./AgentLoopRunner"
 import type { TaskDependencies } from "./TaskDependencies"
 import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
@@ -212,6 +213,9 @@ export class Task {
 	 * Preparatory for Sprint 1 PR2 (TaskFactory).
 	 */
 	private deps!: TaskDependencies
+
+	/** Sprint 2 PR3: drives the outer ReAct loop (extracted from initiateTaskLoop). */
+	private agentLoopRunner!: AgentLoopRunner
 
 	constructor(params: TaskParams) {
 		const {
@@ -418,6 +422,9 @@ export class Task {
 			reinitExistingTaskFromId: this.reinitExistingTaskFromId,
 			cancelTask: this.cancelTask,
 		}
+
+		// Sprint 2 PR3: instantiate after all fields are ready (needs this as Task facade).
+		this.agentLoopRunner = new AgentLoopRunner(this, this.taskState)
 	}
 
 	async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[], isStreamComplete = false) {
@@ -579,32 +586,7 @@ export class Task {
 	}
 
 	private async initiateTaskLoop(userContent: DiracContent[]): Promise<void> {
-		let nextUserContent = userContent
-		let includeFileDetails = true
-		while (!this.taskState.abort) {
-			const didEndLoop = await this.recursivelyMakeDiracRequests(nextUserContent, includeFileDetails)
-			includeFileDetails = false // we only need file details the first time
-
-			//  The way this agentic loop works is that dirac will be given a task that he then calls tools to complete. unless there's an attempt_completion call, we keep responding back to him with his tool's responses until he either attempt_completion or does not use anymore tools. If he does not use anymore tools, we ask him to consider if he's completed the task and then call attempt_completion, otherwise proceed with completing the task.
-
-			//const totalCost = this.calculateApiCost(totalInputTokens, totalOutputTokens)
-			if (didEndLoop) {
-				// For now a task never 'completes'. This will only happen if the user hits max requests and denies resetting the count.
-				//this.say("task_completed", `Task completed. Total API usage cost: ${totalCost}`)
-				break
-			}
-			// this.say(
-			// 	"tool",
-			// 	"Dirac responded with only text blocks but has not called attempt_completion yet. Forcing him to continue with task..."
-			// )
-			nextUserContent = [
-				{
-					type: "text",
-					text: formatResponse.noToolsUsed(this.taskState.useNativeToolCalls),
-				},
-			]
-			this.taskState.consecutiveMistakeCount++
-		}
+		return this.agentLoopRunner.initiateLoop(userContent)
 	}
 
 	private async shouldRunTaskCancelHook(): Promise<boolean> {
