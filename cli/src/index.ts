@@ -322,7 +322,7 @@ routerCmd
 routerCmd
 	.command("start")
 	.description("Start the Jina semantic router (first run downloads ~80 MB model from Hugging Face)")
-	.option("-p, --port <port>", "port to listen on", "5000")
+	.option("-p, --port <port>", "port to listen on", "5050")
 	.action(async (opts) => {
 		const { runRouterStart } = await import("./commands/router")
 		return runRouterStart({ port: Number.parseInt(opts.port, 10) })

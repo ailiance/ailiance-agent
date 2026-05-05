@@ -59,10 +59,6 @@ litellm_settings:
   cache_params:
     type: local      # local in-memory, no Redis dep
 
-general_settings:
-  master_key: sk-aki-local-master-key   # change in prod
-  database_url: ""                      # no DB for local
-
 router_settings:
   routing_strategy: simple-shuffle
   num_retries: 2
@@ -98,6 +94,16 @@ export class LiteLLMProxyManager {
 	}
 
 	private async findPython(): Promise<string | null> {
+		// Prefer versioned Python ≤ 3.13: uvloop (dep of uvicorn[standard]) doesn't support 3.14+
+		for (const name of ["python3.12", "python3.13", "python3.11"]) {
+			try {
+				const { stdout } = await execFileAsync("which", [name])
+				const p = stdout.trim()
+				if (p) return p
+			} catch {
+				// not found
+			}
+		}
 		for (const candidate of ["/opt/homebrew/bin/python3", "/usr/bin/python3", "/usr/local/bin/python3"]) {
 			try {
 				await fs.access(candidate)
@@ -174,8 +180,10 @@ export class LiteLLMProxyManager {
 		if (!venvExists) {
 			try {
 				if (uv) {
-					await execFileAsync(uv, ["venv", LiteLLMProxyManager.VENV_PATH])
+					// Pin Python ≤ 3.13: uvloop (dep of uvicorn[standard]) does not support 3.14+
+					await execFileAsync(uv, ["venv", LiteLLMProxyManager.VENV_PATH, "--python", "3.12"])
 				} else {
+					// python is already a compatible version (findPython prefers 3.12/3.13/3.11)
 					await execFileAsync(python!, ["-m", "venv", LiteLLMProxyManager.VENV_PATH])
 				}
 			} catch (err) {
