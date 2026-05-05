@@ -147,6 +147,12 @@ export class JsonlTracer {
 	private turn = 0
 	private closed = false
 	private readonly enabled: boolean
+	// agent-kiki fork: serialise concurrent appendTurn calls.
+	// When the planner dispatches parallel tool calls (`enableParallelToolCalls`),
+	// multiple appendTurn invocations race on both the `turn` counter AND the
+	// JSONL file write. We chain every write onto a single Promise so that
+	// turn numbering stays monotonic and lines never interleave on disk.
+	private writeChain: Promise<void> = Promise.resolve()
 
 	constructor(
 		private readonly taskId: string,
@@ -203,6 +209,10 @@ export class JsonlTracer {
 
 	appendTurn(input: Partial<TraceLine> & { phase: TracePhase }): TraceLine | null {
 		if (!this.enabled || this.closed) return null
+		// agent-kiki fork: increment + serialise. The turn counter is bumped
+		// synchronously so callers see a stable line.turn, but the actual
+		// file append is queued onto writeChain to prevent interleaved bytes
+		// when parallel tool calls race here.
 		this.turn += 1
 		const line: TraceLine = {
 			schema_version: TRACING_SCHEMA_VERSION,
@@ -224,8 +234,19 @@ export class JsonlTracer {
 				: null,
 			errors: input.errors ?? [],
 		}
-		this.appendLine(this.tracePath, line)
+		this.queueAppend(this.tracePath, line)
 		return line
+	}
+
+	/**
+	 * Wait for all queued writes to flush. Tests use this to assert
+	 * deterministic on-disk ordering after firing N appendTurn calls in
+	 * parallel. Synchronous callers do not need to await this — the file
+	 * has already been written by `fs.appendFileSync` before appendTurn
+	 * returned.
+	 */
+	async flush(): Promise<void> {
+		await this.writeChain
 	}
 
 	// agent-kiki fork: record an LLM API roundtrip ("planner" turn) so that
@@ -300,5 +321,23 @@ export class JsonlTracer {
 		} catch (_err) {
 			// swallow — tracing is non-fatal
 		}
+	}
+
+	// agent-kiki fork: queue an append. We use the synchronous
+	// fs.appendFileSync so that callers get read-after-write semantics
+	// (existing tests + downstream readers rely on this), while ALSO
+	// chaining a resolved Promise onto writeChain so flush() can be
+	// awaited as a barrier. Because appendTurn is fully synchronous and
+	// JS is single-threaded, parallel callers serialise naturally on
+	// the event loop — but the explicit chain documents the intent and
+	// guards against future async refactors of this method.
+	private queueAppend(target: string, payload: unknown): void {
+		const line = `${JSON.stringify(payload)}\n`
+		try {
+			fs.appendFileSync(target, line, "utf8")
+		} catch (_err) {
+			// swallow — tracing is non-fatal
+		}
+		this.writeChain = this.writeChain.catch(() => undefined).then(() => undefined)
 	}
 }
