@@ -1,11 +1,12 @@
-import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { Logger } from "@shared/services/Logger"
 import { DiracDefaultTool, setDynamicToolUseNames } from "@shared/tools"
+import { parseYamlFrontmatter } from "@utils/frontmatter"
 import chokidar, { type FSWatcher } from "chokidar"
 import fs from "fs/promises"
 import os from "os"
 import * as path from "path"
 import { z } from "zod"
+import { pluginDiscoveryService } from "@/core/plugins/PluginDiscoveryService"
 import { buildSubagentToolName } from "./SubagentToolName"
 
 /** Default Directory for agent configurations: ~/Documents/Dirac/Agents */
@@ -112,6 +113,95 @@ function normalizeAgentName(name: string): string {
 
 function isYamlFile(filePath: string): boolean {
 	return /\.(yaml|yml)$/i.test(filePath)
+}
+
+function isMdFile(filePath: string): boolean {
+	return /\.md$/i.test(filePath)
+}
+
+/**
+ * Schema for Claude Code plugin agent frontmatter (agents/*.md).
+ * Uses `description` (required) and optional `model` field.
+ * `name` is derived from the file name.
+ */
+const PluginAgentFrontmatterSchema = z.object({
+	description: z.string().trim().min(1),
+	model: z.string().trim().min(1).optional(),
+})
+
+/**
+ * Parse a Claude Code plugin agent .md file into an AgentBaseConfig.
+ * Name comes from the file stem, tools default to empty (plugin agents
+ * declare tools in Claude Code format which is not mapped here).
+ */
+function parsePluginAgentMd(content: string, fileName: string): AgentBaseConfig {
+	const { data, body, hadFrontmatter, parseError } = parseYamlFrontmatter(content)
+	if (parseError) {
+		throw new Error(`Failed to parse YAML frontmatter: ${parseError}`)
+	}
+	if (!hadFrontmatter) {
+		throw new Error("Missing YAML frontmatter block in plugin agent file.")
+	}
+
+	const parsed = PluginAgentFrontmatterSchema.parse(data)
+	const systemPrompt = body.trim()
+	if (!systemPrompt) {
+		throw new Error("Missing system prompt body in plugin agent file.")
+	}
+
+	// Name from file stem (e.g. "foo-agent.md" → "foo-agent")
+	const name = path.basename(fileName, path.extname(fileName))
+
+	return AgentBaseConfigSchema.parse({
+		name,
+		description: parsed.description,
+		modelId: parsed.model,
+		tools: [],
+		systemPrompt,
+	}) as AgentBaseConfig
+}
+
+/**
+ * Load agent configs from all plugin agents directories.
+ * Uses Claude Code format: agents/*.md with description frontmatter.
+ * Fails gracefully — a bad plugin file is skipped with a warning.
+ */
+export async function readPluginAgentConfigs(): Promise<Map<string, AgentBaseConfig>> {
+	const configs = new Map<string, AgentBaseConfig>()
+	let agentsDirs: string[]
+	try {
+		agentsDirs = await pluginDiscoveryService.getAgentsDirectories()
+	} catch (error) {
+		Logger.warn("[AgentConfigLoader] Failed to get plugin agents directories", error)
+		return configs
+	}
+
+	for (const dir of agentsDirs) {
+		try {
+			const entries = await fs.readdir(dir, { withFileTypes: true })
+			const mdFiles = entries
+				.filter((e) => e.isFile())
+				.map((e) => e.name)
+				.filter(isMdFile)
+				.sort((a, b) => a.localeCompare(b))
+
+			for (const fileName of mdFiles) {
+				const filePath = path.join(dir, fileName)
+				try {
+					const content = await fs.readFile(filePath, "utf8")
+					const parsed = parsePluginAgentMd(content, fileName)
+					Logger.debug(`[AgentConfigLoader] Loaded plugin agent '${fileName}' from ${dir}`)
+					configs.set(normalizeAgentName(parsed.name), parsed)
+				} catch (error) {
+					Logger.warn(`[AgentConfigLoader] Skipping plugin agent '${fileName}': ${error}`)
+				}
+			}
+		} catch {
+			// Directory doesn't exist — skip silently
+		}
+	}
+
+	return configs
 }
 
 export async function readAgentConfigsFromDisk(homeDir = os.homedir()): Promise<Map<string, AgentBaseConfig>> {
@@ -250,6 +340,15 @@ export class AgentConfigLoader {
 
 	public async load(): Promise<ReadonlyMap<string, AgentBaseConfig>> {
 		const configs = await readAgentConfigsFromDisk(this.homeDir)
+
+		// Merge plugin agents (plugin entries do not override user-defined agents)
+		const pluginConfigs = await readPluginAgentConfigs()
+		for (const [key, value] of pluginConfigs) {
+			if (!configs.has(key)) {
+				configs.set(key, value)
+			}
+		}
+
 		this.cachedConfigs = configs
 		this.rebuildDynamicToolMappings()
 		Logger.debug(`[AgentConfigLoader] Loaded ${configs.size} agent config(s) from disk.`)
