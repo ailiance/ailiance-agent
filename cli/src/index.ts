@@ -272,6 +272,109 @@ program
 		}
 	})
 
+// LiteLLM proxy management
+const proxyCmd = program.command("proxy").description("Manage local LiteLLM proxy")
+
+proxyCmd
+	.command("install")
+	.description("Install LiteLLM in dedicated venv (~/.aki/litellm-venv)")
+	.action(async () => {
+		const { runProxyInstall } = await import("./commands/proxy")
+		return runProxyInstall()
+	})
+
+proxyCmd
+	.command("start")
+	.description("Start the LiteLLM proxy")
+	.option("-p, --port <port>", "port to listen on", "4000")
+	.action(async (opts) => {
+		const { runProxyStart } = await import("./commands/proxy")
+		return runProxyStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+proxyCmd
+	.command("stop")
+	.description("Stop the LiteLLM proxy")
+	.action(async () => {
+		const { runProxyStop } = await import("./commands/proxy")
+		return runProxyStop()
+	})
+
+proxyCmd
+	.command("status")
+	.description("Get LiteLLM proxy status")
+	.action(async () => {
+		const { runProxyStatus } = await import("./commands/proxy")
+		return runProxyStatus()
+	})
+
+// Jina semantic router management
+const routerCmd = program.command("router").description("Manage local Jina semantic router")
+
+routerCmd
+	.command("install")
+	.description("Install Jina router in dedicated venv (~/.aki/jina-router-venv)")
+	.action(async () => {
+		const { runRouterInstall } = await import("./commands/router")
+		return runRouterInstall()
+	})
+
+routerCmd
+	.command("start")
+	.description("Start the Jina semantic router (first run downloads ~80 MB model from Hugging Face)")
+	.option("-p, --port <port>", "port to listen on", "5000")
+	.action(async (opts) => {
+		const { runRouterStart } = await import("./commands/router")
+		return runRouterStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+routerCmd
+	.command("stop")
+	.description("Stop the Jina semantic router")
+	.action(async () => {
+		const { runRouterStop } = await import("./commands/router")
+		return runRouterStop()
+	})
+
+routerCmd
+	.command("status")
+	.description("Get Jina semantic router status")
+	.action(async () => {
+		const { runRouterStatus } = await import("./commands/router")
+		return runRouterStatus()
+	})
+
+// Local stack management (proxy + router together)
+const stackCmd = program.command("stack").description("Manage local stack (proxy + router)")
+stackCmd
+	.command("install")
+	.description("Install both proxy and router")
+	.action(async () => {
+		const { runStackInstall } = await import("./commands/stack")
+		return runStackInstall()
+	})
+stackCmd
+	.command("start")
+	.description("Start the full stack")
+	.action(async () => {
+		const { runStackStart } = await import("./commands/stack")
+		return runStackStart()
+	})
+stackCmd
+	.command("stop")
+	.description("Stop the full stack")
+	.action(async () => {
+		const { runStackStop } = await import("./commands/stack")
+		return runStackStop()
+	})
+stackCmd
+	.command("status")
+	.description("Get stack status")
+	.action(async () => {
+		const { runStackStatus } = await import("./commands/stack")
+		return runStackStatus()
+	})
+
 // Parse and run
 if (process.env.VITEST !== "true") {
 	program.parse()

@@ -1,9 +1,8 @@
 import { expect } from "chai"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import sinon from "sinon"
-
-import { mcpClientManager } from "../McpClientManager"
 import { convertJsonSchemaToParams, initializeMcpForTask, mcpToolToSpec } from "../bootstrap"
+import { mcpClientManager } from "../McpClientManager"
 import type { McpToolMetadata } from "../types"
 
 // ---------------------------------------------------------------------------
@@ -165,10 +164,7 @@ describe("initializeMcpForTask", () => {
 
 	it("returns empty array when no plugins are configured", async () => {
 		const executor = makeToolExecutorStub()
-		const result = await initializeMcpForTask(
-			executor as Parameters<typeof initializeMcpForTask>[0],
-			noopRegisterSpec,
-		)
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
 		expect(result).to.deep.equal([])
 		expect((executor.registerMcpTool as sinon.SinonStub).called).to.be.false
 	})
@@ -178,10 +174,7 @@ describe("initializeMcpForTask", () => {
 		listAllToolsStub.resolves([tool])
 
 		const executor = makeToolExecutorStub()
-		const result = await initializeMcpForTask(
-			executor as Parameters<typeof initializeMcpForTask>[0],
-			noopRegisterSpec,
-		)
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
 
 		expect(result).to.have.length(1)
 		expect(result[0].qualifiedName).to.equal(tool.qualifiedName)
@@ -194,10 +187,7 @@ describe("initializeMcpForTask", () => {
 		loadFromPluginsStub.rejects(new Error("plugin load failure"))
 
 		const executor = makeToolExecutorStub()
-		const result = await initializeMcpForTask(
-			executor as Parameters<typeof initializeMcpForTask>[0],
-			noopRegisterSpec,
-		)
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
 
 		expect(result).to.deep.equal([])
 		expect((executor.registerMcpTool as sinon.SinonStub).called).to.be.false
@@ -207,10 +197,7 @@ describe("initializeMcpForTask", () => {
 		listAllToolsStub.rejects(new Error("discovery failure"))
 
 		const executor = makeToolExecutorStub()
-		const result = await initializeMcpForTask(
-			executor as Parameters<typeof initializeMcpForTask>[0],
-			noopRegisterSpec,
-		)
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
 
 		expect(result).to.deep.equal([])
 	})
@@ -223,10 +210,7 @@ describe("initializeMcpForTask", () => {
 		const executor = makeToolExecutorStub()
 		;(executor.registerMcpTool as sinon.SinonStub).onFirstCall().throws(new Error("registration error"))
 
-		const result = await initializeMcpForTask(
-			executor as Parameters<typeof initializeMcpForTask>[0],
-			noopRegisterSpec,
-		)
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
 
 		// Both tools attempted; second one succeeds
 		expect(result).to.have.length(2)

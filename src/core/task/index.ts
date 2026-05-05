@@ -8,9 +8,9 @@ import { FileContextTracker } from "@core/context/context-tracking/FileContextTr
 import { ModelContextTracker } from "@core/context/context-tracking/ModelContextTracker"
 
 import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
-
+import { initializeMcpForTask } from "@core/mcp/bootstrap"
+import { mcpClientManager } from "@core/mcp/McpClientManager"
 import { CommandPermissionController } from "@core/permissions"
-
 import { formatResponse } from "@core/prompts/responses"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { HostProvider } from "@hosts/host-provider"
@@ -37,9 +37,7 @@ import Mutex from "p-mutex"
 import * as path from "path"
 import { ulid } from "ulid"
 import { SkillMetadata } from "@/shared/skills"
-
 import { Controller } from "../controller"
-
 import { StateManager } from "../storage/StateManager"
 import { AgentLoopRunner } from "./AgentLoopRunner"
 import { ApiConversationManager } from "./ApiConversationManager"
@@ -52,8 +50,6 @@ import { MessageStateHandler } from "./message-state"
 import { ResponseProcessor } from "./ResponseProcessor"
 import { StreamResponseHandler } from "./StreamResponseHandler"
 import type { TaskDependencies } from "./TaskDependencies"
-import { initializeMcpForTask } from "@core/mcp/bootstrap"
-import { mcpClientManager } from "@core/mcp/McpClientManager"
 import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
