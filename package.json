@@ -586,6 +586,7 @@
 		"puppeteer-core": "^23.4.0",
 		"reconnecting-eventsource": "^1.6.4",
 		"serialize-error": "^11.0.3",
+		"sharp": "^0.34.5",
 		"shell-quote": "^1.8.3",
 		"simple-git": "^3.27.0",
 		"sql.js": "^1.14.1",
@@ -607,7 +608,11 @@
 		"vite": "^7.1.11",
 		"js-yaml": "^4.1.1",
 		"protobufjs": "^8.0.3",
-		"serialize-javascript": "^6.0.2"
+		"serialize-javascript": "^6.0.2",
+		"lodash": "^4.18.0",
+		"lodash-es": "^4.18.0",
+		"@xmldom/xmldom": "^0.9.10",
+		"basic-ftp": "^5.3.1"
 	},
 	"c8": {
 		"reporter": [
