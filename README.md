@@ -6,6 +6,31 @@
 >
 > License: Apache-2.0 (preserved from upstream).
 
+## Caveats (V0)
+
+This is an early fork release. Known limitations:
+
+- **Backend**: defaults to the eu-kiki gateway at `http://studio:9300/v1`
+  (Tailscale-private). Override with `AGENT_KIKI_GATEWAY=<url>` or `--baseurl`.
+  The trailing `/v1` is required: eu-kiki exposes `/v1/chat/completions`.
+- **Apertus 70B base without LoRA**: the planner currently runs without
+  domain-specific LoRA adapters loaded (eu-kiki adapter wrap pending). The
+  base model is less reliable for Dirac-format tool calls. Tasks may fail
+  with `Too many consecutive mistakes`. For coding tasks, prefer
+  `--model eu-kiki-devstral` (Devstral 24B is code-tuned).
+- **Telemetry**: upstream Dirac sends usage events to dirac.run / PostHog.
+  This fork **disables** all telemetry. No data leaves the host.
+- **Sentinel apiKey**: when no provider is configured, the fork persists
+  `openAiApiKey="unused"` to disk as a sentinel for the openai-compatible
+  code path. The eu-kiki gateway does not validate keys.
+- **Trace gap**: tasks that abort before any valid tool call produce a
+  trace directory but empty meta/trace files. Audit downstream should treat
+  empty files as `incomplete` runs.
+- **Node.js v25 unsupported** (upstream V8 Turboshaft bug). Use Node 20,
+  22, or 24 LTS.
+- **No trace rotation**: `<cwd>/.agent-kiki/runs/` accumulates indefinitely.
+  Manual cleanup until v0.2.
+
 ---
 
 <original Dirac README below>
