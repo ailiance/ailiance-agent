@@ -524,7 +524,8 @@ ${ctx.cellJson || "{}"}
 	// Register the openWalkthrough command handler
 	context.subscriptions.push(
 		vscode.commands.registerCommand(commands.Walkthrough, async () => {
-			await vscode.commands.executeCommand("workbench.action.openWalkthrough", `${context.extension.id}#DiracWalkthrough`)
+			// agent-kiki fork: walkthrough id rebrand
+			await vscode.commands.executeCommand("workbench.action.openWalkthrough", `${context.extension.id}#AgentKikiWalkthrough`)
 			telemetryService.captureButtonClick("command_openWalkthrough")
 		}),
 	)

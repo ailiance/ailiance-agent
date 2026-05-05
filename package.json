@@ -68,7 +68,7 @@
 		},
 		"walkthroughs": [
 			{
-				"id": "DiracWalkthrough",
+				"id": "AgentKikiWalkthrough",
 				"title": "agent-kiki, the EU-sovereign autonomous coding agent",
 				"description": "agent-kiki is a Dirac fork routed to the eu-kiki LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
 				"steps": [
