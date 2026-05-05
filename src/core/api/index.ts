@@ -32,6 +32,7 @@ import { OpenAiResponsesCompatibleHandler } from "./providers/openai-responses-c
 import { OpenRouterHandler } from "./providers/openrouter"
 import { QwenHandler } from "./providers/qwen"
 import { QwenCodeHandler } from "./providers/qwen-code"
+import { resolveProvider } from "./providers/registry"
 import { RequestyHandler } from "./providers/requesty"
 import { SambanovaHandler } from "./providers/sambanova"
 import { TogetherHandler } from "./providers/together"
@@ -41,6 +42,7 @@ import { VsCodeLmHandler } from "./providers/vscode-lm"
 import { WandbHandler } from "./providers/wandb"
 import { XAIHandler } from "./providers/xai"
 import { ZAiHandler } from "./providers/zai"
+import "./providers/bootstrap" // side-effect: registers providers
 import { ApiStream, ApiStreamUsageChunk } from "./transform/stream"
 
 export type CommonApiHandlerOptions = {
@@ -74,6 +76,13 @@ function createHandlerForProvider(
 	options: Omit<ApiConfiguration, "apiProvider">,
 	mode: Mode,
 ): ApiHandler {
+	// 1. Try registry first (providers registered via registerProvider())
+	const entry = resolveProvider(apiProvider)
+	if (entry) {
+		return entry.factory(options, mode)
+	}
+
+	// 2. Fall through to legacy switch
 	switch (apiProvider) {
 		case "anthropic":
 			return new AnthropicHandler({

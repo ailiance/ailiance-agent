@@ -1,0 +1,23 @@
+// Side-effect imports: each module calls registerProvider() on load.
+// Providers not listed here remain handled by the legacy switch in index.ts.
+
+import "./anthropic-registry"
+import "./gemini-registry"
+import "./vertex-registry"
+import "./openai-native-registry"
+import "./openai-codex-registry"
+import "./deepseek-registry"
+import "./qwen-registry"
+import "./qwen-code-registry"
+import "./doubao-registry"
+import "./mistral-registry"
+import "./xai-registry"
+import "./sambanova-registry"
+import "./cerebras-registry"
+import "./github-copilot-registry"
+import "./wandb-registry"
+import "./minimax-registry"
+import "./zai-registry"
+import "./nebius-registry"
+import "./moonshot-registry"
+import "./claude-code-registry"
