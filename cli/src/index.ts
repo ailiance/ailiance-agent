@@ -272,6 +272,42 @@ program
 		}
 	})
 
+// LiteLLM proxy management
+const proxyCmd = program.command("proxy").description("Manage local LiteLLM proxy")
+
+proxyCmd
+	.command("install")
+	.description("Install LiteLLM in dedicated venv (~/.aki/litellm-venv)")
+	.action(async () => {
+		const { runProxyInstall } = await import("./commands/proxy")
+		return runProxyInstall()
+	})
+
+proxyCmd
+	.command("start")
+	.description("Start the LiteLLM proxy")
+	.option("-p, --port <port>", "port to listen on", "4000")
+	.action(async (opts) => {
+		const { runProxyStart } = await import("./commands/proxy")
+		return runProxyStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+proxyCmd
+	.command("stop")
+	.description("Stop the LiteLLM proxy")
+	.action(async () => {
+		const { runProxyStop } = await import("./commands/proxy")
+		return runProxyStop()
+	})
+
+proxyCmd
+	.command("status")
+	.description("Get LiteLLM proxy status")
+	.action(async () => {
+		const { runProxyStatus } = await import("./commands/proxy")
+		return runProxyStatus()
+	})
+
 // Parse and run
 if (process.env.VITEST !== "true") {
 	program.parse()
