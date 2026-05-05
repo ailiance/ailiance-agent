@@ -5,6 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { App } from "./App"
 
 // Mock the child components to isolate App routing logic
+vi.mock("./AiActDisclosure", () => ({
+	AiActDisclosure: ({ onAcknowledge }: any) => {
+		// Auto-acknowledge in tests so routing logic is exercised directly
+		React.useEffect(() => { onAcknowledge() }, [])
+		return null
+	},
+}))
+
 vi.mock("./ChatView", () => ({
 	ChatView: ({ taskId, controller }: any) =>
 		React.createElement(Text, null, `ChatView: ${taskId || "no-id"} controller=${controller ? "present" : "none"}`),

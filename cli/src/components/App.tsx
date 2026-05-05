@@ -9,6 +9,7 @@ import React, { ReactNode, useCallback, useEffect, useState } from "react"
 import { StdinProvider } from "../context/StdinContext"
 import { TaskContextProvider } from "../context/TaskContext"
 import { useTerminalSize } from "../hooks/useTerminalSize"
+import { AiActDisclosure } from "./AiActDisclosure"
 import { AuthView } from "./AuthView"
 import { ChatView } from "./ChatView"
 import { ConfigView } from "./ConfigView"
@@ -147,6 +148,9 @@ const InternalApp: React.FC<AppProps> = ({
 	isRawModeSupported = true,
 }) => {
 	const { resizeKey } = useTerminalSize()
+	// EU AI Act Article 50: show disclosure on interactive TTY startup only
+	const isInteractiveTTY = process.stdin.isTTY === true
+	const [aiActAcknowledged, setAiActAcknowledged] = useState(!isInteractiveTTY)
 	const [currentView, setCurrentView] = useState<ViewType>(initialView)
 	const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(taskId)
 	const [pendingInitialPrompt, setPendingInitialPrompt] = useState<string | undefined>(initialPrompt)
@@ -203,6 +207,14 @@ const InternalApp: React.FC<AppProps> = ({
 		},
 		[onWelcomeSubmit, controller],
 	)
+
+	if (!aiActAcknowledged) {
+		return (
+			<StdinProvider isRawModeSupported={isRawModeSupported}>
+				<AiActDisclosure onAcknowledge={() => setAiActAcknowledged(true)} />
+			</StdinProvider>
+		)
+	}
 
 	let content: ReactNode
 
