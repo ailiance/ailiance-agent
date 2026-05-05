@@ -3,8 +3,16 @@ import fs from "fs/promises"
 import { afterEach, describe, it } from "mocha"
 import os from "os"
 import * as path from "path"
+import sinon from "sinon"
+import * as pluginModule from "@/core/plugins/PluginDiscoveryService"
 import { DiracDefaultTool, getToolUseNames } from "@/shared/tools"
-import { AgentConfigLoader, getAgentsConfigPath, parseAgentConfigFromYaml, readAgentConfigsFromDisk } from "../AgentConfigLoader"
+import {
+	AgentConfigLoader,
+	getAgentsConfigPath,
+	parseAgentConfigFromYaml,
+	readAgentConfigsFromDisk,
+	readPluginAgentConfigs,
+} from "../AgentConfigLoader"
 
 async function createTempHomeDir(): Promise<string> {
 	return fs.mkdtemp(path.join(os.tmpdir(), "agent-config-loader-"))
@@ -148,5 +156,78 @@ Reviewer prompt`,
 		assert.equal(loader.resolveSubagentNameForTool(withToolNames[0].toolName), "code reviewer")
 		assert.equal(loader.isDynamicSubagentTool(withToolNames[0].toolName), true)
 		assert.ok(getToolUseNames().includes(withToolNames[0].toolName))
+	})
+})
+
+describe("readPluginAgentConfigs", () => {
+	let tmpDir: string
+	let sandbox: sinon.SinonSandbox
+
+	afterEach(async () => {
+		sandbox.restore()
+		await fs.rm(tmpDir, { recursive: true, force: true })
+	})
+
+	it("loads agents from plugin agents directories", async () => {
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "plugin-agents-"))
+		sandbox = sinon.createSandbox()
+
+		// Create a plugin agents directory with one agent
+		const agentsDir = path.join(tmpDir, "agents")
+		await fs.mkdir(agentsDir, { recursive: true })
+		await fs.writeFile(
+			path.join(agentsDir, "linter.md"),
+			`---
+description: Checks code style issues
+model: claude-sonnet-4-5
+---
+
+You are a linting agent.`,
+			"utf8",
+		)
+
+		sandbox.stub(pluginModule.pluginDiscoveryService, "getAgentsDirectories").resolves([agentsDir])
+
+		const configs = await readPluginAgentConfigs()
+
+		assert.equal(configs.size, 1)
+		const agent = configs.get("linter")
+		assert.equal(agent?.name, "linter")
+		assert.equal(agent?.description, "Checks code style issues")
+		assert.equal(agent?.modelId, "claude-sonnet-4-5")
+		assert.equal(agent?.systemPrompt, "You are a linting agent.")
+		assert.deepEqual(agent?.tools, [])
+	})
+
+	it("skips malformed plugin agent files gracefully", async () => {
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "plugin-agents-"))
+		sandbox = sinon.createSandbox()
+
+		const agentsDir = path.join(tmpDir, "agents")
+		await fs.mkdir(agentsDir, { recursive: true })
+		// Missing description — should throw during parse, be skipped
+		await fs.writeFile(path.join(agentsDir, "bad.md"), `---\nmodel: x\n---\n\nNo description here.`, "utf8")
+		// Valid agent
+		await fs.writeFile(path.join(agentsDir, "good.md"), `---\ndescription: A good agent\n---\n\nGood prompt.`, "utf8")
+
+		sandbox.stub(pluginModule.pluginDiscoveryService, "getAgentsDirectories").resolves([agentsDir])
+
+		const configs = await readPluginAgentConfigs()
+
+		// Only good.md loaded
+		assert.equal(configs.size, 1)
+		assert.ok(configs.has("good"))
+		assert.ok(!configs.has("bad"))
+	})
+
+	it("returns empty map when plugin agents directory does not exist", async () => {
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "plugin-agents-"))
+		sandbox = sinon.createSandbox()
+
+		const nonExistentDir = path.join(tmpDir, "agents-nonexistent")
+		sandbox.stub(pluginModule.pluginDiscoveryService, "getAgentsDirectories").resolves([nonExistentDir])
+
+		const configs = await readPluginAgentConfigs()
+		assert.equal(configs.size, 0)
 	})
 })

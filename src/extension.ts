@@ -1,4 +1,3 @@
-
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 
@@ -13,7 +12,7 @@ import { sendWorktreesButtonClickedEvent } from "./core/controller/ui/subscribeT
 import { DiracWebviewProvider } from "./core/webview"
 import { createDiracAPI } from "./exports"
 import { initializeTestMode } from "./services/test/TestMode"
-import "./utils/path"; // necessary to have access to String.prototype.toPosix
+import "./utils/path" // necessary to have access to String.prototype.toPosix
 import path from "node:path"
 import type { ExtensionContext } from "vscode"
 import { HostProvider } from "@/hosts/host-provider"
@@ -38,7 +37,7 @@ import {
 import { workspaceResolver } from "./core/workspace"
 import { findMatchingNotebookCell, getContextForCommand, showWebview } from "./hosts/vscode/commandUtils"
 import { abortCommitGeneration, generateCommitMsg } from "./hosts/vscode/commit-message-generator"
-import { registerDiracOutputChannel as registerDiracOutputChannel } from "./hosts/vscode/hostbridge/env/debugLog"
+import { registerDiracOutputChannel } from "./hosts/vscode/hostbridge/env/debugLog"
 import {
 	disposeVscodeCommentReviewController,
 	getVscodeCommentReviewController,
@@ -76,7 +75,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// 4. One-time export of VSCode's native storage to shared file-backed stores.
 	// After this, all platforms (VSCode, CLI, JetBrains) read from ~/.dirac/data/.
 	await exportVSCodeStorageToSharedFiles(context, storageContext)
-
 
 	// 4. Register services and perform common initialization
 	// IMPORTANT: Must be done after host provider is setup and migrations are complete
@@ -181,7 +179,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 	)
-
 
 	const handleUri = async (uri: vscode.Uri) => {
 		const url = decodeURIComponent(uri.toString())
@@ -524,7 +521,11 @@ ${ctx.cellJson || "{}"}
 	// Register the openWalkthrough command handler
 	context.subscriptions.push(
 		vscode.commands.registerCommand(commands.Walkthrough, async () => {
-			await vscode.commands.executeCommand("workbench.action.openWalkthrough", `${context.extension.id}#DiracWalkthrough`)
+			// agent-kiki fork: walkthrough id rebrand
+			await vscode.commands.executeCommand(
+				"workbench.action.openWalkthrough",
+				`${context.extension.id}#AgentKikiWalkthrough`,
+			)
 			telemetryService.captureButtonClick("command_openWalkthrough")
 		}),
 	)
@@ -650,7 +651,6 @@ async function showJupyterPromptInput(title: string, placeholder: string): Promi
 }
 
 function setupHostProvider(context: ExtensionContext, globalStorageFsPath: string) {
-
 	const outputChannel = registerDiracOutputChannel(context)
 	outputChannel.appendLine("[Dirac] Setting up VS Code host...")
 
@@ -658,7 +658,7 @@ function setupHostProvider(context: ExtensionContext, globalStorageFsPath: strin
 	const createDiffView = () => new VscodeDiffViewProvider()
 	const createCommentReview = () => getVscodeCommentReviewController()
 	const createTerminalManager = () => new VscodeTerminalManager()
-		const getEnvironmentVariables = async (cwd: string) => {
+	const getEnvironmentVariables = async (cwd: string) => {
 		const { getPythonEnvironmentVariables } = await import("@utils/python")
 		const env = await getPythonEnvironmentVariables(vscode.Uri.file(cwd))
 		if (env) {
@@ -700,7 +700,7 @@ function setupHostProvider(context: ExtensionContext, globalStorageFsPath: strin
 		context.extensionUri.fsPath,
 		globalStorageFsPath,
 
-		getEnvironmentVariables
+		getEnvironmentVariables,
 	)
 }
 

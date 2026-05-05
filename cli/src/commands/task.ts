@@ -32,7 +32,8 @@ export async function runTaskInPlainTextMode(
 	// In plain text mode we can't show the interactive auth flow
 	const hasAuth = await isAuthConfigured()
 	if (!hasAuth) {
-		printWarning("Not authenticated. Please run 'dirac auth' first to configure your API credentials.")
+		// agent-kiki fork: rebrand 'dirac auth' -> 'aki auth'
+		printWarning("Not authenticated. Please run 'aki auth' first to configure your API credentials.")
 		await disposeCliContext(ctx)
 		exit(1)
 	}
@@ -63,11 +64,42 @@ export async function runTaskInPlainTextMode(
 /**
  * Run a task with the given prompt - uses welcome view for consistent behavior
  */
+// agent-kiki fork: greeting short-circuit
+// Skip the agent loop on trivial prompts ("bonjour", "test", "hi"...) which
+// otherwise cause the model to spin in an infinite tool-call retry loop
+// because the agent runtime expects every user turn to produce a tool_call.
+const GREETING_RE = /^(bonjour|bonsoir|salut|hi|hello|coucou|test|ping|hey|yo|hola|ciao)\s*[!?.]*\s*$/i
+
+function isTrivialGreeting(prompt: string): boolean {
+	const trimmed = prompt.trim()
+	if (!trimmed) return true
+	if (GREETING_RE.test(trimmed)) return true
+	if (trimmed.length < 4) return true
+	return false
+}
+
 export async function runTask(
 	prompt: string,
 	options: TaskOptions & { images?: string[] },
 	existingContext?: CliContext,
 ) {
+	// agent-kiki fork: short-circuit greetings before spinning up the full agent.
+	if (isTrivialGreeting(prompt)) {
+		// Use process.stdout directly — Ink isn't mounted yet.
+		process.stdout.write(
+			"\n👋 Hi! agent-kiki is a coding agent — give it a task with a goal.\n" +
+			"   Examples:\n" +
+			"     aki t -y \"create hello.py with print('hi')\"\n" +
+			"     aki t -y \"fix the failing test in tests/foo.py\"\n" +
+			"     aki t -y --model eu-kiki-qwen \"add a /healthz endpoint to api.py\"\n\n" +
+			"   For chat-style replies, hit the gateway directly:\n" +
+			"     curl http://100.78.191.52:9300/v1/chat/completions \\\n" +
+			"       -H 'Content-Type: application/json' \\\n" +
+			"       -d '{\"model\":\"eu-kiki-eurollm\",\"messages\":[{\"role\":\"user\",\"content\":\"...\"}]}'\n\n",
+		)
+		exit(0)
+	}
+
 	const { parseImagesFromInput, processImagePaths } = await import("../utils/parser")
 	const { telemetryService } = await import("@/services/telemetry")
 	const { StateManager } = await import("@/core/storage/StateManager")

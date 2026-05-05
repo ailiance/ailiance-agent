@@ -21,7 +21,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ isWelcomeState, quote, o
 			)}
 			<Text> </Text>
 			<Text bold color="white">
-				{centerText(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)}
+				{centerText(`agent-kiki v${CLI_VERSION} — EU-sovereign coding agent (fork of Dirac/Cline)`)}
 			</Text>
 			{isWelcomeState && quote ? (
 				<Box marginTop={1}>

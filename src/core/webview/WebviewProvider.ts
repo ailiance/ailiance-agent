@@ -27,7 +27,9 @@ export abstract class DiracWebviewProvider {
 
 	public static getInstance(): DiracWebviewProvider {
 		if (!DiracWebviewProvider.instance) {
-			throw new Error("DiracWebviewProvider instance not initialized. Make sure to create a DiracWebviewProvider instance first.")
+			throw new Error(
+				"DiracWebviewProvider instance not initialized. Make sure to create a DiracWebviewProvider instance first.",
+			)
 		}
 		return DiracWebviewProvider.instance
 	}
@@ -120,8 +122,9 @@ export abstract class DiracWebviewProvider {
 				</style>
 				<link rel="stylesheet" type="text/css" href="${stylesUrl}">
 				<link href="${codiconsUrl}" rel="stylesheet" />
+				<!-- agent-kiki fork: CSP narrowed — drop *.dirac.run (telemetry off) -->
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none';
-					connect-src https://*.posthog.com https://*.dirac.run; 
+					connect-src https://*.posthog.com;
 					font-src ${this.getCspSource()} data:; 
 					style-src ${this.getCspSource()} 'unsafe-inline'; 
 					img-src ${this.getCspSource()} https: data:; 

@@ -5,25 +5,25 @@ import { AskFollowupQuestionToolHandler } from "./handlers/AskFollowupQuestionTo
 import { AttemptCompletionHandler } from "./handlers/AttemptCompletionHandler"
 import { BrowserToolHandler } from "./handlers/BrowserToolHandler"
 import { CondenseHandler } from "./handlers/CondenseHandler"
-import { EditFileToolHandler } from "./handlers/EditFileToolHandler"
 import { DiagnosticsScanToolHandler } from "./handlers/DiagnosticsScanToolHandler"
+import { EditFileToolHandler } from "./handlers/EditFileToolHandler"
 import { ExecuteCommandToolHandler } from "./handlers/ExecuteCommandToolHandler"
 import { FindSymbolReferencesToolHandler } from "./handlers/FindSymbolReferencesToolHandler"
 import { GenerateExplanationToolHandler } from "./handlers/GenerateExplanationToolHandler"
 import { GetFileSkeletonToolHandler } from "./handlers/GetFileSkeletonToolHandler"
 import { GetFunctionToolHandler } from "./handlers/GetFunctionToolHandler"
 import { ListFilesToolHandler } from "./handlers/ListFilesToolHandler"
+import { ListSkillsToolHandler } from "./handlers/ListSkillsToolHandler"
 import { NewTaskHandler } from "./handlers/NewTaskHandler"
 import { PlanModeRespondHandler } from "./handlers/PlanModeRespondHandler"
 import { ReadFileToolHandler } from "./handlers/ReadFileToolHandler"
-import { ReplaceSymbolToolHandler } from "./handlers/ReplaceSymbolToolHandler"
 import { RenameSymbolToolHandler } from "./handlers/RenameSymbolToolHandler"
+import { ReplaceSymbolToolHandler } from "./handlers/ReplaceSymbolToolHandler"
 import { ReportBugHandler } from "./handlers/ReportBugHandler"
 import { SearchFilesToolHandler } from "./handlers/SearchFilesToolHandler"
 import { UseSubagentsToolHandler } from "./handlers/SubagentToolHandler"
 import { SummarizeTaskHandler } from "./handlers/SummarizeTaskHandler"
 import { UseSkillToolHandler } from "./handlers/UseSkillToolHandler"
-import { ListSkillsToolHandler } from "./handlers/ListSkillsToolHandler"
 
 import { WriteToFileToolHandler } from "./handlers/WriteToFileToolHandler"
 import { AgentConfigLoader } from "./subagent/AgentConfigLoader"
@@ -75,6 +75,7 @@ export class SharedToolHandler implements IFullyManagedTool {
 export class ToolExecutorCoordinator {
 	private handlers = new Map<string, IToolHandler>()
 	private dynamicSubagentHandlers = new Map<string, IToolHandler>()
+	private mcpHandlers = new Map<string, IToolHandler>()
 
 	private readonly toolHandlersMap: Record<DiracDefaultTool, (v: ToolValidator) => IToolHandler | undefined> = {
 		[DiracDefaultTool.ASK]: (_v: ToolValidator) => new AskFollowupQuestionToolHandler(),
@@ -122,6 +123,13 @@ export class ToolExecutorCoordinator {
 	}
 
 	/**
+	 * Register a dynamically-named tool handler (e.g. MCP tools whose names are not in DiracDefaultTool).
+	 */
+	registerDynamicTool(toolName: string, handler: IToolHandler): void {
+		this.mcpHandlers.set(toolName, handler)
+	}
+
+	/**
 	 * Check if a handler is registered for the given tool
 	 */
 	has(toolName: string): boolean {
@@ -135,6 +143,11 @@ export class ToolExecutorCoordinator {
 		const staticHandler = this.handlers.get(toolName)
 		if (staticHandler) {
 			return staticHandler
+		}
+
+		const mcpHandler = this.mcpHandlers.get(toolName)
+		if (mcpHandler) {
+			return mcpHandler
 		}
 
 		if (AgentConfigLoader.getInstance().isDynamicSubagentTool(toolName)) {

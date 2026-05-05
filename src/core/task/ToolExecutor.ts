@@ -13,10 +13,15 @@ import { DiracContent } from "@shared/messages/content"
 import { DiracDefaultTool, toolUseNames } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
+// agent-kiki fork: source the version from package.json so trace meta and
+// the package binary never drift apart at release time.
+import { version as AGENT_KIKI_VERSION } from "../../../package.json"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
+// agent-kiki fork: tracing hook
+import { JsonlTracer } from "../tracing"
 import { WorkspaceRootManager } from "../workspace"
 import { ToolResponse } from "."
 import { MessageStateHandler } from "./message-state"
@@ -41,6 +46,9 @@ export function canonicalizeAttemptCompletionParams(block: ToolUse): boolean {
 export class ToolExecutor {
 	private autoApprover: AutoApprove
 	private coordinator: ToolExecutorCoordinator
+	// agent-kiki fork: tracing hook
+	private tracer: JsonlTracer | null = null
+	private traceMetaWritten = false
 
 	// Auto-approval methods using the AutoApprove class
 	private shouldAutoApproveTool(toolName: DiracDefaultTool): boolean | [boolean, boolean] {
@@ -99,7 +107,6 @@ export class ToolExecutor {
 			files?: string[]
 			askTs?: number
 			userEdits?: Record<string, string>
-
 		}>,
 		private saveCheckpoint: (isAttemptCompletionMessage?: boolean, completionMessageTs?: number) => Promise<void>,
 		private sayAndCreateMissingParamError: (toolName: DiracDefaultTool, paramName: string, relPath?: string) => Promise<any>,
@@ -129,6 +136,91 @@ export class ToolExecutor {
 		// Initialize the coordinator and register all tool handlers
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
+
+		// agent-kiki fork: tracing hook — per-task JSONL trace dir
+		try {
+			this.tracer = new JsonlTracer(this.taskId, this.cwd)
+		} catch (_err) {
+			this.tracer = null
+		}
+	}
+
+	// agent-kiki fork: tracing hook helpers
+	private ensureTraceMeta(): void {
+		if (!this.tracer || this.traceMetaWritten) return
+		try {
+			const apiConfig = this.stateManager.getApiConfiguration() as Record<string, unknown>
+			const mode = (this.stateManager.getGlobalSettingsKey("mode") as string) || "act"
+			const providerId = (mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) ?? "unknown"
+			const modelInfo = this.api.getModel?.() as { id?: string } | undefined
+			const gatewayUrl =
+				(apiConfig.openAiBaseUrl as string | undefined) || (apiConfig.liteLlmBaseUrl as string | undefined) || ""
+			const yolo = this.stateManager.getGlobalSettingsKey("yoloModeToggled")
+			this.tracer.writeMeta({
+				task: this.taskId,
+				mode,
+				approval_mode: yolo ? "yolo" : "manual",
+				agent_kiki_version: AGENT_KIKI_VERSION,
+				gateway_url: gatewayUrl,
+				workers: {
+					default: {
+						model: modelInfo?.id || "unknown",
+						adapter: String(providerId),
+						endpoint: gatewayUrl,
+					},
+				},
+			})
+			this.traceMetaWritten = true
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
+	private recordToolTurn(
+		block: ToolUse,
+		toolResult: unknown,
+		success: boolean,
+		startTime: number,
+		errors: string[] = [],
+	): void {
+		if (!this.tracer) return
+		this.ensureTraceMeta()
+		try {
+			this.tracer.appendTurn({
+				phase: "execute",
+				tool_execution: {
+					tool_name: block.name,
+					tool_args: (block.params ?? {}) as Record<string, unknown>,
+					tool_result: typeof toolResult === "string" ? toolResult : (toolResult as unknown),
+					latency_ms: Date.now() - startTime,
+					success,
+				},
+				errors,
+			})
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
+	// agent-kiki fork: expose planner-turn recorder so the Task's API request
+	// loop can capture every roundtrip (not just successful tool calls).
+	public recordPlannerTurn(rawResponse: string, latencyMs: number, errors: string[] = []): void {
+		if (!this.tracer) return
+		this.ensureTraceMeta()
+		try {
+			this.tracer.recordPlannerTurn(rawResponse, latencyMs, errors)
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
+	public closeTrace(exitReason: string, exitCode: number): void {
+		if (!this.tracer) return
+		try {
+			this.tracer.close(exitReason, exitCode)
+		} catch (_err) {
+			// non-fatal
+		}
 	}
 
 	// Create a properly typed TaskConfig object for handlers
@@ -215,6 +307,14 @@ export class ToolExecutor {
 	 */
 	public async executeTool(block: ToolUse): Promise<void> {
 		await this.execute(block)
+	}
+
+	/**
+	 * Register a dynamic MCP tool handler with the coordinator.
+	 * Called during MCP bootstrap after tool discovery.
+	 */
+	public registerMcpTool(toolName: string, handler: import("@core/task/tools/ToolExecutorCoordinator").IToolHandler): void {
+		this.coordinator.registerDynamicTool(toolName, handler)
 	}
 
 	/**
@@ -601,6 +701,12 @@ export class ToolExecutor {
 
 			this.pushToolResult(toolResult, block)
 
+			// agent-kiki fork: tracing hook (success path)
+			this.recordToolTurn(block, toolResult, true, executionStartTime)
+			if (block.name === "attempt_completion") {
+				this.closeTrace("attempt_completion", 0)
+			}
+
 			// Check abort before running PostToolUse hook (success path)
 			if (this.taskState.abort) {
 				return
@@ -624,6 +730,9 @@ export class ToolExecutor {
 		} catch (error) {
 			executionSuccess = false
 			toolResult = formatResponse.toolError(`Tool execution failed: ${error}`)
+
+			// agent-kiki fork: tracing hook (error path)
+			this.recordToolTurn(block, toolResult, false, executionStartTime, [String((error as Error)?.message ?? error)])
 
 			// Check abort before running PostToolUse hook (error path)
 			if (this.taskState.abort) {
@@ -654,6 +763,5 @@ export class ToolExecutor {
 		if (shouldCancelAfterHook) {
 			return
 		}
-
 	}
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { Anthropic } from "@anthropic-ai/sdk"
 import { EnvironmentMetadataEntry, TaskMetadata } from "@core/context/context-tracking/ContextTrackerTypes"
 import { execa } from "@packages/execa"
@@ -27,7 +28,7 @@ import { StateManager } from "./StateManager"
  * @param data - The data to write
  */
 async function atomicWriteFile(filePath: string, data: string): Promise<void> {
-	const tmpPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(7)}.json`
+	const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${randomUUID()}`
 	try {
 		// Write to temporary file first
 		await fs.writeFile(tmpPath, data, "utf8")
@@ -63,6 +64,8 @@ export const GlobalFileNames = {
 	windsurfRules: ".windsurfrules",
 	agentsRulesFile: "AGENTS.md",
 	taskMetadata: "task_metadata.json",
+	// agent-kiki fork: EU AI Act-compliant per-task JSONL trace dir
+	tracingDir: ".agent-kiki/runs",
 	remoteConfig: (orgId: string) => `remote_config_${orgId}.json`,
 }
 
@@ -176,7 +179,6 @@ function getClaudeSkillsDirectoryPath(): string {
 function getAiSkillsDirectoryPath(): string {
 	return path.join(os.homedir(), ".ai", "skills")
 }
-
 
 /**
  * Returns the global agent skills directory path (~/.agents/skills).
@@ -321,7 +323,7 @@ export async function saveTaskMetadata(taskId: string, metadata: TaskMetadata) {
 	try {
 		const taskDir = await ensureTaskDirectoryExists(taskId)
 		const filePath = path.join(taskDir, GlobalFileNames.taskMetadata)
-		await fs.writeFile(filePath, JSON.stringify(metadata, null, 2))
+		await atomicWriteFile(filePath, JSON.stringify(metadata, null, 2))
 	} catch (error) {
 		Logger.error("Failed to save task metadata:", error)
 	}
@@ -364,6 +366,15 @@ export async function readTaskHistoryFromState(): Promise<HistoryItem[]> {
 		} catch (parseError) {
 			telemetryService.captureExtensionStorageError(parseError, "parseError_attemptingRecovery")
 
+			// Backup corrupt file before any recovery attempt
+			const backupPath = `${filePath}.corrupt.${Date.now()}.bak`
+			try {
+				await fs.copyFile(filePath, backupPath)
+				Logger.warn(`[Disk] Corrupt taskHistory.json backed up to ${backupPath}`)
+			} catch (backupErr) {
+				Logger.error("[Disk] Failed to backup corrupt taskHistory.json:", backupErr)
+			}
+
 			const result = await reconstructTaskHistory(false)
 			if (result && result.reconstructedTasks > 0) {
 				// Read the reconstructed file
@@ -371,8 +382,7 @@ export async function readTaskHistoryFromState(): Promise<HistoryItem[]> {
 				return JSON.parse(newContents)
 			}
 
-			// Recovery failed, all we can do is return an empty array or throw an error, thus preventing the app from starting up
-			// This will wipe out the taskHistory
+			Logger.error(`[Disk] taskHistory recovery failed; original preserved at ${backupPath}`)
 			return []
 		}
 	} catch (error) {
@@ -422,7 +432,7 @@ export async function writeTaskSettingsToStorage(taskId: string, settings: Parti
 		}
 
 		const updatedSettings = { ...existingSettings, ...settings }
-		await fs.writeFile(settingsFilePath, JSON.stringify(updatedSettings, null, 2))
+		await atomicWriteFile(settingsFilePath, JSON.stringify(updatedSettings, null, 2))
 	} catch (error) {
 		Logger.error("[Disk] Failed to write task settings:", error)
 		throw error
@@ -447,7 +457,7 @@ export async function readRemoteConfigFromCache(organizationId: string): Promise
 export async function writeRemoteConfigToCache(organizationId: string, config: RemoteConfig): Promise<void> {
 	try {
 		const remoteConfigFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.remoteConfig(organizationId))
-		await fs.writeFile(remoteConfigFilePath, JSON.stringify(config))
+		await atomicWriteFile(remoteConfigFilePath, JSON.stringify(config))
 	} catch (error) {
 		Logger.error("Failed to write remote config to cache:", error)
 	}

@@ -1,5 +1,5 @@
 /**
- * Dirac CLI - TypeScript implementation with React Ink
+ * agent-kiki CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
  */
 
 import { exit } from "node:process"
@@ -23,7 +23,11 @@ export { shouldDoQuickAuth, hasExplicitAuthQuickSetupFlags } from "./commands/au
 // Setup CLI commands
 const program = new Command()
 
-program.name("dirac").description("Dirac CLI - AI coding assistant in your terminal").version(CLI_VERSION)
+// agent-kiki fork: rebrand CLI banner
+program
+	.name("aki")
+	.description("agent-kiki - EU-sovereign AI coding agent (fork of Dirac/Cline)")
+	.version(CLI_VERSION)
 
 // Enable positional options to avoid conflicts between root and subcommand options with the same name
 program.enablePositionalOptions()
@@ -42,7 +46,7 @@ program
 	.option("--provider <provider>", "API provider to use (requires --model)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.option("--thinking [tokens]", "Enable extended thinking (default: 1024 tokens)")
 	.option("--reasoning-effort <effort>", "Reasoning effort: none|low|medium|high|xhigh")
 	.option("--max-consecutive-mistakes <count>", "Maximum consecutive mistakes before halting in yolo mode")
@@ -67,7 +71,7 @@ program
 	.description("List task history")
 	.option("-n, --limit <number>", "Number of tasks to show", "10")
 	.option("-p, --page <number>", "Page number (1-based)", "1")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { listHistory } = await import("./commands/history")
 		return listHistory(options)
@@ -76,7 +80,7 @@ program
 program
 	.command("config")
 	.description("Show current configuration")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { showConfig } = await import("./commands/config")
 		return showConfig(options)
@@ -92,7 +96,7 @@ program
 	.option("--azure-api-version <version>", "Azure API version (optional, only for azure openai)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { runAuth } = await import("./commands/auth")
 		return runAuth(options)
@@ -100,10 +104,10 @@ program
 
 program
 	.command("version")
-	.description("Show Dirac CLI version number")
+	.description("Show agent-kiki CLI version number")
 	.action(async () => {
 		const { printInfo } = await import("./utils/display")
-		printInfo(`Dirac CLI version: ${CLI_VERSION}`)
+		printInfo(`agent-kiki CLI version: ${CLI_VERSION}`)
 	})
 
 program
@@ -115,12 +119,29 @@ program
 		return checkForUpdates(CLI_VERSION, options)
 	})
 
-program
-	.command("kanban")
-	.description("Run npx kanban --agent dirac")
-	.action(async () => {
-		const { runKanbanAlias } = await import("./commands/kanban")
-		return runKanbanAlias()
+// agent-kiki fork: drop upstream Dirac kanban integration — we don't ship it.
+
+// agent-kiki fork: trace rotation + listing CLI
+const traceCommand = program.command("trace").description("Manage agent-kiki run traces")
+
+traceCommand
+	.command("list")
+	.description("List run directories under .agent-kiki/runs/")
+	.option("-c, --cwd <path>", "Working directory")
+	.action(async (options) => {
+		const { runTraceList } = await import("./commands/trace")
+		return runTraceList(options)
+	})
+
+traceCommand
+	.command("prune")
+	.description("Prune old run traces (default: keep 30d or 1G, whichever is more permissive)")
+	.option("-c, --cwd <path>", "Working directory")
+	.option("--max-age <days>", "Maximum age in days", "30")
+	.option("--max-size <size>", "Maximum total size (e.g. 1G, 500M)", "1G")
+	.action(async (options) => {
+		const { runTracePrune } = await import("./commands/trace")
+		return runTracePrune(options)
 	})
 
 // Dev command with subcommands
@@ -157,21 +178,11 @@ program
 	.option("--headers <headers>", "Custom headers for OpenAI-compatible provider (key1=value1,key2=value2 or JSON)")
 	.option("--hooks-dir <path>", "Path to additional hooks directory for runtime hook injection")
 	.option("--acp", "Run in ACP (Agent Client Protocol) mode for editor integration")
-	.option("--kanban", "Run npx kanban --agent dirac")
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
 	.option("--continue", "Resume the most recent task from the current working directory")
 	.action(async (prompt, options) => {
+		// agent-kiki fork: kanban path removed.
 		const { printWarning } = await import("./utils/display")
-		if (options.kanban) {
-			if (prompt) {
-				printWarning("Use --kanban without a prompt.")
-				exit(1)
-			}
-			const { runKanbanAlias } = await import("./commands/kanban")
-			await runKanbanAlias()
-			return
-		}
-
 		// Check for ACP mode first - this takes precedence over everything else
 		if (options.acp) {
 			const { runAcpMode } = await import("./acp/index.js")
@@ -259,6 +270,109 @@ program
 			// Show welcome prompt if no prompt given
 			await showWelcome(options)
 		}
+	})
+
+// LiteLLM proxy management
+const proxyCmd = program.command("proxy").description("Manage local LiteLLM proxy")
+
+proxyCmd
+	.command("install")
+	.description("Install LiteLLM in dedicated venv (~/.aki/litellm-venv)")
+	.action(async () => {
+		const { runProxyInstall } = await import("./commands/proxy")
+		return runProxyInstall()
+	})
+
+proxyCmd
+	.command("start")
+	.description("Start the LiteLLM proxy")
+	.option("-p, --port <port>", "port to listen on", "4000")
+	.action(async (opts) => {
+		const { runProxyStart } = await import("./commands/proxy")
+		return runProxyStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+proxyCmd
+	.command("stop")
+	.description("Stop the LiteLLM proxy")
+	.action(async () => {
+		const { runProxyStop } = await import("./commands/proxy")
+		return runProxyStop()
+	})
+
+proxyCmd
+	.command("status")
+	.description("Get LiteLLM proxy status")
+	.action(async () => {
+		const { runProxyStatus } = await import("./commands/proxy")
+		return runProxyStatus()
+	})
+
+// Jina semantic router management
+const routerCmd = program.command("router").description("Manage local Jina semantic router")
+
+routerCmd
+	.command("install")
+	.description("Install Jina router in dedicated venv (~/.aki/jina-router-venv)")
+	.action(async () => {
+		const { runRouterInstall } = await import("./commands/router")
+		return runRouterInstall()
+	})
+
+routerCmd
+	.command("start")
+	.description("Start the Jina semantic router (first run downloads ~80 MB model from Hugging Face)")
+	.option("-p, --port <port>", "port to listen on", "5050")
+	.action(async (opts) => {
+		const { runRouterStart } = await import("./commands/router")
+		return runRouterStart({ port: Number.parseInt(opts.port, 10) })
+	})
+
+routerCmd
+	.command("stop")
+	.description("Stop the Jina semantic router")
+	.action(async () => {
+		const { runRouterStop } = await import("./commands/router")
+		return runRouterStop()
+	})
+
+routerCmd
+	.command("status")
+	.description("Get Jina semantic router status")
+	.action(async () => {
+		const { runRouterStatus } = await import("./commands/router")
+		return runRouterStatus()
+	})
+
+// Local stack management (proxy + router together)
+const stackCmd = program.command("stack").description("Manage local stack (proxy + router)")
+stackCmd
+	.command("install")
+	.description("Install both proxy and router")
+	.action(async () => {
+		const { runStackInstall } = await import("./commands/stack")
+		return runStackInstall()
+	})
+stackCmd
+	.command("start")
+	.description("Start the full stack")
+	.action(async () => {
+		const { runStackStart } = await import("./commands/stack")
+		return runStackStart()
+	})
+stackCmd
+	.command("stop")
+	.description("Stop the full stack")
+	.action(async () => {
+		const { runStackStop } = await import("./commands/stack")
+		return runStackStop()
+	})
+stackCmd
+	.command("status")
+	.description("Get stack status")
+	.action(async () => {
+		const { runStackStatus } = await import("./commands/stack")
+		return runStackStatus()
 	})
 
 // Parse and run

@@ -256,7 +256,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 			{/* Main prompt - centered, bold */}
 			<Box alignItems="center" flexDirection="column" marginTop={1}>
 				<Text bold color="white">
-					{centerText(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)}
+					{centerText(`agent-kiki v${CLI_VERSION} — EU-sovereign coding agent (fork of Dirac/Cline)`)}
 				</Text>
 
 				<Box marginTop={1}>

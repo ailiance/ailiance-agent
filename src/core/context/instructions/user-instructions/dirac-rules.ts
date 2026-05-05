@@ -1,21 +1,22 @@
 import {
-    ActivatedConditionalRule,
-    getRemoteRulesTotalContentWithMetadata,
-    getRuleFilesTotalContentWithMetadata,
-    RULE_SOURCE_PREFIX,
-    RuleLoadResultWithInstructions,
-    synchronizeRuleToggles,
+	ActivatedConditionalRule,
+	getRemoteRulesTotalContentWithMetadata,
+	getRuleFilesTotalContentWithMetadata,
+	RULE_SOURCE_PREFIX,
+	RuleLoadResultWithInstructions,
+	synchronizeRuleToggles,
 } from "@core/context/instructions/user-instructions/rule-helpers"
 import { formatResponse } from "@core/prompts/responses"
 import { ensureRulesDirectoryExists, GlobalFileNames } from "@core/storage/disk"
 import { StateManager } from "@core/storage/StateManager"
 import { DiracRulesToggles } from "@shared/dirac-rules"
+import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { fileExistsAtPath, isDirectory, readDirectory } from "@utils/fs"
 import fs from "fs/promises"
 import path from "path"
 import { Controller } from "@/core/controller"
+import { pluginDiscoveryService } from "@/core/plugins/PluginDiscoveryService"
 import { Logger } from "@/shared/services/Logger"
-import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { evaluateRuleConditionals, type RuleEvaluationContext } from "./rule-conditionals"
 
 export const getGlobalDiracRules = async (
@@ -66,7 +67,25 @@ export const getGlobalDiracRules = async (
 		activatedConditionalRules.push(...remoteResult.activatedConditionalRules)
 	}
 
-	// 3. Return formatted instructions
+	// 3. Append plugin CLAUDE.md rules
+	try {
+		const claudeMdPaths = await pluginDiscoveryService.getClaudeMdPaths()
+		for (const { pluginName, mdPath } of claudeMdPaths) {
+			try {
+				const content = (await fs.readFile(mdPath, "utf8")).trim()
+				if (content) {
+					if (combinedContent) combinedContent += "\n\n"
+					combinedContent += `# [plugin: ${pluginName}]\n\n${content}`
+				}
+			} catch {
+				// CLAUDE.md not present or unreadable — skip silently
+			}
+		}
+	} catch (error) {
+		Logger.warn("[dirac-rules] Failed to load plugin CLAUDE.md rules", error)
+	}
+
+	// 4. Return formatted instructions
 	if (!combinedContent) {
 		return { instructions: undefined, activatedConditionalRules: [] }
 	}

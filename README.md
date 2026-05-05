@@ -1,3 +1,48 @@
+# agent-kiki
+
+> Fork of [Dirac](https://github.com/dirac-run/dirac), itself based on [Cline](https://github.com/cline/cline). Adds EU AI Act-compliant JSONL tracing, defaults to the [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) sovereign serving stack, and keeps strict compatibility with upstream tools.
+>
+> CLI: `aki` (alias `agent-kiki`). Default provider: eu-kiki gateway at `http://studio:9300`.
+>
+> License: Apache-2.0 (preserved from upstream).
+
+## Caveats (V0)
+
+This is an early fork release. Known limitations:
+
+- **Backend**: defaults to the eu-kiki gateway at `http://studio:9300/v1`
+  (Tailscale-private). Override with `AGENT_KIKI_GATEWAY=<url>` or `--baseurl`.
+  The trailing `/v1` is required: eu-kiki exposes `/v1/chat/completions`.
+- **eu-kiki function-calling (resolved in v0.2)**: as of v0.2.0, eu-kiki
+  workers accept the OpenAI `tools` field, inject the spec into the
+  Mistral chat template, parse Mistral `[TOOL_CALLS]name[ARGS]json`,
+  XML `<tool_call>{...}</tool_call>`, or plain JSON tool-call formats
+  in the model output, and re-emit OpenAI-compatible SSE chunks with
+  `tool_calls` + `finish_reason: "tool_calls"`. End-to-end ReAct
+  convergence demonstrated with Devstral 24B — see
+  `docs/mvp-acceptance-2026-05-05-v0.2.md`.
+- **eu-kiki LoRA adapters**: as of v0.1.0 the worker wraps the base model
+  with `linear_to_lora_layers` and loads adapter weights via
+  `strict=False` (commit `eu-kiki:1ed24b8`). Domain-specific LoRA is
+  active when the `X-Lora-Domain` header is set. Adapter wrap inferred
+  from safetensors shape (rank, num_layers, target keys).
+- **Telemetry**: upstream Dirac sends usage events to dirac.run / PostHog.
+  This fork **disables** all telemetry. No data leaves the host.
+- **Sentinel apiKey**: when no provider is configured, the fork persists
+  `openAiApiKey="unused"` to disk as a sentinel for the openai-compatible
+  code path. The eu-kiki gateway does not validate keys.
+- **Trace gap**: tasks that abort before any valid tool call produce a
+  trace directory but empty meta/trace files. Audit downstream should treat
+  empty files as `incomplete` runs.
+- **Node.js v25 unsupported** (upstream V8 Turboshaft bug). Use Node 20,
+  22, or 24 LTS.
+- **No trace rotation**: `<cwd>/.agent-kiki/runs/` accumulates indefinitely.
+  Manual cleanup until v0.2.
+
+---
+
+<original Dirac README below>
+
 # Dirac - Accurate & Highly Token Efficient Open Source AI Agent
 
 > **Dirac topped the [Terminal-Bench-2 leaderboard](https://huggingface.co/datasets/harborframework/terminal-bench-2-leaderboard/discussions/145) for `gemini-3-flash-preview` with a 65.2% score!**

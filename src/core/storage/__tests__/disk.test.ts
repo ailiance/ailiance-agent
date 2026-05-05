@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, it } from "mocha"
+import { after, afterEach, before, beforeEach, describe, it } from "mocha"
 import "should"
 import { HistoryItem } from "@shared/HistoryItem"
 import * as fsUtils from "@utils/fs"
@@ -9,12 +9,16 @@ import sinon from "sinon"
 import { HostProvider } from "@/hosts/host-provider"
 import { setVscodeHostProviderMock } from "@/test/host-provider-test-utils"
 import {
+	ensureCacheDirectoryExists,
 	ensureStateDirectoryExists,
 	getAllHooksDirs,
 	getTaskHistoryStateFilePath,
 	getWorkspaceHooksDirs,
+	readRemoteConfigFromCache,
 	readTaskHistoryFromState,
+	saveTaskMetadata,
 	setRuntimeHooksDir,
+	writeRemoteConfigToCache,
 	writeTaskHistoryToState,
 } from "../disk"
 import { StateManager } from "../StateManager"
@@ -647,5 +651,80 @@ describe("disk - atomic writes", () => {
 				// May already be cleaned up
 			}
 		})
+	})
+})
+
+describe("disk - atomic write regression", () => {
+	let testGlobalStorageDir: string
+
+	before(async () => {
+		testGlobalStorageDir = path.join(os.tmpdir(), `dirac-regression-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+		await fs.mkdir(testGlobalStorageDir, { recursive: true })
+		setVscodeHostProviderMock({ globalStorageFsPath: testGlobalStorageDir })
+	})
+
+	after(async () => {
+		HostProvider.reset()
+		try {
+			await fs.rm(testGlobalStorageDir, { recursive: true, force: true })
+		} catch {
+			// Ignore cleanup errors
+		}
+	})
+
+	it("atomicWriteFile uses tmp+rename (no .json suffix on tmp)", async () => {
+		const cacheDir = await ensureCacheDirectoryExists()
+		const orgId = `test-org-${Date.now()}`
+		const config = { version: "1.0", rules: [] } as any
+
+		await writeRemoteConfigToCache(orgId, config)
+
+		// No .tmp file should linger
+		const files = await fs.readdir(cacheDir)
+		const tmpFiles = files.filter((f) => f.includes(".tmp."))
+		tmpFiles.length.should.equal(0)
+
+		// Read back verifies rename succeeded
+		const result = await readRemoteConfigFromCache(orgId)
+		result!.version.should.equal("1.0")
+	})
+
+	it("corrupt taskHistory is backed up before recovery", async () => {
+		const filePath = await getTaskHistoryStateFilePath()
+
+		// Write intentionally corrupt JSON
+		await fs.writeFile(filePath, "NOT_VALID_JSON{{{", "utf8")
+
+		// readTaskHistoryFromState should not throw and returns []
+		const result = await readTaskHistoryFromState()
+		result.should.be.an.Array()
+
+		// A .corrupt.*.bak file should exist in the state dir
+		const stateDir = path.dirname(filePath)
+		const stateFiles = await fs.readdir(stateDir)
+		const backups = stateFiles.filter((f) => f.startsWith("taskHistory.json.corrupt.") && f.endsWith(".bak"))
+		backups.length.should.be.greaterThan(0)
+
+		// Cleanup backups
+		for (const bak of backups) {
+			await fs.unlink(path.join(stateDir, bak)).catch(() => {})
+		}
+	})
+
+	it("saveTaskMetadata leaves no tmp files on success", async () => {
+		const taskId = `task-meta-${Date.now()}`
+		const metadata = {
+			files_in_context: [],
+			model_usage: [],
+			environment_history: [],
+		}
+
+		await saveTaskMetadata(taskId, metadata)
+
+		// Check task directory for orphan tmp files
+		const taskDir = path.join(testGlobalStorageDir, "tasks", taskId)
+		const files = await fs.readdir(taskDir)
+		const tmpFiles = files.filter((f) => f.includes(".tmp."))
+		tmpFiles.length.should.equal(0)
 	})
 })

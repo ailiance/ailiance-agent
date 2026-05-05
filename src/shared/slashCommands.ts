@@ -1,3 +1,4 @@
+// agent-kiki fork: rebrand command descriptions, drop /askDirac (RAG over upstream source)
 export interface SlashCommand {
 	name: string
 	description?: string
@@ -20,29 +21,24 @@ export const BASE_SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{
 		name: "newrule",
-		description: "Create a new Dirac rule based on your conversation",
+		description: "Create a new agent-kiki rule based on your conversation",
 		section: "default",
 		cliCompatible: true,
 	},
 	{
 		name: "reportbug",
-		description: "Create a Github issue with Dirac",
-		section: "default",
-		cliCompatible: true,
-	},
-	{
-		name: "askDirac",
-		description: "Get help with Dirac's internal workings and source code",
+		description: "Create a Github issue with agent-kiki",
 		section: "default",
 		cliCompatible: true,
 	},
 	{
 		name: "help",
-		description: "Learn how to use Dirac CLI",
+		description: "Learn how to use agent-kiki CLI",
 		section: "default",
 		cliCompatible: true,
 	},
 
+	// agent-kiki fork: dropped /askDirac (RAG over upstream Dirac source — irrelevant here)
 ]
 
 // VS Code-only slash commands

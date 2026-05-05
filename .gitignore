@@ -37,6 +37,11 @@ coverage-unit
 ## Generated files ##
 src/generated/
 src/shared/proto/
+
+# Test artifacts leaked outside tmpdir (RenameSymbolToolHandler test)
+/file1.ts
+/file2.ts
+/test.ts
 webview-ui/src/services/grpc-client.ts
 *.tsbuildinfo
 
@@ -64,3 +69,4 @@ tmp_*.txt
 *scratch*
 .dirac-symbol-index*
 .dirac/*
+.agent-kiki/

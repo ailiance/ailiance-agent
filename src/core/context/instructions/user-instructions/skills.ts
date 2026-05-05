@@ -1,11 +1,11 @@
+import { pluginDiscoveryService } from "@core/plugins/PluginDiscoveryService"
 import { getSkillsDirectoriesForScan } from "@core/storage/disk"
 import type { SkillContent, SkillMetadata } from "@shared/skills"
+import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { fileExistsAtPath, isDirectory } from "@utils/fs"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { Logger } from "@/shared/services/Logger"
-import { parseYamlFrontmatter } from "@utils/frontmatter"
-
 
 /**
  * Scan a directory for skill subdirectories containing SKILL.md files.
@@ -102,6 +102,17 @@ export async function discoverSkills(cwd: string): Promise<SkillMetadata[]> {
 		skills.push(...dirSkills)
 	}
 
+	// Plugin skills (Claude Code plugin compat) — treated as global priority.
+	try {
+		const pluginDirs = await pluginDiscoveryService.getSkillsDirectories()
+		for (const pluginDir of pluginDirs) {
+			const pluginSkills = await scanSkillsDirectory(pluginDir, "global")
+			skills.push(...pluginSkills)
+		}
+	} catch (err) {
+		Logger.warn("Failed to load plugin skills:", err)
+	}
+
 	return skills
 }
 
@@ -158,7 +169,6 @@ export async function listSupportingFiles(skillMdPath: string): Promise<{ docs: 
 
 	return { docs, scripts }
 }
-
 
 export async function getSkillContent(skillName: string, availableSkills: SkillMetadata[]): Promise<SkillContent | null> {
 	const skill = availableSkills.find((s) => s.name === skillName)

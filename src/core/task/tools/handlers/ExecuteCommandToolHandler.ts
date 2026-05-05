@@ -1,8 +1,11 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+// agent-kiki fork: hard-deny zone gate
+import { classifyCommand, HARD_DENY_EXIT_CODE } from "@core/safety/zoneClassifier"
 import { WorkspacePathAdapter } from "@core/workspace/WorkspacePathAdapter"
 import { MultiCommandState } from "@shared/ExtensionMessage"
 import { telemetryService } from "@/services/telemetry"
+import { truncateHeadTail } from "@/shared/content-limits"
 import { DiracDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
@@ -12,7 +15,6 @@ import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { isSafeCommand } from "../utils/CommandSafetyChecker"
 import { applyModelContentFixes } from "../utils/ModelContentProcessor"
-import { truncateHeadTail } from "@/shared/content-limits"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 // Default timeout for commands in yolo mode and background exec mode
@@ -20,7 +22,6 @@ const DEFAULT_COMMAND_TIMEOUT_SECONDS = 30
 const LONG_RUNNING_COMMAND_TIMEOUT_SECONDS = 300
 const MAX_COMMAND_OUTPUT_SIZE = 10 * 1024 // 10KB limit to avoid context flooding, extra safety layer
 const MAX_PATH_LENGTH = 255 // Linux/macOS single path component limit
-
 
 const LONG_RUNNING_COMMAND_PATTERNS: RegExp[] = [
 	/\b(npm|pnpm|yarn|bun)\s+(install|ci|build|test)\b/i,
@@ -61,7 +62,11 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const commands = Array.isArray(block.params.commands) ? block.params.commands : (block.params.commands ? [block.params.commands as string] : [])
+		const commands = Array.isArray(block.params.commands)
+			? block.params.commands
+			: block.params.commands
+				? [block.params.commands as string]
+				: []
 		const script = block.params.script as string | undefined
 		const language = block.params.language as string | undefined
 
@@ -160,13 +165,12 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			config.taskState.consecutiveMistakeCount++
 			if (validation.paramName) {
 				return await config.callbacks.sayAndCreateMissingParamError(this.name, validation.paramName as any)
-			} else {
-				await config.callbacks.say(
-					"error",
-					`Dirac tried to use ${this.name} without providing any commands or script. Retrying...`
-				)
-				return formatResponse.toolError(validation.error!)
 			}
+			await config.callbacks.say(
+				"error",
+				`Dirac tried to use ${this.name} without providing any commands or script. Retrying...`,
+			)
+			return formatResponse.toolError(validation.error!)
 		}
 
 		// Normalize to a list of commands
@@ -203,7 +207,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 					const resultObj = {
 						ok: false,
 						error: "PATH_TOO_LONG",
-						message: `Path argument exceeds maximum allowed length (${MAX_PATH_LENGTH} bytes). Saw: ${preview}${part.length > 80 ? "..." : ""} (total ${Buffer.byteLength(part)} bytes). If you meant to pass file contents, use a pipe or write to a file first.`
+						message: `Path argument exceeds maximum allowed length (${MAX_PATH_LENGTH} bytes). Saw: ${preview}${part.length > 80 ? "..." : ""} (total ${Buffer.byteLength(part)} bytes). If you meant to pass file contents, use a pipe or write to a file first.`,
 					}
 					return formatResponse.toolResult(JSON.stringify(resultObj, null, 2))
 				}
@@ -251,7 +255,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 
-		let wasManuallyApproved = false;
+		let wasManuallyApproved = false
 
 		if (commandsRequiringApproval.length > 0) {
 			showNotificationForApproval(
@@ -277,7 +281,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 						cmdState.output = "Command denied by user."
 					}
 				}
-				
+
 				if (messageTs !== undefined) {
 					const messages = config.callbacks.getDiracMessages()
 					const index = messages.findIndex((m) => m.ts === messageTs)
@@ -285,17 +289,17 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 						await config.callbacks.updateDiracMessage(index, { multiCommandState: { ...multiCommandState } })
 					}
 				}
-				
+
 				return formatResponse.toolResult("Commands denied by user.")
 			}
 
-			wasManuallyApproved = true;
+			wasManuallyApproved = true
 
 			// Clear requiresApproval flag for all commands since they were approved
 			for (const cmdState of multiCommandState.commands) {
 				cmdState.requiresApproval = false
 			}
-			
+
 			if (messageTs !== undefined) {
 				const messages = config.callbacks.getDiracMessages()
 				const index = messages.findIndex((m) => m.ts === messageTs)
@@ -360,6 +364,20 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 					})
 					executionDir = adapter.resolvePath(".", workspaceHint)
 				}
+			}
+
+			// agent-kiki fork: hard-deny zone gate — refuse destructive
+			// commands BEFORE any approval flow, even under --yolo. Mirrors
+			// the Python contract (exit_code=8, error surfaced to model).
+			const zone = classifyCommand(actualCommand)
+			if (zone === "hard_deny") {
+				const errorMessage = `Command "${actualCommand}" was refused by hard-deny zone gate (exit_code=${HARD_DENY_EXIT_CODE}). Destructive commands are blocked even with --yolo.`
+				cmdState.status = "failed"
+				cmdState.output = errorMessage
+				await updateMessage()
+				results.push(`--- Output for '${displayName}' ---\n${errorMessage}`)
+				anyFailed = true
+				continue
 			}
 
 			// Permission validation
@@ -460,10 +478,13 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 					}
 					await updateMessage()
 				} else if (!updateTimer) {
-					updateTimer = setTimeout(async () => {
-						updateTimer = null
-						await throttledUpdate()
-					}, updateInterval - (now - lastUpdate))
+					updateTimer = setTimeout(
+						async () => {
+							updateTimer = null
+							await throttledUpdate()
+						},
+						updateInterval - (now - lastUpdate),
+					)
 				}
 			}
 

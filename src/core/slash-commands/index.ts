@@ -1,9 +1,13 @@
 import type { ApiProviderInfo } from "@core/api"
+import { pluginDiscoveryService } from "@core/plugins/PluginDiscoveryService"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracRulesToggles } from "@shared/dirac-rules"
 import fs from "fs/promises"
+import path from "path"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
-import { handlePermissionsCommand } from "./PermissionsCommandHandler"
+import { SkillMetadata } from "@/shared/skills"
+import { getSkillContent } from "../context/instructions/user-instructions/skills"
 import { CommandPermissionController } from "../permissions/CommandPermissionController"
 import {
 	condenseToolResponse,
@@ -11,12 +15,9 @@ import {
 	newRuleToolResponse,
 	newTaskToolResponse,
 	reportBugToolResponse,
-	askDiracToolResponse,
 } from "../prompts/commands"
 import { StateManager } from "../storage/StateManager"
-import { getSkillContent } from "../context/instructions/user-instructions/skills"
-import { SkillMetadata } from "@/shared/skills"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
+import { handlePermissionsCommand } from "./PermissionsCommandHandler"
 
 type FileBasedWorkflow = {
 	fullPath: string
@@ -47,9 +48,14 @@ export async function parseSlashCommands(
 	permissionController?: CommandPermissionController,
 	extensionPath?: string,
 	sourceDir: string = getExtensionSourceDir(),
-): Promise<{ processedText: string; needsDiracrulesFileCheck: boolean; isDirectResponse?: boolean; directResponseText?: string }> {
-
-	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions", "askDirac"]
+): Promise<{
+	processedText: string
+	needsDiracrulesFileCheck: boolean
+	isDirectResponse?: boolean
+	directResponseText?: string
+}> {
+	// agent-kiki fork: dropped "askDirac" — RAG over upstream Dirac source code, irrelevant for our fork
+	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions"]
 
 	const willUseNativeTools = true
 	const commandReplacements: Record<string, string | Promise<string>> = {
@@ -59,7 +65,6 @@ export async function parseSlashCommands(
 		newrule: newRuleToolResponse(),
 		reportbug: reportBugToolResponse(),
 		"explain-changes": explainChangesToolResponse(),
-		askDirac: askDiracToolResponse(extensionPath, sourceDir),
 	}
 
 	// Regex patterns to extract content from different XML tags
@@ -132,7 +137,9 @@ export async function parseSlashCommands(
 					const { processedText: feedback } = await handlePermissionsCommand(tagContent, permissionController)
 					const textWithoutSlashCommand = removeSlashCommand(text, tagContent, contentStartIndex, slashMatch)
 					// We return the feedback as a system instruction so the agent knows it happened
-					const processedText = `<explicit_instructions type="permissions">\n${feedback}\n</explicit_instructions>\n` + textWithoutSlashCommand
+					const processedText =
+						`<explicit_instructions type="permissions">\n${feedback}\n</explicit_instructions>\n` +
+						textWithoutSlashCommand
 					telemetryService.captureSlashCommandUsed(ulid, commandName, "builtin")
 					return { processedText, needsDiracrulesFileCheck: false }
 				}
@@ -144,7 +151,8 @@ export async function parseSlashCommands(
 				// even if there is no additional query text.
 
 				const replacement = commandReplacements[commandName]
-				const processedText = (typeof replacement === "string" ? replacement : await replacement) + textWithoutSlashCommand
+				const processedText =
+					(typeof replacement === "string" ? replacement : await replacement) + textWithoutSlashCommand
 
 				// Track telemetry for builtin slash command usage
 				telemetryService.captureSlashCommandUsed(ulid, commandName, "builtin")
@@ -185,8 +193,37 @@ export async function parseSlashCommands(
 					contents: workflow.contents,
 				}))
 
-			// local workflows have precedence over global workflows, which have precedence over remote workflows
-			const enabledWorkflows: Workflow[] = [...localWorkflows, ...globalWorkflows, ...enabledRemoteWorkflows]
+			// Plugin commands (Claude Code plugin compat) — scanned from ~/.claude/plugins/cache/.
+			// Treated as lower priority than local/global workflows but higher than remote.
+			const pluginWorkflows: Workflow[] = []
+			try {
+				const pluginCommandsDirs = await pluginDiscoveryService.getCommandsDirectories()
+				for (const dir of pluginCommandsDirs) {
+					try {
+						const entries = await fs.readdir(dir)
+						for (const entry of entries) {
+							if (!entry.endsWith(".md")) continue
+							pluginWorkflows.push({
+								fullPath: path.join(dir, entry),
+								fileName: entry.replace(/\.md$/, ""),
+								isRemote: false,
+							})
+						}
+					} catch {
+						// dir does not exist or unreadable — skip silently
+					}
+				}
+			} catch (err) {
+				Logger.warn("Failed to load plugin commands:", err)
+			}
+
+			// local workflows have precedence over global workflows, which have precedence over plugin commands and remote workflows
+			const enabledWorkflows: Workflow[] = [
+				...localWorkflows,
+				...globalWorkflows,
+				...pluginWorkflows,
+				...enabledRemoteWorkflows,
+			]
 
 			// Then check if the command matches any enabled workflow filename
 			const matchingWorkflow = enabledWorkflows.find((workflow) => workflow.fileName === commandName)
@@ -251,4 +288,3 @@ export async function parseSlashCommands(
 	// if no supported commands are found, return the original text
 	return { processedText: text, needsDiracrulesFileCheck: false }
 }
-

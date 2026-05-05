@@ -34,7 +34,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	})
 
 	// Set up output channel and Logger early so DiracEndpoint.initialize logs are captured
-	const outputChannel = window.createOutputChannel("Dirac CLI")
+	const outputChannel = window.createOutputChannel("agent-kiki CLI")
 	const logToChannel = (message: string) => outputChannel.appendLine(message)
 
 	// Configure the shared Logging class early to capture all initialization logs
@@ -53,7 +53,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	}
 
 	outputChannel.appendLine(
-		`Dirac CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${DIRAC_CLI_DIR.log}`,
+		`agent-kiki CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${DIRAC_CLI_DIR.log}`,
 	)
 
 	HostProvider.initialize(
@@ -82,6 +82,14 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 		if (!stateManager.getGlobalSettingsKey("planModeApiProvider")) {
 			stateManager.setSessionOverride("planModeApiProvider", envProvider)
 		}
+	}
+	// agent-kiki fork: eu-kiki default fallback (touches: cli/src/init.ts)
+	const { applyEuKikiDefault } = await import("./utils/eu-kiki-default")
+	const euKikiDecision = applyEuKikiDefault(stateManager)
+	if (euKikiDecision.applied) {
+		outputChannel.appendLine(
+			`eu-kiki default applied (${euKikiDecision.reason}) gateway=${euKikiDecision.gatewayUrl}`,
+		)
 	}
 	await ErrorService.initialize()
 
