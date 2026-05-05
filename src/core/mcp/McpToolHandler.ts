@@ -1,9 +1,9 @@
 import type { ToolUse } from "@core/assistant-message"
-import { DiracDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "@core/task/index"
 import type { IFullyManagedTool } from "@core/task/tools/ToolExecutorCoordinator"
 import type { TaskConfig } from "@core/task/tools/types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "@core/task/tools/types/UIHelpers"
+import { DiracDefaultTool } from "@/shared/tools"
 import { mcpClientManager } from "./McpClientManager"
 import type { McpToolMetadata } from "./types"
 
