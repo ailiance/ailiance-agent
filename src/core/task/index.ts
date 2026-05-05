@@ -28,10 +28,7 @@ import { CommandPermissionController } from "@core/permissions"
 
 import { formatResponse } from "@core/prompts/responses"
 import type { SystemPromptContext } from "@core/prompts/system-prompt"
-import { SkillMetadata } from "@/shared/skills"
 import { getSystemPrompt } from "@core/prompts/system-prompt"
-import { detectBestShell } from "@/utils/shell-detection"
-import { getAvailableCores } from "@/utils/os"
 import { ensureRulesDirectoryExists, ensureTaskDirectoryExists } from "@core/storage/disk"
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
@@ -57,8 +54,8 @@ import { featureFlagsService } from "@services/feature-flags"
 import { telemetryService } from "@services/telemetry"
 import { ApiConfiguration } from "@shared/api"
 import { findLastIndex } from "@shared/array"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracClient } from "@shared/dirac"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracApiReqCancelReason, DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
@@ -83,6 +80,9 @@ import Mutex from "p-mutex"
 import pWaitFor from "p-wait-for"
 import * as path from "path"
 import { ulid } from "ulid"
+import { SkillMetadata } from "@/shared/skills"
+import { getAvailableCores } from "@/utils/os"
+import { detectBestShell } from "@/utils/shell-detection"
 import { RuleContextBuilder } from "../context/instructions/user-instructions/RuleContextBuilder"
 
 import { getOrDiscoverSkills } from "../context/instructions/user-instructions/skills"
@@ -99,6 +99,7 @@ import { MessageStateHandler } from "./message-state"
 import { ResponseProcessor } from "./ResponseProcessor"
 import { StreamChunkCoordinator } from "./StreamChunkCoordinator"
 import { StreamResponseHandler } from "./StreamResponseHandler"
+import type { TaskDependencies } from "./TaskDependencies"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
 import { ToolExecutor } from "./ToolExecutor"
@@ -127,7 +128,6 @@ type TaskParams = {
 	taskId: string
 	taskLockAcquired: boolean
 }
-
 
 export class Task {
 	// Core task variables
@@ -220,6 +220,14 @@ export class Task {
 
 	// Command executor for running shell commands (extracted from executeCommandTool)
 	private commandExecutor!: CommandExecutor
+
+	/**
+	 * Aggregated view of all service dependencies.
+	 * Mirrors the individual fields above; populated at the end of the constructor
+	 * once every service is fully initialised.
+	 * Preparatory for Sprint 1 PR2 (TaskFactory).
+	 */
+	private deps!: TaskDependencies
 
 	constructor(params: TaskParams) {
 		const {
@@ -322,7 +330,6 @@ export class Task {
 		this.modelContextTracker = new ModelContextTracker(this.taskId)
 		this.environmentContextTracker = new EnvironmentContextTracker(this.taskId)
 
-
 		// Check for multiroot workspace and warn about checkpoints
 		const isMultiRootWorkspace = this.workspaceManager && this.workspaceManager.getRoots().length > 1
 		const checkpointsEnabled = this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
@@ -424,7 +431,6 @@ export class Task {
 		// Note: Task initialization (startTask/resumeTaskFromHistory) is now called
 		// from Controller.initTask() AFTER the task instance is fully assigned.
 		// This prevents race conditions where hooks run before controller.task is ready.
-
 
 		// initialize telemetry
 
@@ -638,9 +644,29 @@ export class Task {
 			getApiRequestIdSafe: this.getApiRequestIdSafe.bind(this),
 			toolExecutor: this.toolExecutor,
 		})
+
+		// Populate the TaskDependencies value object after all fields are initialised.
+		// Individual fields (this.controller, this.api, …) are kept untouched so that
+		// existing call sites within the class do not need to change.
+		this.deps = {
+			controller: this.controller,
+			api: this.api,
+			terminalManager: this.terminalManager,
+			browserSession: this.browserSession,
+			diffViewProvider: this.diffViewProvider,
+			checkpointManager: this.checkpointManager,
+			urlContentFetcher: this.urlContentFetcher,
+			diracIgnoreController: this.diracIgnoreController,
+			commandPermissionController: this.commandPermissionController,
+			stateManager: this.stateManager,
+			commandExecutor: this.commandExecutor,
+			postStateToWebview: this.postStateToWebview,
+			reinitExistingTaskFromId: this.reinitExistingTaskFromId,
+			cancelTask: this.cancelTask,
+		}
 	}
 
-	async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[], isStreamComplete: boolean = false) {
+	async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[], isStreamComplete = false) {
 		return this.responseProcessor.processNativeToolCalls(assistantTextOnly, toolBlocks, isStreamComplete)
 	}
 
@@ -675,7 +701,7 @@ export class Task {
 
 		const { response, text, images, files } = await this.ask(
 			"mistake_limit_reached",
-			`Tool use failure. Can potentially be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`
+			`Tool use failure. Can potentially be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`,
 		)
 
 		if (response === "messageResponse") {
@@ -721,14 +747,19 @@ export class Task {
 		return this.contextLoader.loadContext(userContent, includeFileDetails, useCompactPrompt)
 	}
 
-
 	// Communicate with webview
 
 	async ask(type: DiracAsk, text?: string, partial?: boolean, multiCommandState?: MultiCommandState) {
 		return this.taskMessenger.ask(type, text, partial, multiCommandState)
 	}
 
-	async handleWebviewAskResponse(askResponse: DiracAskResponse, text?: string, images?: string[], files?: string[], userEdits?: Record<string, string>) {
+	async handleWebviewAskResponse(
+		askResponse: DiracAskResponse,
+		text?: string,
+		images?: string[],
+		files?: string[],
+		userEdits?: Record<string, string>,
+	) {
 		return this.taskMessenger.handleWebviewAskResponse(askResponse, text, images, files, userEdits)
 	}
 
@@ -746,7 +777,7 @@ export class Task {
 		return this.taskMessenger.sayAndCreateMissingParamError(toolName, paramName, relPath)
 	}
 
-	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial: boolean = true) {
+	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: DiracAsk | DiracSay, onlyPartial = true) {
 		return this.taskMessenger.removeLastPartialMessageIfExistsWithType(type, askOrSay, onlyPartial)
 	}
 
@@ -826,7 +857,7 @@ export class Task {
 		return this.hookManager.shouldRunTaskCancelHook()
 	}
 
-	async abortTask(reason: string = "aborted", exitCode: number = 130) {
+	async abortTask(reason = "aborted", exitCode = 130) {
 		// agent-kiki fork: tracing close hook — finalise the JSONL trace meta
 		// even when the task ends via abort/cancel/error rather than via a
 		// successful attempt_completion. Run before the lifecycle abort so
@@ -1025,7 +1056,6 @@ export class Task {
 			diracIgnoreInstructions = formatResponse.diracIgnoreInstructions(diracIgnoreContent)
 		}
 
-
 		// Prepare multi-root workspace information if enabled
 		let workspaceRoots: Array<{ path: string; name: string; vcs?: string }> | undefined
 		const multiRootEnabled = isMultiRootEnabled(this.stateManager)
@@ -1132,7 +1162,10 @@ export class Task {
 		// If we're not using auto-condense, we should explicitly notify the model that history was truncated
 		const useAutoCondense = this.stateManager.getGlobalSettingsKey("useAutoCondense")
 		if (!useAutoCondense) {
-			const lastMessage = contextManagementMetadata.truncatedConversationHistory[contextManagementMetadata.truncatedConversationHistory.length - 1]
+			const lastMessage =
+				contextManagementMetadata.truncatedConversationHistory[
+					contextManagementMetadata.truncatedConversationHistory.length - 1
+				]
 			if (lastMessage && lastMessage.role === "user") {
 				const notice = formatResponse.contextTruncationNotice()
 				if (typeof lastMessage.content === "string") {
@@ -1147,7 +1180,6 @@ ${notice}`
 				}
 			}
 		}
-
 
 		// Response API requires native tool calls to be enabled
 		const stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory as any, tools)
@@ -1343,12 +1375,11 @@ ${notice}`
 			throw new Error("Task instance aborted")
 		}
 
-
 		const { model, providerId, customPrompt, mode } = this.getCurrentProviderInfo()
 		if (providerId && model.id) {
 			try {
 				await this.modelContextTracker.recordModelUsage(providerId, model.id, mode)
-			} catch { }
+			} catch {}
 		}
 
 		const modelInfo: DiracMessageModelInfo = {
@@ -1390,7 +1421,6 @@ ${notice}`
 			return true
 		}
 
-
 		try {
 			const taskMetrics: {
 				cacheWriteTokens: number
@@ -1399,7 +1429,14 @@ ${notice}`
 				outputTokens: number
 				totalCost: number | undefined
 				reasoningTokens: number
-			} = { cacheWriteTokens: 0, cacheReadTokens: 0, inputTokens: 0, outputTokens: 0, reasoningTokens: 0, totalCost: undefined }
+			} = {
+				cacheWriteTokens: 0,
+				cacheReadTokens: 0,
+				inputTokens: 0,
+				outputTokens: 0,
+				reasoningTokens: 0,
+				totalCost: undefined,
+			}
 			let didFinalizeApiReqMsg = false
 			let usageChunkSideEffectsQueue = Promise.resolve()
 
@@ -1464,7 +1501,10 @@ ${notice}`
 				didFinalizeApiReqMsg = true
 				await usageChunkSideEffectsQueue
 				await updateApiReqMsgFromMetrics(cancelReason, streamingFailedMessage)
-				const lastApiReqIndex = findLastIndex(this.messageStateHandler.getDiracMessages(), (m) => m.say === "api_req_started")
+				const lastApiReqIndex = findLastIndex(
+					this.messageStateHandler.getDiracMessages(),
+					(m) => m.say === "api_req_started",
+				)
 				if (lastApiReqIndex !== -1) {
 					await this.messageStateHandler.updateDiracMessage(lastApiReqIndex, { partial: false })
 				}
@@ -1494,9 +1534,10 @@ ${notice}`
 							type: "text",
 							text:
 								assistantMessage +
-								`\n\n[${cancelReason === "streaming_failed"
-									? "Response interrupted by API Error"
-									: "Response interrupted by user"
+								`\n\n[${
+									cancelReason === "streaming_failed"
+										? "Response interrupted by API Error"
+										: "Response interrupted by user"
 								}]`,
 						},
 					],
@@ -1739,11 +1780,7 @@ ${notice}`
 					// so audit traces capture API failures (e.g. transport
 					// errors, parse errors, "too many consecutive mistakes").
 					try {
-						this.toolExecutor.recordPlannerTurn(
-							assistantMessage,
-							Date.now() - plannerStartedAt,
-							[errorMessage],
-						)
+						this.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [errorMessage])
 					} catch (_err) {
 						// non-fatal
 					}
@@ -1800,7 +1837,8 @@ ${notice}`
 					taskMetrics.outputTokens += apiStreamUsage.outputTokens
 					taskMetrics.cacheWriteTokens += apiStreamUsage.cacheWriteTokens ?? 0
 					taskMetrics.cacheReadTokens += apiStreamUsage.cacheReadTokens ?? 0
-					taskMetrics.reasoningTokens += (apiStreamUsage as any).reasoningTokens ?? (apiStreamUsage as any).thoughtsTokenCount ?? 0
+					taskMetrics.reasoningTokens +=
+						(apiStreamUsage as any).reasoningTokens ?? (apiStreamUsage as any).thoughtsTokenCount ?? 0
 					taskMetrics.totalCost = apiStreamUsage.totalCost ?? taskMetrics.totalCost
 					queueUsageChunkSideEffects(apiStreamUsage.inputTokens, apiStreamUsage.outputTokens, {
 						cacheWriteTokens: apiStreamUsage.cacheWriteTokens,
@@ -1814,7 +1852,6 @@ ${notice}`
 			await finalizeApiReqMsg()
 			await this.messageStateHandler.saveDiracMessagesAndUpdateHistory()
 			await this.postStateToWebview()
-
 
 			if (this.taskState.abort) {
 				throw new Error("Dirac instance aborted")
@@ -1886,7 +1923,12 @@ ${notice}`
 		providerId: string
 		modelId: string
 		mode: string
-	}): Promise<{ userContent: DiracContent[]; lastApiReqIndex: number; isDirectResponse?: boolean; directResponseText?: string }> {
+	}): Promise<{
+		userContent: DiracContent[]
+		lastApiReqIndex: number
+		isDirectResponse?: boolean
+		directResponseText?: string
+	}> {
 		return this.apiConversationManager.prepareApiRequest(params)
 	}
 
@@ -1925,5 +1967,4 @@ ${notice}`
 	}): Promise<boolean> {
 		return this.responseProcessor.handleEmptyAssistantResponse(params)
 	}
-
 }
