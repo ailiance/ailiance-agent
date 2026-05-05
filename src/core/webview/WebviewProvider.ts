@@ -27,7 +27,9 @@ export abstract class DiracWebviewProvider {
 
 	public static getInstance(): DiracWebviewProvider {
 		if (!DiracWebviewProvider.instance) {
-			throw new Error("DiracWebviewProvider instance not initialized. Make sure to create a DiracWebviewProvider instance first.")
+			throw new Error(
+				"DiracWebviewProvider instance not initialized. Make sure to create a DiracWebviewProvider instance first.",
+			)
 		}
 		return DiracWebviewProvider.instance
 	}

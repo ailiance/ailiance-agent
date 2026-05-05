@@ -20,18 +20,17 @@ export const TRACING_DIR_NAME = ".agent-kiki/runs"
 // suffixed fields like aws_secret_access_key=... or api_key_v2: ....
 // Keyword set kept in sync with the object-key regex in scrubObjectKey().
 const SECRET_KV_PATTERN =
-	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase|private[_-]?key|ssh[_-]?key|signing[_-]?key|certificate|conn(?:ection)?[_-]?str|aws[_-]?secret|aws[_-]?access[_-]?key)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'}\)]+)/gi
+	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase|private[_-]?key|ssh[_-]?key|signing[_-]?key|certificate|conn(?:ection)?[_-]?str|aws[_-]?secret|aws[_-]?access[_-]?key)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'})]+)/gi
 const BEARER_PATTERN = /(authorization["'\s]*[=:]["'\s]*(?:bearer|basic)\s+)([A-Za-z0-9._\-+/=]+)/gi
 // Well-known token shapes:
 //   - sk-..., ghp_..., xox?-..., JWT (eyJ...)
 //   - AWS access key IDs (AKIA[A-Z0-9]{16})
 //   - PEM key blocks (BEGIN...END, multiline)
 const SECRET_VALUE_PATTERN =
-	/\b(sk-[A-Za-z0-9_\-]{16,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+|AKIA[A-Z0-9]{16})\b/g
-const PEM_PATTERN =
-	/-----BEGIN [A-Z ]+(?:PRIVATE )?KEY-----[\s\S]*?-----END [A-Z ]+(?:PRIVATE )?KEY-----/g
+	/\b(sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|AKIA[A-Z0-9]{16})\b/g
+const PEM_PATTERN = /-----BEGIN [A-Z ]+(?:PRIVATE )?KEY-----[\s\S]*?-----END [A-Z ]+(?:PRIVATE )?KEY-----/g
 // scheme://user:pass@host -> scheme://[REDACTED]:[REDACTED]@host
-const URL_CREDENTIAL_PATTERN = /(\w[\w+.\-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/g
+const URL_CREDENTIAL_PATTERN = /(\w[\w+.-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/g
 const REDACTED = "[REDACTED]"
 
 export interface WorkerInfo {

@@ -21,7 +21,22 @@
 			"./src/test/types"
 		],
 		"outDir": "out",
-		"rootDir": "."
+		"rootDir": ".",
+		"paths": {
+			"@/*": ["./src/*"],
+			"@api/*": ["./src/core/api/*"],
+			"@core/*": ["./src/core/*"],
+			"@generated/*": ["./src/generated/*"],
+			"@hosts/*": ["./src/hosts/*"],
+			"@integrations/*": ["./src/integrations/*"],
+			"@packages/*": ["./src/packages/*"],
+			"@services/*": ["./src/services/*"],
+			"@shared/*": ["./src/shared/*"],
+			"@utils/*": ["./src/utils/*"],
+			"@mistralai/mistralai/models/components": [
+				"./node_modules/@mistralai/mistralai/esm/models/components/index.d.ts"
+			]
+		}
 	},
 	"include": [
 		"src/**/*.test.ts"
