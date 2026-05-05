@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { Anthropic } from "@anthropic-ai/sdk"
 import { EnvironmentMetadataEntry, TaskMetadata } from "@core/context/context-tracking/ContextTrackerTypes"
 import { execa } from "@packages/execa"
@@ -27,7 +28,7 @@ import { StateManager } from "./StateManager"
  * @param data - The data to write
  */
 async function atomicWriteFile(filePath: string, data: string): Promise<void> {
-	const tmpPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(7)}.json`
+	const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${randomUUID()}`
 	try {
 		// Write to temporary file first
 		await fs.writeFile(tmpPath, data, "utf8")
