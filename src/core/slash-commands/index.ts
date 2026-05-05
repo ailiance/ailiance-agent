@@ -11,7 +11,6 @@ import {
 	newRuleToolResponse,
 	newTaskToolResponse,
 	reportBugToolResponse,
-	askDiracToolResponse,
 } from "../prompts/commands"
 import { StateManager } from "../storage/StateManager"
 import { getSkillContent } from "../context/instructions/user-instructions/skills"
@@ -49,7 +48,8 @@ export async function parseSlashCommands(
 	sourceDir: string = getExtensionSourceDir(),
 ): Promise<{ processedText: string; needsDiracrulesFileCheck: boolean; isDirectResponse?: boolean; directResponseText?: string }> {
 
-	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions", "askDirac"]
+	// agent-kiki fork: dropped "askDirac" — RAG over upstream Dirac source code, irrelevant for our fork
+	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions"]
 
 	const willUseNativeTools = true
 	const commandReplacements: Record<string, string | Promise<string>> = {
@@ -59,7 +59,6 @@ export async function parseSlashCommands(
 		newrule: newRuleToolResponse(),
 		reportbug: reportBugToolResponse(),
 		"explain-changes": explainChangesToolResponse(),
-		askDirac: askDiracToolResponse(extensionPath, sourceDir),
 	}
 
 	// Regex patterns to extract content from different XML tags

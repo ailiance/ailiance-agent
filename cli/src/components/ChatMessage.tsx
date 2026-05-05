@@ -1,3 +1,4 @@
+// agent-kiki fork: rebrand "Dirac" → "agent-kiki" in user-visible tool labels
 /**
  * Claude Code style chat message component
  * Renders messages with:
@@ -248,7 +249,7 @@ const ToolCallText: React.FC<{
 
 	return (
 		<Text>
-			<Text color={toolColor}>Dirac {actionText}</Text>
+			<Text color={toolColor}>agent-kiki {actionText}</Text>
 			{mainArg && (
 				<Text>
 					<Text color={toolColor}>: </Text>
@@ -431,10 +432,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 
 		const isAsk = type === "ask"
 		const label = isExecuting
-			? "Dirac is executing this command: "
+			? "agent-kiki is executing this command: "
 			: isAsk
-				? "Dirac wants to execute this command: "
-				: "Dirac executed this command: "
+				? "agent-kiki wants to execute this command: "
+				: "agent-kiki executed this command: "
 
 		return (
 			<Box flexDirection="column" marginBottom={1} width="100%">
@@ -490,7 +491,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color="red">
 					<Text color="red" wrap="wrap">
-						Dirac tried to access <Text bold>{text}</Text> which is blocked by the .diracignore file.
+						agent-kiki tried to access <Text bold>{text}</Text> which is blocked by the .diracignore file.
 					</Text>
 				</DotRow>
 			</Box>
@@ -613,7 +614,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={toolColor} flashing={partial === true && isStreaming}>
 					<Text>
-						<Text color={toolColor}>Dirac used the browser</Text>
+						<Text color={toolColor}>agent-kiki used the browser</Text>
 						{text && (
 							<Text>
 								<Text color={toolColor}>: </Text>
@@ -711,7 +712,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={COLORS.primaryBlue}>
 					<Text bold color={COLORS.primaryBlue}>
-						Dirac wants to start a new task:
+						agent-kiki wants to start a new task:
 					</Text>
 				</DotRow>
 				<Box flexDirection="column" paddingLeft={2}>
@@ -727,7 +728,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={COLORS.primaryBlue} flashing={partial === true && isStreaming}>
 					<Text bold color={COLORS.primaryBlue}>
-						Dirac wants to condense your conversation:
+						agent-kiki wants to condense your conversation:
 					</Text>
 				</DotRow>
 				<Box flexDirection="column" paddingLeft={2}>
@@ -743,7 +744,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={COLORS.primaryBlue} flashing={partial === true && isStreaming}>
 					<Text bold color={COLORS.primaryBlue}>
-						Dirac wants to summarize the task:
+						agent-kiki wants to summarize the task:
 					</Text>
 				</DotRow>
 				<Box flexDirection="column" paddingLeft={2}>
@@ -759,7 +760,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={COLORS.primaryBlue} flashing={partial === true && isStreaming}>
 					<Text bold color={COLORS.primaryBlue}>
-						Dirac wants to create a Github issue:
+						agent-kiki wants to create a Github issue:
 					</Text>
 				</DotRow>
 				<Box flexDirection="column" paddingLeft={2}>
