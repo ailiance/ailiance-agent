@@ -1,7 +1,9 @@
 import type { ApiProviderInfo } from "@core/api"
+import { pluginDiscoveryService } from "@core/plugins/PluginDiscoveryService"
 import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracRulesToggles } from "@shared/dirac-rules"
 import fs from "fs/promises"
+import path from "path"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
 import { SkillMetadata } from "@/shared/skills"
@@ -191,8 +193,37 @@ export async function parseSlashCommands(
 					contents: workflow.contents,
 				}))
 
-			// local workflows have precedence over global workflows, which have precedence over remote workflows
-			const enabledWorkflows: Workflow[] = [...localWorkflows, ...globalWorkflows, ...enabledRemoteWorkflows]
+			// Plugin commands (Claude Code plugin compat) — scanned from ~/.claude/plugins/cache/.
+			// Treated as lower priority than local/global workflows but higher than remote.
+			const pluginWorkflows: Workflow[] = []
+			try {
+				const pluginCommandsDirs = await pluginDiscoveryService.getCommandsDirectories()
+				for (const dir of pluginCommandsDirs) {
+					try {
+						const entries = await fs.readdir(dir)
+						for (const entry of entries) {
+							if (!entry.endsWith(".md")) continue
+							pluginWorkflows.push({
+								fullPath: path.join(dir, entry),
+								fileName: entry.replace(/\.md$/, ""),
+								isRemote: false,
+							})
+						}
+					} catch {
+						// dir does not exist or unreadable — skip silently
+					}
+				}
+			} catch (err) {
+				Logger.warn("Failed to load plugin commands:", err)
+			}
+
+			// local workflows have precedence over global workflows, which have precedence over plugin commands and remote workflows
+			const enabledWorkflows: Workflow[] = [
+				...localWorkflows,
+				...globalWorkflows,
+				...pluginWorkflows,
+				...enabledRemoteWorkflows,
+			]
 
 			// Then check if the command matches any enabled workflow filename
 			const matchingWorkflow = enabledWorkflows.find((workflow) => workflow.fileName === commandName)
