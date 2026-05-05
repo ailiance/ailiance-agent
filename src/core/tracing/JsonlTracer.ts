@@ -275,10 +275,22 @@ export class JsonlTracer {
 
 	private persistMeta(): void {
 		if (!this.meta) return
+		// agent-kiki fork: atomic meta.json write — write to a sibling .tmp
+		// file then rename. rename(2) is atomic on POSIX, so a crash
+		// mid-write leaves either the previous valid meta.json or a stray
+		// .tmp (never a half-written meta.json). The Python agent-kiki tracer
+		// uses the same pattern.
+		const tmpPath = `${this.metaPath}.tmp`
 		try {
-			fs.writeFileSync(this.metaPath, JSON.stringify(this.meta, null, 2), "utf8")
+			fs.writeFileSync(tmpPath, JSON.stringify(this.meta, null, 2), "utf8")
+			fs.renameSync(tmpPath, this.metaPath)
 		} catch (_err) {
-			// swallow — tracing is non-fatal
+			// swallow — tracing is non-fatal. Best-effort cleanup of the tmp.
+			try {
+				fs.unlinkSync(tmpPath)
+			} catch (_err2) {
+				// ignore
+			}
 		}
 	}
 

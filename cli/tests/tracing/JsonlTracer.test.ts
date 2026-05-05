@@ -269,6 +269,24 @@ describe("JsonlTracer", () => {
 		expect(() => new JsonlTracer("01ARZ3NDEKTSV4RRFFQ69G5FAV", tmpDir)).not.toThrow()
 	})
 
+	it("persistMeta writes atomically (no leftover .tmp on success)", () => {
+		const tracer = new JsonlTracer("task-atomic", tmpDir)
+		tracer.writeMeta({
+			task: "task-atomic",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		const dir = path.join(tmpDir, TRACING_DIR_NAME, "task-atomic")
+		const files = fs.readdirSync(dir)
+		expect(files).toContain("meta.json")
+		expect(files.some((f) => f.endsWith(".tmp"))).toBe(false)
+		// meta.json must be valid JSON (proves rename succeeded fully).
+		const meta = JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8"))
+		expect(meta.run_id).toBe("task-atomic")
+	})
+
 	it("recordPlannerTurn writes a plan-phase TraceLine with raw + latency", () => {
 		const tracer = new JsonlTracer("task-plan", tmpDir)
 		tracer.writeMeta({
