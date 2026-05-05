@@ -20,7 +20,6 @@ import {
 	getLocalWindsurfRules,
 	refreshExternalRulesToggles,
 } from "@core/context/instructions/user-instructions/external-rules"
-import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
 
 import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
 
@@ -44,24 +43,20 @@ import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { DiracError, DiracErrorType, ErrorService } from "@services/error"
 import { featureFlagsService } from "@services/feature-flags"
-import { telemetryService } from "@services/telemetry"
 import { findLastIndex } from "@shared/array"
 import { DiracClient } from "@shared/dirac"
-import { DiracApiReqCancelReason, DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
+import { DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
 import { DiracContent, DiracStorageMessage, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
-import { convertDiracMessageToProto } from "@shared/proto-conversions/dirac-message"
 import { Logger } from "@shared/services/Logger"
-import { Session } from "@shared/services/Session"
 import { DiracDefaultTool } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
-import { isLocalModel, isParallelToolCallingEnabled } from "@utils/model-utils"
+import { isParallelToolCallingEnabled } from "@utils/model-utils"
 import fs from "fs/promises"
 import Mutex from "p-mutex"
-import pWaitFor from "p-wait-for"
 import * as path from "path"
 import { ulid } from "ulid"
 import { SkillMetadata } from "@/shared/skills"
@@ -82,7 +77,6 @@ import { HookManager } from "./HookManager"
 import { LifecycleManager } from "./LifecycleManager"
 import { MessageStateHandler } from "./message-state"
 import { ResponseProcessor } from "./ResponseProcessor"
-import { StreamChunkCoordinator } from "./StreamChunkCoordinator"
 import { StreamResponseHandler } from "./StreamResponseHandler"
 import type { TaskDependencies } from "./TaskDependencies"
 import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
@@ -149,7 +143,7 @@ export class Task {
 	}
 
 	// Core dependencies
-	private controller: Controller
+	controller: Controller
 
 	// Service handlers
 	api: ApiHandler
@@ -157,11 +151,11 @@ export class Task {
 	private urlContentFetcher: UrlContentFetcher
 	browserSession: BrowserSession
 	contextManager: ContextManager
-	private diffViewProvider: DiffViewProvider
+	diffViewProvider: DiffViewProvider
 	public checkpointManager?: ICheckpointManager
 	private diracIgnoreController: DiracIgnoreController
 	private commandPermissionController: CommandPermissionController
-	private toolExecutor: ToolExecutor
+	toolExecutor: ToolExecutor
 	/**
 	 * Whether the task is using native tool calls.
 	 * This is used to determine how we would format response.
@@ -169,13 +163,13 @@ export class Task {
 	 * because of the expected format from the tool calls is different.
 	 */
 
-	private streamHandler: StreamResponseHandler
+	streamHandler: StreamResponseHandler
 
 	private terminalExecutionMode: "vscodeTerminal" | "backgroundExec"
 
 	// Metadata tracking
 	private fileContextTracker: FileContextTracker
-	private modelContextTracker: ModelContextTracker
+	modelContextTracker: ModelContextTracker
 	private environmentContextTracker: EnvironmentContextTracker
 	private environmentManager: EnvironmentManager
 	private contextLoader: ContextLoader
@@ -187,8 +181,8 @@ export class Task {
 
 	// Callbacks
 	private updateTaskHistory: (historyItem: HistoryItem) => Promise<HistoryItem[]>
-	private postStateToWebview: () => Promise<void>
-	private reinitExistingTaskFromId: (taskId: string) => Promise<void>
+	postStateToWebview: () => Promise<void>
+	reinitExistingTaskFromId: (taskId: string) => Promise<void>
 	private cancelTask: () => Promise<void>
 
 	// Cache service
@@ -435,7 +429,7 @@ export class Task {
 		return this.environmentManager.getEnvironmentDetails(includeFileDetails)
 	}
 
-	private async handleMistakeLimitReached(
+	async handleMistakeLimitReached(
 		userContent: DiracContent[],
 	): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
 		if (this.taskState.consecutiveMistakeCount < this.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
@@ -628,7 +622,7 @@ export class Task {
 		return this.hookManager.cancelHookExecution()
 	}
 
-	private getCurrentProviderInfo(): ApiProviderInfo {
+	getCurrentProviderInfo(): ApiProviderInfo {
 		const model = this.api.getModel()
 		const apiConfig = this.stateManager.getApiConfiguration()
 		const mode = this.stateManager.getGlobalSettingsKey("mode")
@@ -1107,549 +1101,17 @@ ${notice}`
 	}
 
 	async recursivelyMakeDiracRequests(userContent: DiracContent[], includeFileDetails = false): Promise<boolean> {
-		if (this.taskState.abort) {
-			throw new Error("Task instance aborted")
-		}
-
-		const { model, providerId, customPrompt, mode } = this.getCurrentProviderInfo()
-		if (providerId && model.id) {
-			try {
-				await this.modelContextTracker.recordModelUsage(providerId, model.id, mode)
-			} catch {}
-		}
-
-		const modelInfo: DiracMessageModelInfo = {
-			modelId: model.id,
-			providerId: providerId,
-			mode: mode,
-		}
-
-		const mistakeResult = await this.handleMistakeLimitReached(userContent)
-		if (mistakeResult.didEndLoop) {
-			return true
-		}
-		userContent = mistakeResult.userContent
-
-		const previousApiReqIndex = findLastIndex(this.messageStateHandler.getDiracMessages(), (m) => m.say === "api_req_started")
-		const isFirstRequest = this.messageStateHandler.getDiracMessages().filter((m) => m.say === "api_req_started").length === 0
-		await this.initializeCheckpoints(isFirstRequest)
-
-		const useCompactPrompt = customPrompt === "compact" && isLocalModel(this.getCurrentProviderInfo())
-		const shouldCompact = await this.determineContextCompaction(previousApiReqIndex)
-
-		const apiRequestData = await this.prepareApiRequest({
-			userContent,
-			shouldCompact,
-			includeFileDetails,
-			useCompactPrompt,
-			previousApiReqIndex,
-			isFirstRequest,
-			providerId,
-			modelId: model.id,
-			mode: modelInfo.mode,
-		})
-		this.taskState.didSwitchToActMode = false // Reset after use
-		userContent = apiRequestData.userContent
-		const lastApiReqIndex = apiRequestData.lastApiReqIndex
-
-		if (apiRequestData.isDirectResponse && apiRequestData.directResponseText) {
-			await this.say("text", apiRequestData.directResponseText)
-			return true
-		}
-
-		try {
-			const taskMetrics: {
-				cacheWriteTokens: number
-				cacheReadTokens: number
-				inputTokens: number
-				outputTokens: number
-				totalCost: number | undefined
-				reasoningTokens: number
-			} = {
-				cacheWriteTokens: 0,
-				cacheReadTokens: 0,
-				inputTokens: 0,
-				outputTokens: 0,
-				reasoningTokens: 0,
-				totalCost: undefined,
-			}
-			let didFinalizeApiReqMsg = false
-			let usageChunkSideEffectsQueue = Promise.resolve()
-
-			const updateApiReqMsgFromMetrics = async (
-				cancelReason?: DiracApiReqCancelReason,
-				streamingFailedMessage?: string,
-			) => {
-				const modelInfo = this.api.getModel().info
-				const contextWindow = modelInfo.contextWindow
-				const totalTokens =
-					taskMetrics.inputTokens +
-					taskMetrics.outputTokens +
-					(taskMetrics.cacheWriteTokens || 0) +
-					(taskMetrics.cacheReadTokens || 0)
-				const contextUsagePercentage = contextWindow ? Math.round((totalTokens / contextWindow) * 100) : undefined
-				await updateApiReqMsg({
-					partial: true,
-					messageStateHandler: this.messageStateHandler,
-					lastApiReqIndex,
-					inputTokens: taskMetrics.inputTokens,
-					outputTokens: taskMetrics.outputTokens,
-					reasoningTokens: taskMetrics.reasoningTokens,
-					cacheWriteTokens: taskMetrics.cacheWriteTokens,
-					cacheReadTokens: taskMetrics.cacheReadTokens,
-					api: this.api,
-					totalCost: taskMetrics.totalCost,
-					cancelReason,
-					streamingFailedMessage,
-					contextWindow,
-					contextUsagePercentage,
-				})
-			}
-
-			const queueUsageChunkSideEffects = (
-				usageInputTokens: number,
-				usageOutputTokens: number,
-				chunkOptions?: { cacheWriteTokens?: number; cacheReadTokens?: number; totalCost?: number; stopReason?: string },
-			) => {
-				usageChunkSideEffectsQueue = usageChunkSideEffectsQueue
-					.then(async () => {
-						if (didFinalizeApiReqMsg || this.taskState.abort) {
-							return
-						}
-
-						await updateApiReqMsgFromMetrics()
-						await this.postStateToWebview()
-						await telemetryService.captureTokenUsage(
-							this.ulid,
-							usageInputTokens,
-							usageOutputTokens,
-							providerId,
-							model.id,
-							chunkOptions,
-						)
-					})
-					.catch((error) => {
-						Logger.debug(`[Task ${this.taskId}] Failed to process usage chunk side effects: ${error}`)
-					})
-			}
-
-			const finalizeApiReqMsg = async (cancelReason?: DiracApiReqCancelReason, streamingFailedMessage?: string) => {
-				didFinalizeApiReqMsg = true
-				await usageChunkSideEffectsQueue
-				await updateApiReqMsgFromMetrics(cancelReason, streamingFailedMessage)
-				const lastApiReqIndex = findLastIndex(
-					this.messageStateHandler.getDiracMessages(),
-					(m) => m.say === "api_req_started",
-				)
-				if (lastApiReqIndex !== -1) {
-					await this.messageStateHandler.updateDiracMessage(lastApiReqIndex, { partial: false })
-				}
-			}
-
-			const abortStream = async (cancelReason: DiracApiReqCancelReason, streamingFailedMessage?: string) => {
-				Session.get().finalizeRequest()
-
-				if (this.diffViewProvider.isEditing) {
-					await this.diffViewProvider.revertChanges()
-				}
-
-				const diracMessages = this.messageStateHandler.getDiracMessages()
-				diracMessages.forEach((msg) => {
-					if (msg.partial) {
-						msg.partial = false
-						Logger.log("updating partial message", msg)
-					}
-				})
-				await finalizeApiReqMsg(cancelReason, streamingFailedMessage)
-				await this.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-
-				await this.messageStateHandler.addToApiConversationHistory({
-					role: "assistant",
-					content: [
-						{
-							type: "text",
-							text:
-								assistantMessage +
-								`\n\n[${
-									cancelReason === "streaming_failed"
-										? "Response interrupted by API Error"
-										: "Response interrupted by user"
-								}]`,
-						},
-					],
-					modelInfo,
-					metrics: {
-						tokens: {
-							prompt: taskMetrics.inputTokens,
-							completion: taskMetrics.outputTokens,
-							cached: (taskMetrics.cacheWriteTokens ?? 0) + (taskMetrics.cacheReadTokens ?? 0),
-						},
-						cost: taskMetrics.totalCost,
-					},
-					ts: Date.now(),
-				})
-
-				telemetryService.captureConversationTurnEvent(
-					this.ulid,
-					providerId,
-					modelInfo.modelId,
-					"assistant",
-					modelInfo.mode,
-					undefined,
-					this.taskState.useNativeToolCalls,
-				)
-
-				this.taskState.didFinishAbortingStream = true
-			}
-
-			// reset streaming state
-			this.taskState.currentStreamingContentIndex = 0
-			this.taskState.assistantMessageContent = []
-			this.taskState.didCompleteReadingStream = false
-			this.taskState.userMessageContent = []
-			this.taskState.userMessageContentReady = false
-			this.taskState.didRejectTool = false
-			this.taskState.didAlreadyUseTool = false
-			this.taskState.presentAssistantMessageLocked = false
-			this.taskState.presentAssistantMessageHasPendingUpdates = false
-			this.taskState.didAutomaticallyRetryFailedApiRequest = false
-			await this.diffViewProvider.reset()
-			this.streamHandler.reset()
-			this.taskState.toolUseIdMap.clear()
-
-			const { toolUseHandler, reasonsHandler } = this.streamHandler.getHandlers()
-			// agent-kiki fork: tracing — measure latency of every API roundtrip
-			// so the planner turn is recorded even if the stream errors out
-			// before any tool executes.
-			const plannerStartedAt = Date.now()
-			const stream = this.attemptApiRequest(previousApiReqIndex, shouldCompact)
-
-			let assistantMessageId = ""
-			let assistantMessage = ""
-			let assistantTextOnly = ""
-			let assistantTextSignature: string | undefined
-
-			this.taskState.isStreaming = true
-			let didReceiveUsageChunk = false
-			let stopReason: string | undefined
-			let didFinalizeReasoningForUi = false
-
-			const finalizePendingReasoningMessage = async (thinking: string): Promise<boolean> => {
-				const pendingReasoningIndex = findLastIndex(
-					this.messageStateHandler.getDiracMessages(),
-					(message) => message.type === "say" && message.say === "reasoning" && message.partial === true,
-				)
-
-				if (pendingReasoningIndex === -1) {
-					return false
-				}
-
-				await this.messageStateHandler.updateDiracMessage(pendingReasoningIndex, {
-					text: thinking,
-					partial: false,
-				})
-				const completedReasoning = this.messageStateHandler.getDiracMessages()[pendingReasoningIndex]
-				if (completedReasoning) {
-					await sendPartialMessageEvent(convertDiracMessageToProto(completedReasoning))
-					await this.postStateToWebview()
-				}
-				return true
-			}
-
-			Session.get().startApiCall()
-			let streamCoordinator: StreamChunkCoordinator | undefined
-
-			try {
-				streamCoordinator = new StreamChunkCoordinator(stream, {
-					onUsageChunk: (chunk) => {
-						this.streamHandler.setRequestId(chunk.id)
-						didReceiveUsageChunk = true
-						taskMetrics.inputTokens += chunk.inputTokens
-						taskMetrics.outputTokens += chunk.outputTokens
-						taskMetrics.reasoningTokens += chunk.reasoningTokens ?? chunk.thoughtsTokenCount ?? 0
-						taskMetrics.cacheWriteTokens += chunk.cacheWriteTokens ?? 0
-						taskMetrics.cacheReadTokens += chunk.cacheReadTokens ?? 0
-						taskMetrics.totalCost = chunk.totalCost ?? taskMetrics.totalCost
-						stopReason = chunk.stopReason ?? stopReason
-						queueUsageChunkSideEffects(chunk.inputTokens, chunk.outputTokens, {
-							cacheWriteTokens: chunk.cacheWriteTokens,
-							cacheReadTokens: chunk.cacheReadTokens,
-							totalCost: chunk.totalCost,
-							stopReason: chunk.stopReason,
-						})
-					},
-				})
-
-				let shouldInterruptStream = false
-
-				while (true) {
-					const chunk = await streamCoordinator.nextChunk()
-					if (chunk) {
-					}
-					if (!chunk) {
-						break
-					}
-					if (!this.taskState.taskFirstTokenTimeMs) {
-						this.taskState.taskFirstTokenTimeMs = Math.max(0, Date.now() - this.taskState.taskStartTimeMs)
-					}
-
-					switch (chunk.type) {
-						case "reasoning": {
-							const details = chunk.details ? (Array.isArray(chunk.details) ? chunk.details : [chunk.details]) : []
-							this.streamHandler.processReasoningDelta({
-								id: chunk.id,
-								reasoning: chunk.reasoning,
-								signature: chunk.signature,
-								details,
-								redacted_data: chunk.redacted_data,
-							})
-
-							if (!this.taskState.abort) {
-								const thinkingBlock = reasonsHandler.getCurrentReasoning()
-								if (thinkingBlock?.thinking && chunk.reasoning && assistantMessage.length === 0) {
-									await this.say("reasoning", thinkingBlock.thinking, undefined, undefined, true)
-								}
-							}
-							break
-						}
-						case "tool_calls": {
-							this.streamHandler.processToolUseDelta(
-								{
-									id: chunk.tool_call.function?.id,
-									type: "tool_use",
-									name: chunk.tool_call.function?.name,
-									input: chunk.tool_call.function?.arguments,
-									signature: chunk?.signature,
-								},
-								chunk.tool_call.call_id,
-							)
-							if (chunk.tool_call.function?.id && chunk.tool_call.call_id) {
-								this.taskState.toolUseIdMap.set(chunk.tool_call.call_id, chunk.tool_call.function.id)
-							}
-
-							await this.processNativeToolCalls(assistantTextOnly, toolUseHandler.getPartialToolUsesAsContent())
-							break
-						}
-						case "text": {
-							const currentReasoning = reasonsHandler.getCurrentReasoning()
-							if (currentReasoning?.thinking && !didFinalizeReasoningForUi) {
-								const finalizedReasoning = await finalizePendingReasoningMessage(currentReasoning.thinking)
-								if (finalizedReasoning) {
-									didFinalizeReasoningForUi = true
-								}
-							}
-							if (chunk.signature) {
-								assistantTextSignature = chunk.signature
-							}
-							this.streamHandler.processTextDelta(chunk)
-
-							if (chunk.id) {
-								assistantMessageId = chunk.id
-							}
-							assistantMessage += chunk.text
-							assistantTextOnly += chunk.text
-							const prevLength = this.taskState.assistantMessageContent.length
-
-							await this.processNativeToolCalls(assistantTextOnly, toolUseHandler.getPartialToolUsesAsContent())
-
-							if (this.taskState.assistantMessageContent.length > prevLength) {
-								this.taskState.userMessageContentReady = false
-							}
-							break
-						}
-					}
-
-					await this.presentAssistantMessage().catch((error) =>
-						Logger.debug(`[Task] Failed to present message: ${error}`),
-					)
-
-					if (this.taskState.abort) {
-						this.api.abort?.()
-						if (!this.taskState.abandoned) {
-							await abortStream("user_cancelled")
-						}
-						shouldInterruptStream = true
-						break
-					}
-
-					if (this.taskState.didRejectTool) {
-						assistantMessage += "\n\n[Response interrupted by user feedback]"
-						shouldInterruptStream = true
-						break
-					}
-				}
-
-				if (shouldInterruptStream) {
-					await streamCoordinator.stop()
-				} else {
-					await streamCoordinator.waitForCompletion()
-				}
-				await usageChunkSideEffectsQueue
-
-				// agent-kiki fork: tracing — record this planner roundtrip.
-				// This fires for every successful API call, including ones whose
-				// assistant text contains no valid tool_call (which would never
-				// reach the per-tool tracing hook in ToolExecutor).
-				try {
-					this.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt)
-				} catch (_err) {
-					// non-fatal
-				}
-
-				if (!this.taskState.abort && !didFinalizeReasoningForUi) {
-					const finalReasoning = reasonsHandler.getCurrentReasoning()
-					if (finalReasoning?.thinking) {
-						const finalizedPendingReasoning = await finalizePendingReasoningMessage(finalReasoning.thinking)
-						if (!finalizedPendingReasoning) {
-							await this.say("reasoning", finalReasoning.thinking, undefined, undefined, false)
-						}
-						didFinalizeReasoningForUi = true
-					}
-				}
-			} catch (error) {
-				await streamCoordinator?.stop()
-				if (!this.taskState.abandoned) {
-					const diracError = ErrorService.get().toDiracError(error, this.api.getModel().id)
-					const errorMessage = diracError.serialize()
-					// agent-kiki fork: tracing — record the failed roundtrip
-					// before the recovery / abort branches consume the error,
-					// so audit traces capture API failures (e.g. transport
-					// errors, parse errors, "too many consecutive mistakes").
-					try {
-						this.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [errorMessage])
-					} catch (_err) {
-						// non-fatal
-					}
-					if (this.taskState.autoRetryAttempts < 3) {
-						this.taskState.autoRetryAttempts++
-
-						const delay = 2000 * 2 ** (this.taskState.autoRetryAttempts - 1)
-
-						await this.say(
-							"error_retry",
-							JSON.stringify({
-								attempt: this.taskState.autoRetryAttempts,
-								maxAttempts: 3,
-								delaySeconds: delay / 1000,
-								errorMessage,
-							}),
-						)
-
-						setTimeoutPromise(delay).then(async () => {
-							if (this.controller.task) {
-								this.controller.task.taskState.autoRetryAttempts = this.taskState.autoRetryAttempts
-								await this.controller.task.handleWebviewAskResponse("yesButtonClicked", "", [])
-							}
-						})
-					} else if (this.taskState.autoRetryAttempts >= 3) {
-						await this.say(
-							"error_retry",
-							JSON.stringify({
-								attempt: 3,
-								maxAttempts: 3,
-								delaySeconds: 0,
-								failed: true,
-								errorMessage,
-							}),
-						)
-					}
-
-					// agent-kiki fork: tracing close hook — distinguish the
-					// streaming-failure path from a user-initiated abort so the
-					// trace meta carries exit_reason="error".
-					this.abortTask("error", 1)
-					await abortStream("streaming_failed", errorMessage)
-					await this.reinitExistingTaskFromId(this.taskId)
-				}
-			} finally {
-				this.taskState.isStreaming = false
-				Session.get().endApiCall()
-			}
-
-			if (!didReceiveUsageChunk) {
-				const apiStreamUsage = await this.api.getApiStreamUsage?.()
-				if (apiStreamUsage) {
-					taskMetrics.inputTokens += apiStreamUsage.inputTokens
-					taskMetrics.outputTokens += apiStreamUsage.outputTokens
-					taskMetrics.cacheWriteTokens += apiStreamUsage.cacheWriteTokens ?? 0
-					taskMetrics.cacheReadTokens += apiStreamUsage.cacheReadTokens ?? 0
-					taskMetrics.reasoningTokens +=
-						(apiStreamUsage as any).reasoningTokens ?? (apiStreamUsage as any).thoughtsTokenCount ?? 0
-					taskMetrics.totalCost = apiStreamUsage.totalCost ?? taskMetrics.totalCost
-					queueUsageChunkSideEffects(apiStreamUsage.inputTokens, apiStreamUsage.outputTokens, {
-						cacheWriteTokens: apiStreamUsage.cacheWriteTokens,
-						cacheReadTokens: apiStreamUsage.cacheReadTokens,
-						totalCost: apiStreamUsage.totalCost,
-						stopReason: apiStreamUsage.stopReason,
-					})
-				}
-			}
-
-			await finalizeApiReqMsg()
-			await this.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-			await this.postStateToWebview()
-
-			if (this.taskState.abort) {
-				throw new Error("Dirac instance aborted")
-			}
-
-			const assistantHasContent = await this.processAssistantResponse({
-				assistantMessage,
-				assistantTextOnly,
-				assistantTextSignature,
-				assistantMessageId,
-				providerId,
-				modelId: model.id,
-				mode: modelInfo.mode,
-				taskMetrics,
-				modelInfo,
-				toolUseHandler,
-			})
-
-			let didEndLoop = false
-			if (assistantHasContent) {
-				await pWaitFor(() => this.taskState.userMessageContentReady)
-				await this.checkpointManager?.saveCheckpoint()
-
-				const didToolUse = this.taskState.assistantMessageContent.some((block) => block.type === "tool_use")
-				const hitTokenLimit = stopReason === "MAX_TOKENS" || stopReason === "max_tokens" || stopReason === "length"
-
-				if (!didToolUse) {
-					this.taskState.userMessageContent.push({
-						type: "text",
-						text: hitTokenLimit
-							? "You have reached the output token limit. Please continue your response from where you left off. If you were in the middle of a tool call, start over with that tool call. If you were finished, call attempt_completion."
-							: formatResponse.noToolsUsed(this.taskState.useNativeToolCalls),
-					})
-					this.taskState.consecutiveMistakeCount++
-				}
-
-				this.taskState.autoRetryAttempts = 0
-				const recDidEndLoop = await this.recursivelyMakeDiracRequests(this.taskState.userMessageContent)
-				didEndLoop = recDidEndLoop
-			} else {
-				return await this.handleEmptyAssistantResponse({
-					modelInfo,
-					taskMetrics,
-					providerId,
-					model,
-				})
-			}
-
-			return didEndLoop
-		} catch (_error) {
-			return true
-		}
+		return this.agentLoopRunner.makeRequest(userContent, includeFileDetails)
 	}
-	private async initializeCheckpoints(isFirstRequest: boolean): Promise<void> {
+	async initializeCheckpoints(isFirstRequest: boolean): Promise<void> {
 		return this.lifecycleManager.initializeCheckpoints(isFirstRequest)
 	}
 
-	private async determineContextCompaction(previousApiReqIndex: number): Promise<boolean> {
+	async determineContextCompaction(previousApiReqIndex: number): Promise<boolean> {
 		return this.apiConversationManager.determineContextCompaction(previousApiReqIndex)
 	}
 
-	private async prepareApiRequest(params: {
+	async prepareApiRequest(params: {
 		userContent: DiracContent[]
 		shouldCompact: boolean
 		includeFileDetails: boolean
@@ -1668,7 +1130,7 @@ ${notice}`
 		return this.apiConversationManager.prepareApiRequest(params)
 	}
 
-	private async processAssistantResponse(params: {
+	async processAssistantResponse(params: {
 		assistantMessage: string
 		assistantTextOnly: string
 		assistantTextSignature?: string
@@ -1689,7 +1151,7 @@ ${notice}`
 		return this.responseProcessor.processAssistantResponse(params)
 	}
 
-	private async handleEmptyAssistantResponse(params: {
+	async handleEmptyAssistantResponse(params: {
 		modelInfo: DiracMessageModelInfo
 		taskMetrics: {
 			inputTokens: number
