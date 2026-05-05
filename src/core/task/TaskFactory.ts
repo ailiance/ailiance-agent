@@ -1,0 +1,557 @@
+/**
+ * TaskFactory — construction helpers for Task service dependencies.
+ *
+ * Extracted from the Task constructor (Sprint 1 PR2) to keep the
+ * constructor focused on field assignment only.
+ *
+ * Two exported functions:
+ *   - buildTaskServices: Phase B — checkpoint, API handler, command executor
+ *   - buildTaskManagers: Phase C — all internal manager objects
+ */
+
+import { buildApiHandler } from "@core/api"
+import type { ApiHandler } from "@core/api"
+import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
+import { CommandPermissionController } from "@core/permissions"
+import type { StateManager } from "@core/storage/StateManager"
+import type { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
+import { buildCheckpointManager, shouldUseMultiRoot } from "@integrations/checkpoints/factory"
+import type { ICheckpointManager } from "@integrations/checkpoints/types"
+import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
+import {
+	type CommandExecutorCallbacks,
+	CommandExecutor,
+	type FullCommandExecutorConfig,
+} from "@integrations/terminal"
+import type { ITerminalManager } from "@integrations/terminal/types"
+import type { BrowserSession } from "@services/browser/BrowserSession"
+import type { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
+import { findLastIndex } from "@shared/array"
+import type { ApiConfiguration } from "@shared/api"
+import type { DiracAsk, DiracApiReqInfo } from "@shared/ExtensionMessage"
+import type { HistoryItem } from "@shared/HistoryItem"
+import { ShowMessageType } from "@shared/proto/index.host"
+import { Logger } from "@shared/services/Logger"
+import { telemetryService } from "@services/telemetry"
+import { HostProvider } from "@hosts/host-provider"
+
+import { ApiConversationManager } from "./ApiConversationManager"
+import { ContextLoader } from "./ContextLoader"
+import { EnvironmentManager } from "./EnvironmentManager"
+import { HookManager } from "./HookManager"
+import { LifecycleManager } from "./LifecycleManager"
+import type { MessageStateHandler } from "./message-state"
+import { ResponseProcessor } from "./ResponseProcessor"
+import type { StreamResponseHandler } from "./StreamResponseHandler"
+import { TaskMessenger } from "./TaskMessenger"
+import type { TaskState } from "./TaskState"
+import { ToolExecutor } from "./ToolExecutor"
+import { extractProviderDomainFromUrl } from "./utils"
+import type { Controller } from "@core/controller"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
+import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
+import type { DiracContent, DiracTextContentBlock } from "@shared/messages/content"
+import type { DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
+import type { DiracAskResponse } from "@shared/WebviewMessage"
+
+// ---------------------------------------------------------------------------
+// Phase B: service construction
+// ---------------------------------------------------------------------------
+
+export interface TaskServiceInputs {
+	// identifiers
+	taskId: string
+	ulid: string
+	// state
+	taskState: TaskState
+	messageStateHandler: MessageStateHandler
+	// infra services (built before Phase B)
+	terminalManager: ITerminalManager
+	terminalExecutionMode: "vscodeTerminal" | "backgroundExec"
+	diffViewProvider: DiffViewProvider
+	fileContextTracker: import("@core/context/context-tracking/FileContextTracker").FileContextTracker
+	browserSession: BrowserSession
+	urlContentFetcher: UrlContentFetcher
+	// config & storage
+	stateManager: StateManager
+	workspaceManager?: WorkspaceRootManager
+	cwd: string
+	historyItem?: HistoryItem
+	// callbacks
+	cancelTask: () => Promise<void>
+	postStateToWebview: () => Promise<void>
+	updateTaskHistory: (historyItem: HistoryItem) => Promise<HistoryItem[]>
+	controller: Controller
+	// say/ask binds from the Task instance
+	say: (type: DiracSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
+	ask: (type: DiracAsk, text?: string, partial?: boolean, multiCommandState?: MultiCommandState) => Promise<{ response: DiracAskResponse; text?: string; images?: string[]; files?: string[]; askTs?: number; userEdits?: Record<string, string> }>
+}
+
+export interface TaskServices {
+	checkpointManager: ICheckpointManager | undefined
+	api: ApiHandler
+	commandExecutor: CommandExecutor
+}
+
+/**
+ * Builds checkpoint manager, API handler, and command executor.
+ * Extracted from Task constructor Phase B (Sprint 1 PR2).
+ *
+ * Side-effect: may mutate `inputs.taskState.checkpointManagerErrorMessage`.
+ */
+export function buildTaskServices(inputs: TaskServiceInputs): TaskServices {
+	const {
+		taskId,
+		ulid,
+		taskState,
+		messageStateHandler,
+		terminalManager,
+		terminalExecutionMode,
+		diffViewProvider,
+		fileContextTracker,
+		browserSession,
+		stateManager,
+		workspaceManager,
+		cwd,
+		historyItem,
+		cancelTask,
+		postStateToWebview,
+		updateTaskHistory,
+		controller,
+		say,
+		ask,
+	} = inputs
+
+	// --- checkpoint manager ---
+	const isMultiRootWorkspace = workspaceManager && workspaceManager.getRoots().length > 1
+	const checkpointsEnabled = stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
+
+	if (isMultiRootWorkspace && checkpointsEnabled) {
+		taskState.checkpointManagerErrorMessage = "Checkpoints are not currently supported in multi-root workspaces."
+	}
+
+	let checkpointManager: ICheckpointManager | undefined
+	if (!isMultiRootWorkspace) {
+		try {
+			checkpointManager = buildCheckpointManager({
+				taskId,
+				messageStateHandler,
+				fileContextTracker,
+				diffViewProvider,
+				taskState,
+				workspaceManager,
+				updateTaskHistory,
+				say,
+				cancelTask,
+				postStateToWebview,
+				initialConversationHistoryDeletedRange: taskState.conversationHistoryDeletedRange,
+				initialCheckpointManagerErrorMessage: taskState.checkpointManagerErrorMessage,
+				stateManager,
+			})
+
+			if (
+				shouldUseMultiRoot({
+					workspaceManager,
+					enableCheckpoints: stateManager.getGlobalSettingsKey("enableCheckpointsSetting"),
+					stateManager,
+				})
+			) {
+				checkpointManager.initialize?.().catch((error: Error) => {
+					Logger.error("Failed to initialize multi-root checkpoint manager:", error)
+					taskState.checkpointManagerErrorMessage = error?.message || String(error)
+				})
+			}
+		} catch (error) {
+			Logger.error("Failed to initialize checkpoint manager:", error)
+			if (stateManager.getGlobalSettingsKey("enableCheckpointsSetting")) {
+				const errorMessage = error instanceof Error ? error.message : "Unknown error"
+				HostProvider.window.showMessage({
+					type: ShowMessageType.ERROR,
+					message: `Failed to initialize checkpoint manager: ${errorMessage}`,
+				})
+			}
+		}
+	}
+
+	// --- API handler ---
+	const apiConfiguration = stateManager.getApiConfiguration()
+	const effectiveApiConfiguration: ApiConfiguration = {
+		...apiConfiguration,
+		ulid,
+		onRetryAttempt: async (attempt: number, maxRetries: number, delay: number, error: any) => {
+			const diracMessages = messageStateHandler.getDiracMessages()
+			const lastApiReqStartedIndex = findLastIndex(diracMessages, (m) => m.say === "api_req_started")
+			if (lastApiReqStartedIndex !== -1) {
+				try {
+					const currentApiReqInfo: DiracApiReqInfo = JSON.parse(diracMessages[lastApiReqStartedIndex].text || "{}")
+					currentApiReqInfo.retryStatus = {
+						attempt,
+						maxAttempts: maxRetries,
+						delaySec: Math.round(delay / 1000),
+						errorSnippet: error?.message ? `${String(error.message).substring(0, 50)}...` : undefined,
+					}
+					delete currentApiReqInfo.cancelReason
+					delete currentApiReqInfo.streamingFailedMessage
+					await messageStateHandler.updateDiracMessage(lastApiReqStartedIndex, {
+						partial: true,
+						text: JSON.stringify(currentApiReqInfo),
+					})
+					await postStateToWebview().catch((e) =>
+						Logger.error("Error posting state to webview in onRetryAttempt:", e),
+					)
+				} catch (e) {
+					Logger.error(`[Task ${taskId}] Error updating api_req_started with retryStatus:`, e)
+				}
+			}
+		},
+	}
+
+	const mode = stateManager.getGlobalSettingsKey("mode")
+	const currentProvider = mode === "plan" ? apiConfiguration.planModeApiProvider : apiConfiguration.actModeApiProvider
+	const api = buildApiHandler(effectiveApiConfiguration, mode)
+
+	// Set ulid on browserSession for telemetry tracking
+	browserSession.setUlid(ulid)
+
+	// Telemetry
+	let openAiCompatibleDomain: string | undefined
+	if (currentProvider === "openai" && apiConfiguration.openAiBaseUrl) {
+		openAiCompatibleDomain = extractProviderDomainFromUrl(apiConfiguration.openAiBaseUrl)
+	}
+	if (historyItem) {
+		telemetryService.captureTaskRestarted(ulid, currentProvider, openAiCompatibleDomain)
+	} else {
+		telemetryService.captureTaskCreated(ulid, currentProvider, openAiCompatibleDomain)
+	}
+
+	// --- command executor ---
+	const commandExecutorConfig: FullCommandExecutorConfig = {
+		cwd,
+		terminalExecutionMode,
+		terminalManager,
+		taskId,
+		ulid,
+	}
+
+	const commandExecutorCallbacks: CommandExecutorCallbacks = {
+		say: say as CommandExecutorCallbacks["say"],
+		ask: async (type: string, text?: string, partial?: boolean) => {
+			const result = await ask(type as DiracAsk, text, partial)
+			return {
+				response: result.response,
+				text: result.text,
+				images: result.images,
+				files: result.files,
+				askTs: result.askTs,
+			}
+		},
+		updateBackgroundCommandState: (isRunning: boolean) =>
+			controller.updateBackgroundCommandState(isRunning, taskId),
+		updateDiracMessage: async (index: number, updates: { commandCompleted?: boolean; text?: string }) => {
+			await messageStateHandler.updateDiracMessage(index, updates)
+			await postStateToWebview()
+		},
+		getDiracMessages: () => messageStateHandler.getDiracMessages() as Array<{ ask?: string; say?: string }>,
+		addToUserMessageContent: (content: { type: string; text: string }) => {
+			taskState.userMessageContent.push({ type: "text", text: content.text } as DiracTextContentBlock)
+		},
+		getEnvironmentVariables: (cwd: string) => HostProvider.get().getEnvironmentVariables(cwd),
+	}
+
+	const commandExecutor = new CommandExecutor(commandExecutorConfig, commandExecutorCallbacks)
+
+	return { checkpointManager, api, commandExecutor }
+}
+
+// ---------------------------------------------------------------------------
+// Phase C: manager wiring
+// ---------------------------------------------------------------------------
+
+export interface TaskManagerInputs {
+	// identifiers
+	taskId: string
+	ulid: string
+	// state
+	taskState: TaskState
+	messageStateHandler: MessageStateHandler
+	// services (output of buildTaskServices + Phase A)
+	api: ApiHandler
+	terminalManager: ITerminalManager
+	terminalExecutionMode: "vscodeTerminal" | "backgroundExec"
+	urlContentFetcher: UrlContentFetcher
+	browserSession: BrowserSession
+	diffViewProvider: DiffViewProvider
+	fileContextTracker: import("@core/context/context-tracking/FileContextTracker").FileContextTracker
+	diracIgnoreController: DiracIgnoreController
+	commandPermissionController: CommandPermissionController
+	contextManager: import("@core/context/context-management/ContextManager").ContextManager
+	streamHandler: StreamResponseHandler
+	stateManager: StateManager
+	workspaceManager?: WorkspaceRootManager
+	cwd: string
+	checkpointManager?: ICheckpointManager
+	commandExecutor: CommandExecutor
+	controller: Controller
+	// callbacks
+	cancelTask: () => Promise<void>
+	postStateToWebview: () => Promise<void>
+	// Task instance binds
+	say: (type: DiracSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
+	ask: (type: DiracAsk, text?: string, partial?: boolean, multiCommandState?: MultiCommandState) => Promise<{ response: DiracAskResponse; text?: string; images?: string[]; files?: string[]; askTs?: number; userEdits?: Record<string, string> }>
+	saveCheckpointCallback: () => Promise<void>
+	sayAndCreateMissingParamError: (toolName: import("@shared/tools").DiracDefaultTool, paramName: string, relPath?: string) => Promise<string>
+	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: import("@shared/ExtensionMessage").DiracAsk | DiracSay, onlyPartial?: boolean) => Promise<void>
+	executeCommandTool: (...args: any[]) => Promise<any>
+	cancelBackgroundCommand: () => Promise<boolean>
+	switchToActModeCallback: () => Promise<boolean>
+	setActiveHookExecution: (hookExecution: NonNullable<TaskState["activeHookExecution"]>) => Promise<void>
+	clearActiveHookExecution: () => Promise<void>
+	getActiveHookExecution: () => Promise<TaskState["activeHookExecution"]>
+	runUserPromptSubmitHook: (userContent: DiracContent[], context: "initial_task" | "resume" | "feedback") => Promise<{ cancel?: boolean; wasCancelled?: boolean; contextModification?: string; errorMessage?: string }>
+	initiateTaskLoop: (userContent: DiracContent[]) => Promise<void>
+	getCurrentProviderInfo: () => ReturnType<import("./index").Task["getCurrentProviderInfo"]>
+	getEnvironmentDetails: (includeFileDetails?: boolean) => Promise<string>
+	getApiRequestIdSafe: () => string | undefined
+	writePromptMetadataArtifacts: (...args: any[]) => Promise<void>
+	loadContext: (...args: any[]) => Promise<any>
+	taskInitializationStartTime: number
+	withStateLock: <T>(fn: () => T | Promise<T>) => Promise<T>
+	recordEnvironment: () => Promise<void>
+}
+
+export interface TaskManagers {
+	toolExecutor: ToolExecutor
+	environmentManager: EnvironmentManager
+	contextLoader: ContextLoader
+	taskMessenger: TaskMessenger
+	hookManager: HookManager
+	lifecycleManager: LifecycleManager
+	apiConversationManager: ApiConversationManager
+	responseProcessor: ResponseProcessor
+}
+
+/**
+ * Wires all internal Task managers together.
+ * Extracted from Task constructor Phase C (Sprint 1 PR2).
+ *
+ * The `say`, `ask`, and other callback binds must point to the live
+ * Task instance — pass them explicitly to avoid circular references.
+ */
+export function buildTaskManagers(inputs: TaskManagerInputs): TaskManagers {
+	const {
+		taskId,
+		ulid,
+		taskState,
+		messageStateHandler,
+		api,
+		terminalManager,
+		terminalExecutionMode,
+		urlContentFetcher,
+		browserSession,
+		diffViewProvider,
+		fileContextTracker,
+		diracIgnoreController,
+		commandPermissionController,
+		contextManager,
+		streamHandler,
+		stateManager,
+		workspaceManager,
+		cwd,
+		checkpointManager,
+		commandExecutor,
+		controller,
+		cancelTask,
+		postStateToWebview,
+		say,
+		ask,
+		saveCheckpointCallback,
+		sayAndCreateMissingParamError,
+		removeLastPartialMessageIfExistsWithType,
+		executeCommandTool,
+		cancelBackgroundCommand,
+		switchToActModeCallback,
+		setActiveHookExecution,
+		clearActiveHookExecution,
+		getActiveHookExecution,
+		runUserPromptSubmitHook,
+		initiateTaskLoop,
+		getCurrentProviderInfo,
+		getEnvironmentDetails,
+		getApiRequestIdSafe,
+		writePromptMetadataArtifacts,
+		loadContext,
+		taskInitializationStartTime,
+		withStateLock,
+		recordEnvironment,
+	} = inputs
+
+	const toolExecutor = new ToolExecutor(
+		taskState,
+		messageStateHandler,
+		api,
+		urlContentFetcher,
+		browserSession,
+		diffViewProvider,
+		fileContextTracker,
+		diracIgnoreController,
+		commandPermissionController,
+		contextManager,
+		stateManager,
+		cwd,
+		taskId,
+		ulid,
+		terminalExecutionMode,
+		workspaceManager,
+		isMultiRootEnabled(stateManager),
+		say,
+		ask,
+		saveCheckpointCallback,
+		sayAndCreateMissingParamError,
+		removeLastPartialMessageIfExistsWithType,
+		executeCommandTool,
+		cancelBackgroundCommand,
+		() => checkpointManager?.doesLatestTaskCompletionHaveNewChanges() ?? Promise.resolve(false),
+		switchToActModeCallback,
+		cancelTask,
+		postStateToWebview,
+		setActiveHookExecution,
+		clearActiveHookExecution,
+		getActiveHookExecution,
+		runUserPromptSubmitHook,
+	)
+
+	const environmentManager = new EnvironmentManager({
+		cwd,
+		terminalManager,
+		taskState,
+		fileContextTracker,
+		api,
+		messageStateHandler,
+		stateManager,
+		workspaceManager,
+	})
+
+	const contextLoader = new ContextLoader({
+		ulid,
+		stateManager,
+		controller,
+		cwd,
+		urlContentFetcher,
+		fileContextTracker,
+		workspaceManager,
+		diracIgnoreController,
+		taskState,
+		getCurrentProviderInfo,
+		extensionPath: HostProvider.get().extensionFsPath,
+		sourceDir: getExtensionSourceDir(),
+		getEnvironmentDetails,
+		commandPermissionController,
+	})
+
+	const taskMessenger = new TaskMessenger({
+		taskState,
+		messageStateHandler,
+		postStateToWebview,
+		stateManager,
+		taskId,
+		api,
+		getCurrentProviderInfo,
+	})
+
+	const hookManager = new HookManager({
+		taskState,
+		messageStateHandler,
+		stateManager,
+		api,
+		taskId,
+		ulid,
+		say,
+		postStateToWebview,
+		cancelTask,
+		withStateLock,
+		shouldRunBackgroundCheck: () => commandExecutor.hasActiveBackgroundCommand(),
+	})
+
+	const lifecycleManager = new LifecycleManager({
+		taskState,
+		messageStateHandler,
+		stateManager,
+		api,
+		taskId,
+		ulid,
+		say,
+		ask,
+		postStateToWebview,
+		cancelTask,
+		checkpointManager,
+		diracIgnoreController,
+		terminalManager,
+		urlContentFetcher,
+		browserSession,
+		diffViewProvider,
+		fileContextTracker,
+		contextManager,
+		commandExecutor,
+		cwd,
+		hookManager,
+		initiateTaskLoop,
+		recordEnvironment,
+		commandPermissionController,
+	})
+
+	const apiConversationManager = new ApiConversationManager({
+		taskState,
+		messageStateHandler,
+		api,
+		contextManager,
+		stateManager,
+		taskId,
+		ulid,
+		cwd,
+		say,
+		ask,
+		postStateToWebview,
+		diffViewProvider,
+		toolExecutor,
+		streamHandler,
+		withStateLock,
+		loadContext,
+		getCurrentProviderInfo,
+		getEnvironmentDetails,
+		writePromptMetadataArtifacts,
+		handleHookCancellation: hookManager.handleHookCancellation.bind(hookManager),
+		setActiveHookExecution: hookManager.setActiveHookExecution.bind(hookManager),
+		clearActiveHookExecution: hookManager.clearActiveHookExecution.bind(hookManager),
+		taskInitializationStartTime,
+		cancelTask,
+	})
+
+	const responseProcessor = new ResponseProcessor({
+		taskState,
+		messageStateHandler,
+		api,
+		stateManager,
+		taskId,
+		ulid,
+		say,
+		ask,
+		postStateToWebview,
+		diffViewProvider,
+		streamHandler,
+		withStateLock,
+		getCurrentProviderInfo,
+		getApiRequestIdSafe,
+		toolExecutor,
+	})
+
+	return {
+		toolExecutor,
+		environmentManager,
+		contextLoader,
+		taskMessenger,
+		hookManager,
+		lifecycleManager,
+		apiConversationManager,
+		responseProcessor,
+	}
+}

@@ -1,5 +1,5 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
-import { ApiHandler, ApiProviderInfo, buildApiHandler } from "@core/api"
+import { ApiHandler, ApiProviderInfo } from "@core/api"
 import { ApiStream } from "@core/api/transform/stream"
 import { ToolUse } from "@core/assistant-message"
 import { ContextManager } from "@core/context/context-management/ContextManager"
@@ -33,41 +33,25 @@ import { ensureRulesDirectoryExists, ensureTaskDirectoryExists } from "@core/sto
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { HostProvider } from "@hosts/host-provider"
-import { buildCheckpointManager, shouldUseMultiRoot } from "@integrations/checkpoints/factory"
 import { ICheckpointManager } from "@integrations/checkpoints/types"
 import { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
 import { FileEditProvider } from "@integrations/editor/FileEditProvider"
 import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { showSystemNotification } from "@integrations/notifications"
-import {
-	type CommandExecutionOptions,
-	CommandExecutor,
-	CommandExecutorCallbacks,
-	FullCommandExecutorConfig,
-	StandaloneTerminalManager,
-} from "@integrations/terminal"
+import { type CommandExecutionOptions, CommandExecutor, StandaloneTerminalManager } from "@integrations/terminal"
 import { ITerminalManager } from "@integrations/terminal/types"
 import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { DiracError, DiracErrorType, ErrorService } from "@services/error"
 import { featureFlagsService } from "@services/feature-flags"
 import { telemetryService } from "@services/telemetry"
-import { ApiConfiguration } from "@shared/api"
 import { findLastIndex } from "@shared/array"
 import { DiracClient } from "@shared/dirac"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracApiReqCancelReason, DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
-import {
-	DiracContent,
-	DiracStorageMessage,
-	DiracTextContentBlock,
-	DiracToolResponseContent,
-	DiracUserContent,
-} from "@shared/messages/content"
+import { DiracContent, DiracStorageMessage, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
-import { ShowMessageType } from "@shared/proto/index.host"
 import { convertDiracMessageToProto } from "@shared/proto-conversions/dirac-message"
 import { Logger } from "@shared/services/Logger"
 import { Session } from "@shared/services/Session"
@@ -100,10 +84,11 @@ import { ResponseProcessor } from "./ResponseProcessor"
 import { StreamChunkCoordinator } from "./StreamChunkCoordinator"
 import { StreamResponseHandler } from "./StreamResponseHandler"
 import type { TaskDependencies } from "./TaskDependencies"
+import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
 import { ToolExecutor } from "./ToolExecutor"
-import { extractProviderDomainFromUrl, updateApiReqMsg } from "./utils"
+import { updateApiReqMsg } from "./utils"
 
 export type ToolResponse = DiracToolResponseContent
 
@@ -173,7 +158,6 @@ export class Task {
 	contextManager: ContextManager
 	private diffViewProvider: DiffViewProvider
 	public checkpointManager?: ICheckpointManager
-	private initialCheckpointCommitPromise?: Promise<string | undefined>
 	private diracIgnoreController: DiracIgnoreController
 	private commandPermissionController: CommandPermissionController
 	private toolExecutor: ToolExecutor
@@ -215,11 +199,11 @@ export class Task {
 	// Workspace manager
 	workspaceManager?: WorkspaceRootManager
 
-	// Task Locking (Sqlite)
-	private taskLockAcquired: boolean
-
 	// Command executor for running shell commands (extracted from executeCommandTool)
 	private commandExecutor!: CommandExecutor
+
+	// Task Locking (Sqlite)
+	private taskLockAcquired: boolean
 
 	/**
 	 * Aggregated view of all service dependencies.
@@ -330,320 +314,90 @@ export class Task {
 		this.modelContextTracker = new ModelContextTracker(this.taskId)
 		this.environmentContextTracker = new EnvironmentContextTracker(this.taskId)
 
-		// Check for multiroot workspace and warn about checkpoints
-		const isMultiRootWorkspace = this.workspaceManager && this.workspaceManager.getRoots().length > 1
-		const checkpointsEnabled = this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
-
-		if (isMultiRootWorkspace && checkpointsEnabled) {
-			// Set checkpoint manager error message to display warning in TaskHeader
-			this.taskState.checkpointManagerErrorMessage = "Checkpoints are not currently supported in multi-root workspaces."
-		}
-
-		// Initialize checkpoint manager based on workspace configuration
-		if (!isMultiRootWorkspace) {
-			try {
-				this.checkpointManager = buildCheckpointManager({
-					taskId: this.taskId,
-					messageStateHandler: this.messageStateHandler,
-					fileContextTracker: this.fileContextTracker,
-					diffViewProvider: this.diffViewProvider,
-					taskState: this.taskState,
-					workspaceManager: this.workspaceManager,
-					updateTaskHistory: this.updateTaskHistory,
-					say: this.say.bind(this),
-					cancelTask: this.cancelTask,
-					postStateToWebview: this.postStateToWebview,
-					initialConversationHistoryDeletedRange: this.taskState.conversationHistoryDeletedRange,
-					initialCheckpointManagerErrorMessage: this.taskState.checkpointManagerErrorMessage,
-					stateManager: this.stateManager,
-				})
-
-				// If multi-root, kick off non-blocking initialization
-				// Unreachable for now, leaving in for future multi-root checkpoint support
-				if (
-					shouldUseMultiRoot({
-						workspaceManager: this.workspaceManager,
-						enableCheckpoints: this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting"),
-						stateManager: this.stateManager,
-					})
-				) {
-					this.checkpointManager.initialize?.().catch((error: Error) => {
-						Logger.error("Failed to initialize multi-root checkpoint manager:", error)
-						this.taskState.checkpointManagerErrorMessage = error?.message || String(error)
-					})
-				}
-			} catch (error) {
-				Logger.error("Failed to initialize checkpoint manager:", error)
-				if (this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")) {
-					const errorMessage = error instanceof Error ? error.message : "Unknown error"
-					HostProvider.window.showMessage({
-						type: ShowMessageType.ERROR,
-						message: `Failed to initialize checkpoint manager: ${errorMessage}`,
-					})
-				}
-			}
-		}
-
-		// Prepare effective API configuration
-		const apiConfiguration = this.stateManager.getApiConfiguration()
-		const effectiveApiConfiguration: ApiConfiguration = {
-			...apiConfiguration,
+		// Phase B: build checkpoint manager, API handler, and command executor.
+		// Note: buildTaskServices may mutate this.taskState.checkpointManagerErrorMessage.
+		const services = buildTaskServices({
+			taskId: this.taskId,
 			ulid: this.ulid,
-			onRetryAttempt: async (attempt: number, maxRetries: number, delay: number, error: any) => {
-				const diracMessages = this.messageStateHandler.getDiracMessages()
-				const lastApiReqStartedIndex = findLastIndex(diracMessages, (m) => m.say === "api_req_started")
-				if (lastApiReqStartedIndex !== -1) {
-					try {
-						const currentApiReqInfo: DiracApiReqInfo = JSON.parse(diracMessages[lastApiReqStartedIndex].text || "{}")
-						currentApiReqInfo.retryStatus = {
-							attempt: attempt, // attempt is already 1-indexed from retry.ts
-							maxAttempts: maxRetries, // total attempts
-							delaySec: Math.round(delay / 1000),
-							errorSnippet: error?.message ? `${String(error.message).substring(0, 50)}...` : undefined,
-						}
-						// Clear previous cancelReason and streamingFailedMessage if we are retrying
-						delete currentApiReqInfo.cancelReason
-						delete currentApiReqInfo.streamingFailedMessage
-						await this.messageStateHandler.updateDiracMessage(lastApiReqStartedIndex, {
-							partial: true,
-							text: JSON.stringify(currentApiReqInfo),
-						})
-
-						// Post the updated state to the webview so the UI reflects the retry attempt
-						await this.postStateToWebview().catch((e) =>
-							Logger.error("Error posting state to webview in onRetryAttempt:", e),
-						)
-					} catch (e) {
-						Logger.error(`[Task ${this.taskId}] Error updating api_req_started with retryStatus:`, e)
-					}
-				}
-			},
-		}
-		const mode = this.stateManager.getGlobalSettingsKey("mode")
-		const currentProvider = mode === "plan" ? apiConfiguration.planModeApiProvider : apiConfiguration.actModeApiProvider
-
-		// Now that ulid is initialized, we can build the API handler
-		this.api = buildApiHandler(effectiveApiConfiguration, mode)
-
-		// Set ulid on browserSession for telemetry tracking
-		this.browserSession.setUlid(this.ulid)
-
-		// Note: Task initialization (startTask/resumeTaskFromHistory) is now called
-		// from Controller.initTask() AFTER the task instance is fully assigned.
-		// This prevents race conditions where hooks run before controller.task is ready.
-
-		// initialize telemetry
-
-		// Extract domain of the provider endpoint if using OpenAI Compatible provider
-		let openAiCompatibleDomain: string | undefined
-		if (currentProvider === "openai" && apiConfiguration.openAiBaseUrl) {
-			openAiCompatibleDomain = extractProviderDomainFromUrl(apiConfiguration.openAiBaseUrl)
-		}
-
-		if (historyItem) {
-			// Open task from history
-			telemetryService.captureTaskRestarted(this.ulid, currentProvider, openAiCompatibleDomain)
-		} else {
-			// New task started
-			telemetryService.captureTaskCreated(this.ulid, currentProvider, openAiCompatibleDomain)
-		}
-
-		// Initialize command executor with config and callbacks
-		const commandExecutorConfig: FullCommandExecutorConfig = {
-			cwd: this.cwd,
+			taskState: this.taskState,
+			messageStateHandler: this.messageStateHandler,
+			terminalManager: this.terminalManager,
 			terminalExecutionMode: this.terminalExecutionMode,
-			terminalManager: this.terminalManager,
-			taskId: this.taskId,
-			ulid: this.ulid,
-		}
-
-		const commandExecutorCallbacks: CommandExecutorCallbacks = {
-			say: this.say.bind(this) as CommandExecutorCallbacks["say"],
-			ask: async (type: string, text?: string, partial?: boolean) => {
-				const result = await this.ask(type as DiracAsk, text, partial)
-				return {
-					response: result.response,
-					text: result.text,
-					images: result.images,
-					files: result.files,
-					askTs: result.askTs,
-				}
-			},
-			updateBackgroundCommandState: (isRunning: boolean) =>
-				this.controller.updateBackgroundCommandState(isRunning, this.taskId),
-			updateDiracMessage: async (index: number, updates: { commandCompleted?: boolean; text?: string }) => {
-				await this.messageStateHandler.updateDiracMessage(index, updates)
-				await this.postStateToWebview()
-			},
-			getDiracMessages: () => this.messageStateHandler.getDiracMessages() as Array<{ ask?: string; say?: string }>,
-			addToUserMessageContent: (content: { type: string; text: string }) => {
-				// Cast to DiracTextContentBlock which is compatible with DiracContent
-				this.taskState.userMessageContent.push({ type: "text", text: content.text } as DiracTextContentBlock)
-			},
-			getEnvironmentVariables: (cwd: string) => HostProvider.get().getEnvironmentVariables(cwd),
-		}
-
-		this.commandExecutor = new CommandExecutor(commandExecutorConfig, commandExecutorCallbacks)
-
-		this.toolExecutor = new ToolExecutor(
-			this.taskState,
-			this.messageStateHandler,
-			this.api,
-			this.urlContentFetcher,
-			this.browserSession,
-			this.diffViewProvider,
-			this.fileContextTracker,
-			this.diracIgnoreController,
-			this.commandPermissionController,
-			this.contextManager,
-			this.stateManager,
-			cwd,
-			this.taskId,
-			this.ulid,
-			this.terminalExecutionMode,
-			this.workspaceManager,
-			isMultiRootEnabled(this.stateManager),
-			this.say.bind(this),
-			this.ask.bind(this),
-			this.saveCheckpointCallback.bind(this),
-			this.sayAndCreateMissingParamError.bind(this),
-			this.removeLastPartialMessageIfExistsWithType.bind(this),
-			this.executeCommandTool.bind(this),
-			this.cancelBackgroundCommand.bind(this),
-			() => this.checkpointManager?.doesLatestTaskCompletionHaveNewChanges() ?? Promise.resolve(false),
-			this.switchToActModeCallback.bind(this),
-			this.cancelTask,
-			this.postStateToWebview.bind(this),
-			// Atomic hook state helpers for ToolExecutor
-			this.setActiveHookExecution.bind(this),
-			this.clearActiveHookExecution.bind(this),
-			this.getActiveHookExecution.bind(this),
-			this.runUserPromptSubmitHook.bind(this),
-		)
-		this.environmentManager = new EnvironmentManager({
-			cwd: this.cwd,
-			terminalManager: this.terminalManager,
-			taskState: this.taskState,
+			diffViewProvider: this.diffViewProvider,
 			fileContextTracker: this.fileContextTracker,
-			api: this.api,
-			messageStateHandler: this.messageStateHandler,
-			stateManager: this.stateManager,
-			workspaceManager: this.workspaceManager,
-		})
-
-		this.contextLoader = new ContextLoader({
-			ulid: this.ulid,
-			stateManager: this.stateManager,
-			controller: this.controller,
-			cwd: this.cwd,
+			browserSession: this.browserSession,
 			urlContentFetcher: this.urlContentFetcher,
-			fileContextTracker: this.fileContextTracker,
+			stateManager: this.stateManager,
 			workspaceManager: this.workspaceManager,
-			diracIgnoreController: this.diracIgnoreController,
-			taskState: this.taskState,
-			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
-			extensionPath: HostProvider.get().extensionFsPath,
-			sourceDir: getExtensionSourceDir(),
-
-			getEnvironmentDetails: this.getEnvironmentDetails.bind(this),
-			commandPermissionController: this.commandPermissionController,
-		})
-
-		this.taskMessenger = new TaskMessenger({
-			taskState: this.taskState,
-			messageStateHandler: this.messageStateHandler,
-			postStateToWebview: this.postStateToWebview,
-			stateManager: this.stateManager,
-			taskId: this.taskId,
-			api: this.api,
-			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
-		})
-
-		this.hookManager = new HookManager({
-			taskState: this.taskState,
-			messageStateHandler: this.messageStateHandler,
-			stateManager: this.stateManager,
-			api: this.api,
-			taskId: this.taskId,
-			ulid: this.ulid,
-			say: this.say.bind(this),
-			postStateToWebview: this.postStateToWebview,
+			cwd: this.cwd,
+			historyItem,
 			cancelTask: this.cancelTask,
-			withStateLock: this.withStateLock.bind(this),
-			shouldRunBackgroundCheck: () => this.commandExecutor.hasActiveBackgroundCommand(),
-		})
-
-		this.lifecycleManager = new LifecycleManager({
-			taskState: this.taskState,
-			messageStateHandler: this.messageStateHandler,
-			stateManager: this.stateManager,
-			api: this.api,
-			taskId: this.taskId,
-			ulid: this.ulid,
+			postStateToWebview: this.postStateToWebview,
+			updateTaskHistory: this.updateTaskHistory,
+			controller: this.controller,
 			say: this.say.bind(this),
 			ask: this.ask.bind(this),
-			postStateToWebview: this.postStateToWebview,
-			cancelTask: this.cancelTask,
-			checkpointManager: this.checkpointManager,
-			diracIgnoreController: this.diracIgnoreController,
+		})
+		this.checkpointManager = services.checkpointManager
+		this.api = services.api
+		this.commandExecutor = services.commandExecutor
+
+		// Phase C: wire all internal managers.
+		// Note: say/ask binds must point to the live Task instance.
+		const managers = buildTaskManagers({
+			taskId: this.taskId,
+			ulid: this.ulid,
+			taskState: this.taskState,
+			messageStateHandler: this.messageStateHandler,
+			api: this.api,
 			terminalManager: this.terminalManager,
+			terminalExecutionMode: this.terminalExecutionMode,
 			urlContentFetcher: this.urlContentFetcher,
 			browserSession: this.browserSession,
 			diffViewProvider: this.diffViewProvider,
 			fileContextTracker: this.fileContextTracker,
-			contextManager: this.contextManager,
-			commandExecutor: this.commandExecutor,
-			cwd: this.cwd,
-			hookManager: this.hookManager,
-			initiateTaskLoop: this.initiateTaskLoop.bind(this),
-			recordEnvironment: () => this.environmentContextTracker.recordEnvironment(),
+			diracIgnoreController: this.diracIgnoreController,
 			commandPermissionController: this.commandPermissionController,
-		})
-
-		this.apiConversationManager = new ApiConversationManager({
-			taskState: this.taskState,
-			messageStateHandler: this.messageStateHandler,
-			api: this.api,
 			contextManager: this.contextManager,
+			streamHandler: this.streamHandler,
 			stateManager: this.stateManager,
-			taskId: this.taskId,
-			ulid: this.ulid,
+			workspaceManager: this.workspaceManager,
 			cwd: this.cwd,
+			checkpointManager: this.checkpointManager,
+			commandExecutor: this.commandExecutor,
+			controller: this.controller,
+			cancelTask: this.cancelTask,
+			postStateToWebview: this.postStateToWebview,
 			say: this.say.bind(this),
 			ask: this.ask.bind(this),
-			postStateToWebview: this.postStateToWebview,
-			diffViewProvider: this.diffViewProvider,
-			toolExecutor: this.toolExecutor,
-			streamHandler: this.streamHandler,
-			withStateLock: this.withStateLock.bind(this),
-			loadContext: this.loadContext.bind(this),
+			saveCheckpointCallback: this.saveCheckpointCallback.bind(this),
+			sayAndCreateMissingParamError: this.sayAndCreateMissingParamError.bind(this),
+			removeLastPartialMessageIfExistsWithType: this.removeLastPartialMessageIfExistsWithType.bind(this),
+			executeCommandTool: this.executeCommandTool.bind(this),
+			cancelBackgroundCommand: this.cancelBackgroundCommand.bind(this),
+			switchToActModeCallback: this.switchToActModeCallback.bind(this),
+			setActiveHookExecution: this.setActiveHookExecution.bind(this),
+			clearActiveHookExecution: this.clearActiveHookExecution.bind(this),
+			getActiveHookExecution: this.getActiveHookExecution.bind(this),
+			runUserPromptSubmitHook: this.runUserPromptSubmitHook.bind(this),
+			initiateTaskLoop: this.initiateTaskLoop.bind(this),
 			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
 			getEnvironmentDetails: this.getEnvironmentDetails.bind(this),
-			writePromptMetadataArtifacts: this.writePromptMetadataArtifacts.bind(this),
-			handleHookCancellation: this.hookManager.handleHookCancellation.bind(this.hookManager),
-			setActiveHookExecution: this.hookManager.setActiveHookExecution.bind(this.hookManager),
-			clearActiveHookExecution: this.hookManager.clearActiveHookExecution.bind(this.hookManager),
-			taskInitializationStartTime: this.taskInitializationStartTime,
-			cancelTask: this.cancelTask,
-		})
-
-		this.responseProcessor = new ResponseProcessor({
-			taskState: this.taskState,
-			messageStateHandler: this.messageStateHandler,
-			api: this.api,
-			stateManager: this.stateManager,
-			taskId: this.taskId,
-			ulid: this.ulid,
-			say: this.say.bind(this),
-			ask: this.ask.bind(this),
-			postStateToWebview: this.postStateToWebview,
-			diffViewProvider: this.diffViewProvider,
-			streamHandler: this.streamHandler,
-			withStateLock: this.withStateLock.bind(this),
-			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
 			getApiRequestIdSafe: this.getApiRequestIdSafe.bind(this),
-			toolExecutor: this.toolExecutor,
+			writePromptMetadataArtifacts: this.writePromptMetadataArtifacts.bind(this),
+			loadContext: this.loadContext.bind(this),
+			taskInitializationStartTime: this.taskInitializationStartTime,
+			withStateLock: this.withStateLock.bind(this),
+			recordEnvironment: () => this.environmentContextTracker.recordEnvironment(),
 		})
+		this.toolExecutor = managers.toolExecutor
+		this.environmentManager = managers.environmentManager
+		this.contextLoader = managers.contextLoader
+		this.taskMessenger = managers.taskMessenger
+		this.hookManager = managers.hookManager
+		this.lifecycleManager = managers.lifecycleManager
+		this.apiConversationManager = managers.apiConversationManager
+		this.responseProcessor = managers.responseProcessor
 
 		// Populate the TaskDependencies value object after all fields are initialised.
 		// Individual fields (this.controller, this.api, …) are kept untouched so that
@@ -932,7 +686,7 @@ export class Task {
 
 			await fs.mkdir(artifactDir, { recursive: true })
 
-			const ts = new Date().toISOString()
+			const _ts = new Date().toISOString()
 			const debugPath = path.join(artifactDir, `task-${this.taskId}-debug.md`)
 
 			let markdown = `## System Prompt\n\n${params.systemPrompt}\n\n`
@@ -1724,7 +1478,7 @@ ${notice}`
 					}
 
 					await this.presentAssistantMessage().catch((error) =>
-						Logger.debug("[Task] Failed to present message: " + error),
+						Logger.debug(`[Task] Failed to present message: ${error}`),
 					)
 
 					if (this.taskState.abort) {
