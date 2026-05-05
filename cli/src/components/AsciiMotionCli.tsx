@@ -16,38 +16,41 @@ export type AsciiMotionCliProps = {
 	onReady?: (api: PlaybackAPI) => void;
 };
 
-const _DIRAC_COLORS = {
-	delta: '#E4E4E7',
-	dot: '#F59E0B',
-	line: '#F59E0B',
-	underline: '#3F3F46',
+// agent-kiki fork: replaced upstream Dirac delta logo with the
+// L'Electron Rare "ER" PCB-trace logo. Original asset:
+// /Users/electron/Business OS/logo ER.png — three letters E·r·R
+// with copper traces, pads, and through-holes, evoking a PCB.
+const _ER_COLORS = {
+	e: '#22D3EE',     // cyan — the "E" letter
+	r_lower: '#84CC16', // green — the small "r"
+	r_upper: '#EC4899', // magenta/pink — the "R" letter
+	pad: '#E4E4E7',
+	via: '#F59E0B',   // amber — the central yellow via
+	component: '#3F3F46',
 };
 
-// ASCII art Dirac logo
-const DIRAC_LOGO = [
-	"        █████████████        ",
-	"      ███          ▀▀██      ",
-	"    ██▀                      ",
-	"    ██▄                      ",
-	"      ▀██▄                   ",
-	"         ▀██▄                ",
-	"           ▀██▄              ",
-	"         ▄██▀ ▀██▄           ",
-	"      ▄██▀      ▀██▄         ",
-    "    ▄██▀          ▀██▄       ",
-	"  ▄██▀              ▀██▄     ",
-	"▄██▀                  ▀██▄   ",
-	"▀██▄                  ▄██▀   ",
-	"  ▀██▄              ▄██▀     ",
-	"    ▀██▄          ▄██▀       ",
-	"       ▀▀▀▀▀▀▀▀▀▀▀▀          "
+// ASCII art ER logo (E·r·R). Compact 12-line variant tuned for a
+// terminal width of ~30 cols. Glyphs: ● = pad/via, ┐┘ = corners,
+// ─│ = traces, [R1][C3][U2] = components.
+const ER_LOGO = [
+	" ●─────────●   ●        ●─────●",
+	" │ ┌──┐    │   │       ╱        ",
+	" │ │R1│ ●──┤   │   ●●●●         ",
+	" │ └──┘    │   │   ●  ●         ",
+	" ●────●    │   ●───●            ",
+	" │         │   │      ╲         ",
+	" │         │   │   r   ●        ",
+	" │ ┌──┐    │   │      ╱         ",
+	" │ │C3│ ●──┤   ●─────●           ",
+	" │ └──┘    │   │      ╲    [U2] ",
+	" ●─────────●   ●       ●────●   ",
 ];
 
 export const StaticRobotFrame: React.FC<{ hasDarkBackground?: boolean }> = () => {
 	return (
 		<Box flexDirection="column" marginBottom={1} marginTop={1}>
-			{DIRAC_LOGO.map((line, idx) => (
-				<Text color="#F59E0B" key={idx}>
+			{ER_LOGO.map((line, idx) => (
+				<Text color={_ER_COLORS.e} key={idx}>
 					{centerText(line)}
 				</Text>
 			))}
