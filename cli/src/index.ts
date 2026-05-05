@@ -127,6 +127,29 @@ program
 		return runKanbanAlias()
 	})
 
+// agent-kiki fork: trace rotation + listing CLI
+const traceCommand = program.command("trace").description("Manage agent-kiki run traces")
+
+traceCommand
+	.command("list")
+	.description("List run directories under .agent-kiki/runs/")
+	.option("-c, --cwd <path>", "Working directory")
+	.action(async (options) => {
+		const { runTraceList } = await import("./commands/trace")
+		return runTraceList(options)
+	})
+
+traceCommand
+	.command("prune")
+	.description("Prune old run traces (default: keep 30d or 1G, whichever is more permissive)")
+	.option("-c, --cwd <path>", "Working directory")
+	.option("--max-age <days>", "Maximum age in days", "30")
+	.option("--max-size <size>", "Maximum total size (e.g. 1G, 500M)", "1G")
+	.action(async (options) => {
+		const { runTracePrune } = await import("./commands/trace")
+		return runTracePrune(options)
+	})
+
 // Dev command with subcommands
 const devCommand = program.command("dev").description("Developer tools and utilities")
 

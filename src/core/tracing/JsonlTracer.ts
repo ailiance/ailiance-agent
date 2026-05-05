@@ -176,6 +176,19 @@ export class JsonlTracer {
 			} catch (_err) {
 				// Best-effort: tracing must never break a task.
 			}
+			// agent-kiki fork: best-effort trace rotation. Never blocks task
+			// start — failures are swallowed.
+			void this.maybePruneAsync()
+		}
+	}
+
+	private async maybePruneAsync(): Promise<void> {
+		try {
+			const { prune } = await import("./pruner.js")
+			const runsRoot = path.dirname(this.runDir)
+			await prune({ dir: runsRoot })
+		} catch {
+			// swallow — rotation is opportunistic
 		}
 	}
 
