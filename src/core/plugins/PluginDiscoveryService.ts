@@ -80,6 +80,77 @@ export class PluginDiscoveryService {
 	invalidate() {
 		this.cache = null
 	}
+
+	/**
+	 * Returns absolute paths to plugin skills directories.
+	 * If manifest.skills is declared, resolve each entry relative to rootDir.
+	 * Otherwise auto-discover <rootDir>/skills/ (Claude Code default).
+	 */
+	async getSkillsDirectories(): Promise<string[]> {
+		const plugins = await this.discover()
+		const dirs: string[] = []
+		for (const plugin of plugins) {
+			const declared = plugin.manifest.skills
+			if (Array.isArray(declared) && declared.length > 0) {
+				for (const entry of declared) {
+					const resolved = path.resolve(plugin.rootDir, entry)
+					dirs.push(resolved)
+				}
+			} else {
+				dirs.push(path.join(plugin.rootDir, "skills"))
+			}
+		}
+		return dirs
+	}
+
+	/**
+	 * Returns absolute paths to plugin commands directories.
+	 */
+	async getCommandsDirectories(): Promise<string[]> {
+		const plugins = await this.discover()
+		const dirs: string[] = []
+		for (const plugin of plugins) {
+			const declared = plugin.manifest.commands
+			if (Array.isArray(declared) && declared.length > 0) {
+				for (const entry of declared) {
+					dirs.push(path.resolve(plugin.rootDir, entry))
+				}
+			} else {
+				dirs.push(path.join(plugin.rootDir, "commands"))
+			}
+		}
+		return dirs
+	}
+
+	/**
+	 * Returns absolute paths to plugin agents directories.
+	 */
+	async getAgentsDirectories(): Promise<string[]> {
+		const plugins = await this.discover()
+		const dirs: string[] = []
+		for (const plugin of plugins) {
+			const declared = plugin.manifest.agents
+			if (Array.isArray(declared) && declared.length > 0) {
+				for (const entry of declared) {
+					dirs.push(path.resolve(plugin.rootDir, entry))
+				}
+			} else {
+				dirs.push(path.join(plugin.rootDir, "agents"))
+			}
+		}
+		return dirs
+	}
+
+	/**
+	 * Returns absolute paths to plugin CLAUDE.md files (if present).
+	 */
+	async getClaudeMdPaths(): Promise<{ pluginName: string; mdPath: string }[]> {
+		const plugins = await this.discover()
+		return plugins.map((p) => ({
+			pluginName: p.manifest.name,
+			mdPath: path.join(p.rootDir, "CLAUDE.md"),
+		}))
+	}
 }
 
 export const pluginDiscoveryService = new PluginDiscoveryService()
