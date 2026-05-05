@@ -1,44 +1,28 @@
-import { ApiConfiguration, getModelInfo, ModelInfo, openAiModelInfoSaneDefaults, QwenApiRegions } from "@shared/api"
+import { ApiConfiguration, ModelInfo, QwenApiRegions } from "@shared/api"
 import { Mode } from "@shared/storage/types"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 import { DiracTool } from "@/shared/tools"
 import { AIhubmixHandler } from "./providers/aihubmix"
 import { AnthropicHandler } from "./providers/anthropic"
-import { BasetenHandler } from "./providers/baseten"
 import { AwsBedrockHandler } from "./providers/bedrock"
 import { CerebrasHandler } from "./providers/cerebras"
 import { ClaudeCodeHandler } from "./providers/claude-code"
 import { DeepSeekHandler } from "./providers/deepseek"
-import { DifyHandler } from "./providers/dify"
 import { DoubaoHandler } from "./providers/doubao"
-import { FireworksHandler } from "./providers/fireworks"
 import { GeminiHandler } from "./providers/gemini"
 import { GithubCopilotHandler } from "./providers/github-copilot"
-import { GroqHandler } from "./providers/groq"
-import { HuaweiCloudMaaSHandler } from "./providers/huawei-cloud-maas"
-import { HuggingFaceHandler } from "./providers/huggingface"
-import { LiteLlmHandler } from "./providers/litellm"
-import { LmStudioHandler } from "./providers/lmstudio"
 import { MinimaxHandler } from "./providers/minimax"
 import { MistralHandler } from "./providers/mistral"
 import { MoonshotHandler } from "./providers/moonshot"
 import { NebiusHandler } from "./providers/nebius"
-import { NousResearchHandler } from "./providers/nousresearch"
-import { OpenAiHandler } from "./providers/openai"
 import { OpenAiCodexHandler } from "./providers/openai-codex"
 import { OpenAiNativeHandler } from "./providers/openai-native"
-import { OpenAiResponsesCompatibleHandler } from "./providers/openai-responses-compatible"
-import { OpenRouterHandler } from "./providers/openrouter"
 import { QwenHandler } from "./providers/qwen"
 import { QwenCodeHandler } from "./providers/qwen-code"
 import { resolveProvider } from "./providers/registry"
-import { RequestyHandler } from "./providers/requesty"
 import { SambanovaHandler } from "./providers/sambanova"
-import { TogetherHandler } from "./providers/together"
-import { VercelAIGatewayHandler } from "./providers/vercel-ai-gateway"
 import { VertexHandler } from "./providers/vertex"
-import { VsCodeLmHandler } from "./providers/vscode-lm"
 import { WandbHandler } from "./providers/wandb"
 import { XAIHandler } from "./providers/xai"
 import { ZAiHandler } from "./providers/zai"
@@ -94,18 +78,6 @@ function createHandlerForProvider(
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
 				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
 			})
-		case "openrouter":
-			return new OpenRouterHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				openRouterApiKey: options.openRouterApiKey,
-				openRouterModelId: mode === "plan" ? options.planModeOpenRouterModelId : options.actModeOpenRouterModelId,
-				openRouterModelInfo: mode === "plan" ? options.planModeOpenRouterModelInfo : options.actModeOpenRouterModelInfo,
-				openRouterProviderSorting: options.openRouterProviderSorting,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-				enableParallelToolCalling: options.enableParallelToolCalling,
-			})
 		case "bedrock":
 			return new AwsBedrockHandler({
 				onRetryAttempt: options.onRetryAttempt,
@@ -142,61 +114,6 @@ function createHandlerForProvider(
 				geminiBaseUrl: options.geminiBaseUrl,
 				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
 				ulid: options.ulid,
-			})
-		case "openai": {
-			const openAiModelId = mode === "plan" ? options.planModeOpenAiModelId : options.actModeOpenAiModelId
-			let openAiModelInfo = mode === "plan" ? options.planModeOpenAiModelInfo : options.actModeOpenAiModelInfo
-
-			if (!openAiModelInfo && openAiModelId) {
-				openAiModelInfo = getModelInfo(openAiModelId)
-			}
-
-			const isCustomUrl = options.openAiBaseUrl && options.openAiBaseUrl.startsWith("http")
-			if (options.openAiCompatibleCustomApiKey || isCustomUrl) {
-				openAiModelInfo = {
-					...(openAiModelInfo || openAiModelInfoSaneDefaults),
-					supportsTools: true,
-					supportsReasoning: true,
-					isR1FormatRequired: true,
-				}
-			}
-
-			const apiKey = options.openAiCompatibleCustomApiKey || options.openAiApiKey
-			if (apiKey) {
-				const maskedKey = `${apiKey.slice(0, 4)}****${apiKey.slice(-4)}`
-				Logger.info(
-					`Using OpenAI API key: ${maskedKey} (from ${options.openAiCompatibleCustomApiKey ? "custom key" : "standard key"})`,
-				)
-			}
-			if (options.openAiBaseUrl?.replace(/\/+$/, "").endsWith("/responses")) {
-				const normalizedBaseUrl = options.openAiBaseUrl.replace(/\/responses\/?$/, "")
-				return new OpenAiResponsesCompatibleHandler({
-					onRetryAttempt: options.onRetryAttempt,
-					openAiApiKey: apiKey,
-					openAiBaseUrl: normalizedBaseUrl,
-					openAiModelId,
-					openAiModelInfo,
-					reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-				})
-			}
-
-			return new OpenAiHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				openAiApiKey: apiKey,
-				openAiBaseUrl: options.openAiBaseUrl,
-				azureApiVersion: options.azureApiVersion,
-				openAiHeaders: options.openAiHeaders,
-				openAiModelId,
-				openAiModelInfo,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-			})
-		}
-		case "lmstudio":
-			return new LmStudioHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				lmStudioBaseUrl: options.lmStudioBaseUrl,
-				lmStudioModelId: mode === "plan" ? options.planModeLmStudioModelId : options.actModeLmStudioModelId,
-				lmStudioMaxTokens: options.lmStudioMaxTokens,
 			})
 		case "gemini":
 			return new GeminiHandler({
@@ -236,29 +153,6 @@ function createHandlerForProvider(
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
-		case "requesty":
-			return new RequestyHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				requestyBaseUrl: options.requestyBaseUrl,
-				requestyApiKey: options.requestyApiKey,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-				requestyModelId: mode === "plan" ? options.planModeRequestyModelId : options.actModeRequestyModelId,
-				requestyModelInfo: mode === "plan" ? options.planModeRequestyModelInfo : options.actModeRequestyModelInfo,
-			})
-		case "fireworks":
-			return new FireworksHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				fireworksApiKey: options.fireworksApiKey,
-				fireworksModelId: mode === "plan" ? options.planModeFireworksModelId : options.actModeFireworksModelId,
-			})
-		case "together":
-			return new TogetherHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				togetherApiKey: options.togetherApiKey,
-				togetherModelId: mode === "plan" ? options.planModeTogetherModelId : options.actModeTogetherModelId,
-			})
 		case "qwen":
 			return new QwenHandler({
 				onRetryAttempt: options.onRetryAttempt,
@@ -287,28 +181,10 @@ function createHandlerForProvider(
 				mistralApiKey: options.mistralApiKey,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
-		case "vscode-lm":
-			return new VsCodeLmHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				vsCodeLmModelSelector:
-					mode === "plan" ? options.planModeVsCodeLmModelSelector : options.actModeVsCodeLmModelSelector,
-			})
 		case "github-copilot":
 			return new GithubCopilotHandler({
 				onRetryAttempt: options.onRetryAttempt,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-			})
-		case "litellm":
-			return new LiteLlmHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				liteLlmApiKey: options.liteLlmApiKey,
-				liteLlmBaseUrl: options.liteLlmBaseUrl,
-				liteLlmModelId: mode === "plan" ? options.planModeLiteLlmModelId : options.actModeLiteLlmModelId,
-				liteLlmModelInfo: mode === "plan" ? options.planModeLiteLlmModelInfo : options.actModeLiteLlmModelInfo,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-				liteLlmUsePromptCache: options.liteLlmUsePromptCache,
-				ulid: options.ulid,
 			})
 		case "moonshot":
 			return new MoonshotHandler({
@@ -316,14 +192,6 @@ function createHandlerForProvider(
 				moonshotApiKey: options.moonshotApiKey,
 				moonshotApiLine: options.moonshotApiLine,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-			})
-		case "huggingface":
-			return new HuggingFaceHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				huggingFaceApiKey: options.huggingFaceApiKey,
-				huggingFaceModelId: mode === "plan" ? options.planModeHuggingFaceModelId : options.actModeHuggingFaceModelId,
-				huggingFaceModelInfo:
-					mode === "plan" ? options.planModeHuggingFaceModelInfo : options.actModeHuggingFaceModelInfo,
 			})
 		case "nebius":
 			return new NebiusHandler({
@@ -350,53 +218,11 @@ function createHandlerForProvider(
 				cerebrasApiKey: options.cerebrasApiKey,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
-		case "groq":
-			return new GroqHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				groqApiKey: options.groqApiKey,
-				groqModelId: mode === "plan" ? options.planModeGroqModelId : options.actModeGroqModelId,
-				groqModelInfo: mode === "plan" ? options.planModeGroqModelInfo : options.actModeGroqModelInfo,
-				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-			})
-		case "baseten":
-			return new BasetenHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				basetenApiKey: options.basetenApiKey,
-				basetenModelId: mode === "plan" ? options.planModeBasetenModelId : options.actModeBasetenModelId,
-				basetenModelInfo: mode === "plan" ? options.planModeBasetenModelInfo : options.actModeBasetenModelInfo,
-				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-			})
 		case "claude-code":
 			return new ClaudeCodeHandler({
 				onRetryAttempt: options.onRetryAttempt,
 				claudeCodePath: options.claudeCodePath,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-			})
-		case "huawei-cloud-maas":
-			return new HuaweiCloudMaaSHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				huaweiCloudMaasApiKey: options.huaweiCloudMaasApiKey,
-				huaweiCloudMaasModelId:
-					mode === "plan" ? options.planModeHuaweiCloudMaasModelId : options.actModeHuaweiCloudMaasModelId,
-				huaweiCloudMaasModelInfo:
-					mode === "plan" ? options.planModeHuaweiCloudMaasModelInfo : options.actModeHuaweiCloudMaasModelInfo,
-			})
-		case "dify": // Add Dify.ai handler
-			return new DifyHandler({
-				difyApiKey: options.difyApiKey,
-				difyBaseUrl: options.difyBaseUrl,
-			})
-		case "vercel-ai-gateway":
-			return new VercelAIGatewayHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				vercelAiGatewayApiKey: options.vercelAiGatewayApiKey,
-				openRouterModelId:
-					mode === "plan" ? options.planModeVercelAiGatewayModelId : options.actModeVercelAiGatewayModelId,
-				openRouterModelInfo:
-					mode === "plan" ? options.planModeVercelAiGatewayModelInfo : options.actModeVercelAiGatewayModelInfo,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
 				thinkingBudgetTokens:
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
 			})
@@ -427,12 +253,6 @@ function createHandlerForProvider(
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 				thinkingBudgetTokens:
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-			})
-		case "nousResearch":
-			return new NousResearchHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				nousResearchApiKey: options.nousResearchApiKey,
-				apiModelId: mode === "plan" ? options.planModeNousResearchModelId : options.actModeNousResearchModelId,
 			})
 		case "wandb":
 			return new WandbHandler({
