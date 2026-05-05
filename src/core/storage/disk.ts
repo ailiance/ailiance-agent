@@ -180,7 +180,6 @@ function getAiSkillsDirectoryPath(): string {
 	return path.join(os.homedir(), ".ai", "skills")
 }
 
-
 /**
  * Returns the global agent skills directory path (~/.agents/skills).
  * Creates the directory if it doesn't exist.

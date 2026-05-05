@@ -14,6 +14,7 @@ import { DifyHandler } from "./providers/dify"
 import { DoubaoHandler } from "./providers/doubao"
 import { FireworksHandler } from "./providers/fireworks"
 import { GeminiHandler } from "./providers/gemini"
+import { GithubCopilotHandler } from "./providers/github-copilot"
 import { GroqHandler } from "./providers/groq"
 import { HuaweiCloudMaaSHandler } from "./providers/huawei-cloud-maas"
 import { HuggingFaceHandler } from "./providers/huggingface"
@@ -37,7 +38,6 @@ import { TogetherHandler } from "./providers/together"
 import { VercelAIGatewayHandler } from "./providers/vercel-ai-gateway"
 import { VertexHandler } from "./providers/vertex"
 import { VsCodeLmHandler } from "./providers/vscode-lm"
-import { GithubCopilotHandler } from "./providers/github-copilot"
 import { WandbHandler } from "./providers/wandb"
 import { XAIHandler } from "./providers/xai"
 import { ZAiHandler } from "./providers/zai"
@@ -133,7 +133,6 @@ function createHandlerForProvider(
 				geminiBaseUrl: options.geminiBaseUrl,
 				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
 				ulid: options.ulid,
-
 			})
 		case "openai": {
 			const openAiModelId = mode === "plan" ? options.planModeOpenAiModelId : options.actModeOpenAiModelId
@@ -156,7 +155,9 @@ function createHandlerForProvider(
 			const apiKey = options.openAiCompatibleCustomApiKey || options.openAiApiKey
 			if (apiKey) {
 				const maskedKey = `${apiKey.slice(0, 4)}****${apiKey.slice(-4)}`
-				Logger.info(`Using OpenAI API key: ${maskedKey} (from ${options.openAiCompatibleCustomApiKey ? "custom key" : "standard key"})`)
+				Logger.info(
+					`Using OpenAI API key: ${maskedKey} (from ${options.openAiCompatibleCustomApiKey ? "custom key" : "standard key"})`,
+				)
 			}
 			if (options.openAiBaseUrl?.replace(/\/+$/, "").endsWith("/responses")) {
 				const normalizedBaseUrl = options.openAiBaseUrl.replace(/\/responses\/?$/, "")
@@ -201,7 +202,6 @@ function createHandlerForProvider(
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 				ulid: options.ulid,
 				geminiSearchEnabled: options.geminiSearchEnabled,
-
 			})
 		case "openai-native":
 			return new OpenAiNativeHandler({

@@ -14,12 +14,12 @@ import {
 	getAllHooksDirs,
 	getTaskHistoryStateFilePath,
 	getWorkspaceHooksDirs,
+	readRemoteConfigFromCache,
 	readTaskHistoryFromState,
 	saveTaskMetadata,
 	setRuntimeHooksDir,
-	writeTaskHistoryToState,
 	writeRemoteConfigToCache,
-	readRemoteConfigFromCache,
+	writeTaskHistoryToState,
 } from "../disk"
 import { StateManager } from "../StateManager"
 
@@ -658,10 +658,7 @@ describe("disk - atomic write regression", () => {
 	let testGlobalStorageDir: string
 
 	before(async () => {
-		testGlobalStorageDir = path.join(
-			os.tmpdir(),
-			`dirac-regression-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-		)
+		testGlobalStorageDir = path.join(os.tmpdir(), `dirac-regression-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 		await fs.mkdir(testGlobalStorageDir, { recursive: true })
 		setVscodeHostProviderMock({ globalStorageFsPath: testGlobalStorageDir })
 	})
