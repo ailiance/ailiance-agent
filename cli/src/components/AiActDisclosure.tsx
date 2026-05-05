@@ -4,7 +4,6 @@
  */
 
 import { Box, Text, useInput } from "ink"
-import React from "react"
 import type { FunctionComponent } from "react"
 
 interface AiActDisclosureProps {

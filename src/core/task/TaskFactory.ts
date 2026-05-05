@@ -9,32 +9,32 @@
  *   - buildTaskManagers: Phase C — all internal manager objects
  */
 
-import { buildApiHandler } from "@core/api"
 import type { ApiHandler } from "@core/api"
+import { buildApiHandler } from "@core/api"
+import type { Controller } from "@core/controller"
 import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
 import { CommandPermissionController } from "@core/permissions"
 import type { StateManager } from "@core/storage/StateManager"
+import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import type { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
+import { HostProvider } from "@hosts/host-provider"
 import { buildCheckpointManager, shouldUseMultiRoot } from "@integrations/checkpoints/factory"
 import type { ICheckpointManager } from "@integrations/checkpoints/types"
 import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
-import {
-	type CommandExecutorCallbacks,
-	CommandExecutor,
-	type FullCommandExecutorConfig,
-} from "@integrations/terminal"
+import { CommandExecutor, type CommandExecutorCallbacks, type FullCommandExecutorConfig } from "@integrations/terminal"
 import type { ITerminalManager } from "@integrations/terminal/types"
 import type { BrowserSession } from "@services/browser/BrowserSession"
 import type { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
-import { findLastIndex } from "@shared/array"
+import { telemetryService } from "@services/telemetry"
 import type { ApiConfiguration } from "@shared/api"
-import type { DiracAsk, DiracApiReqInfo } from "@shared/ExtensionMessage"
+import { findLastIndex } from "@shared/array"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
+import type { DiracApiReqInfo, DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
+import type { DiracContent, DiracTextContentBlock } from "@shared/messages/content"
 import { ShowMessageType } from "@shared/proto/index.host"
 import { Logger } from "@shared/services/Logger"
-import { telemetryService } from "@services/telemetry"
-import { HostProvider } from "@hosts/host-provider"
-
+import type { DiracAskResponse } from "@shared/WebviewMessage"
 import { ApiConversationManager } from "./ApiConversationManager"
 import { ContextLoader } from "./ContextLoader"
 import { EnvironmentManager } from "./EnvironmentManager"
@@ -47,12 +47,6 @@ import { TaskMessenger } from "./TaskMessenger"
 import type { TaskState } from "./TaskState"
 import { ToolExecutor } from "./ToolExecutor"
 import { extractProviderDomainFromUrl } from "./utils"
-import type { Controller } from "@core/controller"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
-import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
-import type { DiracContent, DiracTextContentBlock } from "@shared/messages/content"
-import type { DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
-import type { DiracAskResponse } from "@shared/WebviewMessage"
 
 // ---------------------------------------------------------------------------
 // Phase B: service construction
@@ -84,7 +78,19 @@ export interface TaskServiceInputs {
 	controller: Controller
 	// say/ask binds from the Task instance
 	say: (type: DiracSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
-	ask: (type: DiracAsk, text?: string, partial?: boolean, multiCommandState?: MultiCommandState) => Promise<{ response: DiracAskResponse; text?: string; images?: string[]; files?: string[]; askTs?: number; userEdits?: Record<string, string> }>
+	ask: (
+		type: DiracAsk,
+		text?: string,
+		partial?: boolean,
+		multiCommandState?: MultiCommandState,
+	) => Promise<{
+		response: DiracAskResponse
+		text?: string
+		images?: string[]
+		files?: string[]
+		askTs?: number
+		userEdits?: Record<string, string>
+	}>
 }
 
 export interface TaskServices {
@@ -196,9 +202,7 @@ export function buildTaskServices(inputs: TaskServiceInputs): TaskServices {
 						partial: true,
 						text: JSON.stringify(currentApiReqInfo),
 					})
-					await postStateToWebview().catch((e) =>
-						Logger.error("Error posting state to webview in onRetryAttempt:", e),
-					)
+					await postStateToWebview().catch((e) => Logger.error("Error posting state to webview in onRetryAttempt:", e))
 				} catch (e) {
 					Logger.error(`[Task ${taskId}] Error updating api_req_started with retryStatus:`, e)
 				}
@@ -245,8 +249,7 @@ export function buildTaskServices(inputs: TaskServiceInputs): TaskServices {
 				askTs: result.askTs,
 			}
 		},
-		updateBackgroundCommandState: (isRunning: boolean) =>
-			controller.updateBackgroundCommandState(isRunning, taskId),
+		updateBackgroundCommandState: (isRunning: boolean) => controller.updateBackgroundCommandState(isRunning, taskId),
 		updateDiracMessage: async (index: number, updates: { commandCompleted?: boolean; text?: string }) => {
 			await messageStateHandler.updateDiracMessage(index, updates)
 			await postStateToWebview()
@@ -297,17 +300,40 @@ export interface TaskManagerInputs {
 	postStateToWebview: () => Promise<void>
 	// Task instance binds
 	say: (type: DiracSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
-	ask: (type: DiracAsk, text?: string, partial?: boolean, multiCommandState?: MultiCommandState) => Promise<{ response: DiracAskResponse; text?: string; images?: string[]; files?: string[]; askTs?: number; userEdits?: Record<string, string> }>
+	ask: (
+		type: DiracAsk,
+		text?: string,
+		partial?: boolean,
+		multiCommandState?: MultiCommandState,
+	) => Promise<{
+		response: DiracAskResponse
+		text?: string
+		images?: string[]
+		files?: string[]
+		askTs?: number
+		userEdits?: Record<string, string>
+	}>
 	saveCheckpointCallback: () => Promise<void>
-	sayAndCreateMissingParamError: (toolName: import("@shared/tools").DiracDefaultTool, paramName: string, relPath?: string) => Promise<string>
-	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: import("@shared/ExtensionMessage").DiracAsk | DiracSay, onlyPartial?: boolean) => Promise<void>
+	sayAndCreateMissingParamError: (
+		toolName: import("@shared/tools").DiracDefaultTool,
+		paramName: string,
+		relPath?: string,
+	) => Promise<string>
+	removeLastPartialMessageIfExistsWithType: (
+		type: "ask" | "say",
+		askOrSay: import("@shared/ExtensionMessage").DiracAsk | DiracSay,
+		onlyPartial?: boolean,
+	) => Promise<void>
 	executeCommandTool: (...args: any[]) => Promise<any>
 	cancelBackgroundCommand: () => Promise<boolean>
 	switchToActModeCallback: () => Promise<boolean>
 	setActiveHookExecution: (hookExecution: NonNullable<TaskState["activeHookExecution"]>) => Promise<void>
 	clearActiveHookExecution: () => Promise<void>
 	getActiveHookExecution: () => Promise<TaskState["activeHookExecution"]>
-	runUserPromptSubmitHook: (userContent: DiracContent[], context: "initial_task" | "resume" | "feedback") => Promise<{ cancel?: boolean; wasCancelled?: boolean; contextModification?: string; errorMessage?: string }>
+	runUserPromptSubmitHook: (
+		userContent: DiracContent[],
+		context: "initial_task" | "resume" | "feedback",
+	) => Promise<{ cancel?: boolean; wasCancelled?: boolean; contextModification?: string; errorMessage?: string }>
 	initiateTaskLoop: (userContent: DiracContent[]) => Promise<void>
 	getCurrentProviderInfo: () => ReturnType<import("./index").Task["getCurrentProviderInfo"]>
 	getEnvironmentDetails: (includeFileDetails?: boolean) => Promise<string>
