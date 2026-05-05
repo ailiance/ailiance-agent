@@ -13,11 +13,20 @@ This is an early fork release. Known limitations:
 - **Backend**: defaults to the eu-kiki gateway at `http://studio:9300/v1`
   (Tailscale-private). Override with `AGENT_KIKI_GATEWAY=<url>` or `--baseurl`.
   The trailing `/v1` is required: eu-kiki exposes `/v1/chat/completions`.
-- **Apertus 70B base without LoRA**: the planner currently runs without
-  domain-specific LoRA adapters loaded (eu-kiki adapter wrap pending). The
-  base model is less reliable for Dirac-format tool calls. Tasks may fail
-  with `Too many consecutive mistakes`. For coding tasks, prefer
-  `--model eu-kiki-devstral` (Devstral 24B is code-tuned).
+- **eu-kiki backend lacks native function-calling (V0)**: the eu-kiki
+  workers are text-completion-only — they accept the OpenAI `tools` field
+  but ignore it and respond with `content` rather than structured
+  `tool_calls`. Dirac requires native tool-calling responses, so tasks
+  against the default eu-kiki backend currently abort with `Too many
+  consecutive mistakes (5)`. For productive sessions today, override the
+  provider via env (`OPENAI_API_BASE` / `ANTHROPIC_API_KEY`) to a backend
+  that supports OpenAI native function-calling. Tracking V1 work to add
+  function-calling support to eu-kiki workers.
+- **eu-kiki LoRA adapters**: as of v0.1.0 the worker wraps the base model
+  with `linear_to_lora_layers` and loads adapter weights via
+  `strict=False` (commit `eu-kiki:1ed24b8`). Domain-specific LoRA is
+  active when the `X-Lora-Domain` header is set. Adapter wrap inferred
+  from safetensors shape (rank, num_layers, target keys).
 - **Telemetry**: upstream Dirac sends usage events to dirac.run / PostHog.
   This fork **disables** all telemetry. No data leaves the host.
 - **Sentinel apiKey**: when no provider is configured, the fork persists
