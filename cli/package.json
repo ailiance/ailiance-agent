@@ -3,8 +3,7 @@
 	"version": "0.1.0",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to eu-kiki LLM gateway by default",
 	"files": [
-		"dist",
-		"man"
+		"dist"
 	],
 	"main": "dist/lib.mjs",
 	"types": "dist/lib.d.ts",
@@ -29,7 +28,6 @@
 		"x64",
 		"arm64"
 	],
-	"man": "./man/dirac.1",
 	"type": "module",
 	"engines": {
 		"node": ">=20.0.0 <25.0.0"
@@ -51,6 +49,8 @@
 		"test:run": "vitest run"
 	},
 	"keywords": [
+		"agent-kiki",
+		"eu-kiki",
 		"dirac",
 		"claude",
 		"dev",
@@ -65,7 +65,7 @@
 		"cli"
 	],
 	"author": {
-		"name": "Dirac Delta Labs"
+		"name": "L'Electron Rare"
 	},
 	"license": "Apache-2.0",
 	"repository": {

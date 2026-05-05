@@ -12,7 +12,7 @@
 		"vscode": "^1.84.0"
 	},
 	"author": {
-		"name": "Dirac Delta Labs"
+		"name": "L'Electron Rare"
 	},
 	"license": "Apache-2.0",
 	"publisher": "l-electron-rare",
@@ -34,6 +34,8 @@
 		"ast-precision",
 		"multi-file-edits",
 		"high-bandwidth",
+		"agent-kiki",
+		"eu-kiki",
 		"dirac",
 		"ast",
 		"hash-anchor",
@@ -57,7 +59,7 @@
 	"contributes": {
 		"icons": {
 			"dirac-icon": {
-				"description": "dirac",
+				"description": "agent-kiki",
 				"default": {
 					"fontPath": "node_modules/@vscode/codicons/dist/codicon.ttf",
 					"fontCharacter": "\\e900"
@@ -67,13 +69,13 @@
 		"walkthroughs": [
 			{
 				"id": "DiracWalkthrough",
-				"title": "Dirac, the most token efficient and accurate AI Agent",
-				"description": "Dirac improves the dev speed and accuracy while consuming 50-80% less tokens compared to other agents.",
+				"title": "agent-kiki, the EU-sovereign autonomous coding agent",
+				"description": "agent-kiki is a Dirac fork routed to the eu-kiki LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
 				"steps": [
 					{
 						"id": "hash-anchored-edits",
 						"title": "Hash Anchored MultiFile Edits",
-						"description": "Dirac targets line hashes for high-accuracy edits, batching multiple changes across files in a single shot.",
+						"description": "agent-kiki targets line hashes for high-accuracy edits, batching multiple changes across files in a single shot.",
 						"media": {
 							"markdown": "walkthrough/step1.md"
 						}
@@ -81,7 +83,7 @@
 					{
 						"id": "ast-precision",
 						"title": "AST Precision",
-						"description": "Dirac understands language syntax directly, allowing for precise structural manipulations like function extraction or replacement.",
+						"description": "agent-kiki understands language syntax directly, allowing for precise structural manipulations like function extraction or replacement.",
 						"media": {
 							"markdown": "walkthrough/step2.md"
 						}
@@ -89,7 +91,7 @@
 					{
 						"id": "minimal-roundtrips",
 						"title": "Minimal Roundtrips",
-						"description": "Dirac processes multiple files and runs parallel commands to minimize latency and API costs.",
+						"description": "agent-kiki processes multiple files and runs parallel commands to minimize latency and API costs.",
 						"media": {
 							"markdown": "walkthrough/step3.md"
 						}
@@ -97,7 +99,7 @@
 					{
 						"id": "speed-and-performance",
 						"title": "Speed and Performance",
-						"description": "Context curation optimizations keep Dirac lean and fast, significantly improving LLM performance.",
+						"description": "Context curation optimizations keep agent-kiki lean and fast, significantly improving LLM performance.",
 						"media": {
 							"markdown": "walkthrough/step4.md"
 						},
@@ -112,7 +114,7 @@
 			"activitybar": [
 				{
 					"id": "dirac-ActivityBar",
-					"title": "Dirac",
+					"title": "agent-kiki",
 					"icon": "assets/icons/icon.svg"
 				}
 			]
@@ -146,84 +148,84 @@
 			{
 				"command": "dirac.dev.createTestTasks",
 				"title": "Create Test Tasks",
-				"category": "Dirac",
+				"category": "agent-kiki",
 				"when": "dirac.isDevMode"
 			},
 			{
 				"command": "dirac.addToChat",
-				"title": "Add to Dirac",
-				"category": "Dirac"
+				"title": "Add to agent-kiki",
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.addTerminalOutputToChat",
-				"title": "Add to Dirac",
-				"category": "Dirac"
+				"title": "Add to agent-kiki",
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.focusChatInput",
 				"title": "Jump to Chat Input",
-				"category": "Dirac"
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.generateGitCommitMessage",
-				"title": "Generate Commit Message with Dirac",
-				"category": "Dirac",
+				"title": "Generate Commit Message with agent-kiki",
+				"category": "agent-kiki",
 				"icon": "$(dirac-icon)"
 			},
 			{
 				"command": "dirac.abortGitCommitMessage",
-				"title": "Generate Commit Message with Dirac - Stop",
-				"category": "Dirac",
+				"title": "Generate Commit Message with agent-kiki - Stop",
+				"category": "agent-kiki",
 				"icon": "$(debug-stop)"
 			},
 			{
 				"command": "dirac.explainCode",
-				"title": "Explain with Dirac",
-				"category": "Dirac"
+				"title": "Explain with agent-kiki",
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.improveCode",
-				"title": "Improve with Dirac",
-				"category": "Dirac"
+				"title": "Improve with agent-kiki",
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.jupyterGenerateCell",
-				"title": "Generate Jupyter Cell with Dirac",
-				"category": "Dirac",
+				"title": "Generate Jupyter Cell with agent-kiki",
+				"category": "agent-kiki",
 				"icon": "$(sparkle)"
 			},
 			{
 				"command": "dirac.jupyterExplainCell",
-				"title": "Explain Jupyter Cell with Dirac",
-				"category": "Dirac",
+				"title": "Explain Jupyter Cell with agent-kiki",
+				"category": "agent-kiki",
 				"icon": "$(question)"
 			},
 			{
 				"command": "dirac.jupyterImproveCell",
-				"title": "Improve Jupyter Cell with Dirac",
-				"category": "Dirac",
+				"title": "Improve Jupyter Cell with agent-kiki",
+				"category": "agent-kiki",
 				"icon": "$(lightbulb)"
 			},
 			{
 				"command": "dirac.openWalkthrough",
 				"title": "Open Walkthrough",
-				"category": "Dirac"
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.reconstructTaskHistory",
 				"title": "Reconstruct Task History",
-				"category": "Dirac"
+				"category": "agent-kiki"
 			},
 			{
 				"command": "dirac.reviewComment.reply",
 				"title": "Reply",
-				"category": "Dirac",
+				"category": "agent-kiki",
 				"enablement": "!commentIsEmpty"
 			},
 			{
 				"command": "dirac.reviewComment.addToChat",
-				"title": "Add to Dirac Chat",
-				"category": "Dirac",
+				"title": "Add to agent-kiki Chat",
+				"category": "agent-kiki",
 				"icon": "$(link-external)"
 			},
 			{
@@ -378,7 +380,7 @@
 			]
 		},
 		"configuration": {
-			"title": "Dirac",
+			"title": "agent-kiki",
 			"properties": {}
 		}
 	},
