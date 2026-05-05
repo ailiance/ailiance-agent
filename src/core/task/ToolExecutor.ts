@@ -13,15 +13,15 @@ import { DiracContent } from "@shared/messages/content"
 import { DiracDefaultTool, toolUseNames } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
+// agent-kiki fork: source the version from package.json so trace meta and
+// the package binary never drift apart at release time.
+import { version as AGENT_KIKI_VERSION } from "../../../package.json"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
 // agent-kiki fork: tracing hook
 import { JsonlTracer } from "../tracing"
-// agent-kiki fork: source the version from package.json so trace meta and
-// the package binary never drift apart at release time.
-import { version as AGENT_KIKI_VERSION } from "../../../package.json"
 import { WorkspaceRootManager } from "../workspace"
 import { ToolResponse } from "."
 import { MessageStateHandler } from "./message-state"
@@ -107,7 +107,6 @@ export class ToolExecutor {
 			files?: string[]
 			askTs?: number
 			userEdits?: Record<string, string>
-
 		}>,
 		private saveCheckpoint: (isAttemptCompletionMessage?: boolean, completionMessageTs?: number) => Promise<void>,
 		private sayAndCreateMissingParamError: (toolName: DiracDefaultTool, paramName: string, relPath?: string) => Promise<any>,
@@ -152,13 +151,10 @@ export class ToolExecutor {
 		try {
 			const apiConfig = this.stateManager.getApiConfiguration() as Record<string, unknown>
 			const mode = (this.stateManager.getGlobalSettingsKey("mode") as string) || "act"
-			const providerId =
-				(mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) ?? "unknown"
+			const providerId = (mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider) ?? "unknown"
 			const modelInfo = this.api.getModel?.() as { id?: string } | undefined
 			const gatewayUrl =
-				(apiConfig.openAiBaseUrl as string | undefined) ||
-				(apiConfig.liteLlmBaseUrl as string | undefined) ||
-				""
+				(apiConfig.openAiBaseUrl as string | undefined) || (apiConfig.liteLlmBaseUrl as string | undefined) || ""
 			const yolo = this.stateManager.getGlobalSettingsKey("yoloModeToggled")
 			this.tracer.writeMeta({
 				task: this.taskId,
@@ -767,6 +763,5 @@ export class ToolExecutor {
 		if (shouldCancelAfterHook) {
 			return
 		}
-
 	}
 }

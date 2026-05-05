@@ -1,10 +1,10 @@
 import { DiracToolSet } from "@core/prompts/system-prompt"
 import type { DiracToolSpec } from "@core/prompts/system-prompt/spec"
 import type { ToolExecutor } from "@core/task/ToolExecutor"
-import { DiracDefaultTool } from "@/shared/tools"
 import { Logger } from "@/shared/services/Logger"
-import { McpToolHandler } from "./McpToolHandler"
+import { DiracDefaultTool } from "@/shared/tools"
 import { mcpClientManager } from "./McpClientManager"
+import { McpToolHandler } from "./McpToolHandler"
 import type { McpToolMetadata } from "./types"
 
 /**
@@ -31,9 +31,7 @@ function mapJsonSchemaType(type: unknown): "string" | "boolean" | "integer" | "a
  * Converts a flat JSON Schema (top-level properties only) to DiracToolSpec parameters.
  * Nested objects are preserved via the `properties` field but not recursed.
  */
-export function convertJsonSchemaToParams(
-	inputSchema: object,
-): NonNullable<DiracToolSpec["parameters"]> {
+export function convertJsonSchemaToParams(inputSchema: object): NonNullable<DiracToolSpec["parameters"]> {
 	const schema = inputSchema as {
 		properties?: Record<string, { type?: unknown; description?: string; items?: unknown; properties?: unknown }>
 		required?: string[]
