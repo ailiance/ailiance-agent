@@ -431,7 +431,14 @@ function createHandlerForProvider(
 				wandbApiKey: options.wandbApiKey,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
-		default:
+		default: {
+			Logger.warn(
+				`[buildApiHandler] Unknown apiProvider="${apiProvider}", ` +
+					`falling back to Anthropic. This is likely a config bug.`,
+			)
+			if (process.env.AKI_STRICT_PROVIDER === "1") {
+				throw new Error(`Unknown apiProvider: ${apiProvider}`)
+			}
 			return new AnthropicHandler({
 				onRetryAttempt: options.onRetryAttempt,
 				apiKey: options.apiKey,
@@ -440,6 +447,7 @@ function createHandlerForProvider(
 				thinkingBudgetTokens:
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
 			})
+		}
 	}
 }
 
