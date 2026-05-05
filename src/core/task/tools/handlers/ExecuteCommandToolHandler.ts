@@ -11,6 +11,8 @@ import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { isSafeCommand } from "../utils/CommandSafetyChecker"
+// agent-kiki fork: hard-deny zone gate
+import { classifyCommand, HARD_DENY_EXIT_CODE } from "@core/safety/zoneClassifier"
 import { applyModelContentFixes } from "../utils/ModelContentProcessor"
 import { truncateHeadTail } from "@/shared/content-limits"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
@@ -360,6 +362,20 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 					})
 					executionDir = adapter.resolvePath(".", workspaceHint)
 				}
+			}
+
+			// agent-kiki fork: hard-deny zone gate — refuse destructive
+			// commands BEFORE any approval flow, even under --yolo. Mirrors
+			// the Python contract (exit_code=8, error surfaced to model).
+			const zone = classifyCommand(actualCommand)
+			if (zone === "hard_deny") {
+				const errorMessage = `Command "${actualCommand}" was refused by hard-deny zone gate (exit_code=${HARD_DENY_EXIT_CODE}). Destructive commands are blocked even with --yolo.`
+				cmdState.status = "failed"
+				cmdState.output = errorMessage
+				await updateMessage()
+				results.push(`--- Output for '${displayName}' ---\n${errorMessage}`)
+				anyFailed = true
+				continue
 			}
 
 			// Permission validation
