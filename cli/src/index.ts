@@ -1,5 +1,5 @@
 /**
- * Dirac CLI - TypeScript implementation with React Ink
+ * agent-kiki CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
  */
 
 import { exit } from "node:process"
@@ -23,7 +23,11 @@ export { shouldDoQuickAuth, hasExplicitAuthQuickSetupFlags } from "./commands/au
 // Setup CLI commands
 const program = new Command()
 
-program.name("dirac").description("Dirac CLI - AI coding assistant in your terminal").version(CLI_VERSION)
+// agent-kiki fork: rebrand CLI banner
+program
+	.name("aki")
+	.description("agent-kiki - EU-sovereign AI coding agent (fork of Dirac/Cline)")
+	.version(CLI_VERSION)
 
 // Enable positional options to avoid conflicts between root and subcommand options with the same name
 program.enablePositionalOptions()
@@ -42,7 +46,7 @@ program
 	.option("--provider <provider>", "API provider to use (requires --model)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.option("--thinking [tokens]", "Enable extended thinking (default: 1024 tokens)")
 	.option("--reasoning-effort <effort>", "Reasoning effort: none|low|medium|high|xhigh")
 	.option("--max-consecutive-mistakes <count>", "Maximum consecutive mistakes before halting in yolo mode")
@@ -67,7 +71,7 @@ program
 	.description("List task history")
 	.option("-n, --limit <number>", "Number of tasks to show", "10")
 	.option("-p, --page <number>", "Page number (1-based)", "1")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { listHistory } = await import("./commands/history")
 		return listHistory(options)
@@ -76,7 +80,7 @@ program
 program
 	.command("config")
 	.description("Show current configuration")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { showConfig } = await import("./commands/config")
 		return showConfig(options)
@@ -92,7 +96,7 @@ program
 	.option("--azure-api-version <version>", "Azure API version (optional, only for azure openai)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to Dirac configuration directory")
+	.option("--config <path>", "Path to agent-kiki configuration directory")
 	.action(async (options) => {
 		const { runAuth } = await import("./commands/auth")
 		return runAuth(options)
@@ -100,10 +104,10 @@ program
 
 program
 	.command("version")
-	.description("Show Dirac CLI version number")
+	.description("Show agent-kiki CLI version number")
 	.action(async () => {
 		const { printInfo } = await import("./utils/display")
-		printInfo(`Dirac CLI version: ${CLI_VERSION}`)
+		printInfo(`agent-kiki CLI version: ${CLI_VERSION}`)
 	})
 
 program
