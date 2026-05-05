@@ -203,6 +203,18 @@ export class ToolExecutor {
 		}
 	}
 
+	// agent-kiki fork: expose planner-turn recorder so the Task's API request
+	// loop can capture every roundtrip (not just successful tool calls).
+	public recordPlannerTurn(rawResponse: string, latencyMs: number, errors: string[] = []): void {
+		if (!this.tracer) return
+		this.ensureTraceMeta()
+		try {
+			this.tracer.recordPlannerTurn(rawResponse, latencyMs, errors)
+		} catch (_err) {
+			// non-fatal
+		}
+	}
+
 	public closeTrace(exitReason: string, exitCode: number): void {
 		if (!this.tracer) return
 		try {

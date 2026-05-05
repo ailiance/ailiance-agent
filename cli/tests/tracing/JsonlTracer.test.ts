@@ -269,6 +269,44 @@ describe("JsonlTracer", () => {
 		expect(() => new JsonlTracer("01ARZ3NDEKTSV4RRFFQ69G5FAV", tmpDir)).not.toThrow()
 	})
 
+	it("recordPlannerTurn writes a plan-phase TraceLine with raw + latency", () => {
+		const tracer = new JsonlTracer("task-plan", tmpDir)
+		tracer.writeMeta({
+			task: "task-plan",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.recordPlannerTurn("hello world", 42)
+		const tracePath = path.join(tmpDir, TRACING_DIR_NAME, "task-plan", "trace.jsonl")
+		const lines = fs.readFileSync(tracePath, "utf8").trim().split("\n")
+		expect(lines).toHaveLength(1)
+		const line = JSON.parse(lines[0])
+		expect(line.phase).toBe("plan")
+		expect(line.tool_execution).toBeNull()
+		expect(line.planner_response.raw).toBe("hello world")
+		expect(line.planner_response.latency_ms).toBe(42)
+		expect(line.planner_response.parse_status).toBe("ok")
+		expect(line.errors).toEqual([])
+	})
+
+	it("recordPlannerTurn marks parse_status='error' and propagates errors", () => {
+		const tracer = new JsonlTracer("task-plan-err", tmpDir)
+		tracer.writeMeta({
+			task: "task-plan-err",
+			mode: "act",
+			approval_mode: "manual",
+			agent_kiki_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		tracer.recordPlannerTurn("oops", 7, ["transport_failed"])
+		const tracePath = path.join(tmpDir, TRACING_DIR_NAME, "task-plan-err", "trace.jsonl")
+		const line = JSON.parse(fs.readFileSync(tracePath, "utf8").trim().split("\n")[0])
+		expect(line.planner_response.parse_status).toBe("error")
+		expect(line.errors).toEqual(["transport_failed"])
+	})
+
 	it("is a no-op when taskId or cwd are missing", () => {
 		const tracer = new JsonlTracer("", tmpDir)
 		expect(tracer.isEnabled).toBe(false)

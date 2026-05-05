@@ -1541,6 +1541,10 @@ ${notice}`
 			this.taskState.toolUseIdMap.clear()
 
 			const { toolUseHandler, reasonsHandler } = this.streamHandler.getHandlers()
+			// agent-kiki fork: tracing — measure latency of every API roundtrip
+			// so the planner turn is recorded even if the stream errors out
+			// before any tool executes.
+			const plannerStartedAt = Date.now()
 			const stream = this.attemptApiRequest(previousApiReqIndex, shouldCompact)
 
 			let assistantMessageId = ""
@@ -1705,6 +1709,16 @@ ${notice}`
 				}
 				await usageChunkSideEffectsQueue
 
+				// agent-kiki fork: tracing — record this planner roundtrip.
+				// This fires for every successful API call, including ones whose
+				// assistant text contains no valid tool_call (which would never
+				// reach the per-tool tracing hook in ToolExecutor).
+				try {
+					this.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt)
+				} catch (_err) {
+					// non-fatal
+				}
+
 				if (!this.taskState.abort && !didFinalizeReasoningForUi) {
 					const finalReasoning = reasonsHandler.getCurrentReasoning()
 					if (finalReasoning?.thinking) {
@@ -1720,6 +1734,19 @@ ${notice}`
 				if (!this.taskState.abandoned) {
 					const diracError = ErrorService.get().toDiracError(error, this.api.getModel().id)
 					const errorMessage = diracError.serialize()
+					// agent-kiki fork: tracing — record the failed roundtrip
+					// before the recovery / abort branches consume the error,
+					// so audit traces capture API failures (e.g. transport
+					// errors, parse errors, "too many consecutive mistakes").
+					try {
+						this.toolExecutor.recordPlannerTurn(
+							assistantMessage,
+							Date.now() - plannerStartedAt,
+							[errorMessage],
+						)
+					} catch (_err) {
+						// non-fatal
+					}
 					if (this.taskState.autoRetryAttempts < 3) {
 						this.taskState.autoRetryAttempts++
 

@@ -228,6 +228,22 @@ export class JsonlTracer {
 		return line
 	}
 
+	// agent-kiki fork: record an LLM API roundtrip ("planner" turn) so that
+	// every API call shows up in trace.jsonl — even the ones that fail before
+	// any tool executes. The Python agent-kiki captured raw text + latency_ms
+	// per planner response; we mirror that shape here.
+	recordPlannerTurn(rawResponse: string, latencyMs: number, errors: string[] = []): TraceLine | null {
+		return this.appendTurn({
+			phase: "plan",
+			planner_response: {
+				raw: rawResponse,
+				latency_ms: latencyMs,
+				parse_status: errors.length > 0 ? "error" : "ok",
+			},
+			errors,
+		})
+	}
+
 	mergeStats(stats: Record<string, unknown>): void {
 		if (!this.enabled || this.closed || !this.meta) return
 		this.meta.stats = { ...this.meta.stats, ...stats }
