@@ -13,15 +13,14 @@ This is an early fork release. Known limitations:
 - **Backend**: defaults to the eu-kiki gateway at `http://studio:9300/v1`
   (Tailscale-private). Override with `AGENT_KIKI_GATEWAY=<url>` or `--baseurl`.
   The trailing `/v1` is required: eu-kiki exposes `/v1/chat/completions`.
-- **eu-kiki backend lacks native function-calling (V0)**: the eu-kiki
-  workers are text-completion-only — they accept the OpenAI `tools` field
-  but ignore it and respond with `content` rather than structured
-  `tool_calls`. Dirac requires native tool-calling responses, so tasks
-  against the default eu-kiki backend currently abort with `Too many
-  consecutive mistakes (5)`. For productive sessions today, override the
-  provider via env (`OPENAI_API_BASE` / `ANTHROPIC_API_KEY`) to a backend
-  that supports OpenAI native function-calling. Tracking V1 work to add
-  function-calling support to eu-kiki workers.
+- **eu-kiki function-calling (resolved in v0.2)**: as of v0.2.0, eu-kiki
+  workers accept the OpenAI `tools` field, inject the spec into the
+  Mistral chat template, parse Mistral `[TOOL_CALLS]name[ARGS]json`,
+  XML `<tool_call>{...}</tool_call>`, or plain JSON tool-call formats
+  in the model output, and re-emit OpenAI-compatible SSE chunks with
+  `tool_calls` + `finish_reason: "tool_calls"`. End-to-end ReAct
+  convergence demonstrated with Devstral 24B — see
+  `docs/mvp-acceptance-2026-05-05-v0.2.md`.
 - **eu-kiki LoRA adapters**: as of v0.1.0 the worker wraps the base model
   with `linear_to_lora_layers` and loads adapter weights via
   `strict=False` (commit `eu-kiki:1ed24b8`). Domain-specific LoRA is
