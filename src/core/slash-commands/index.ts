@@ -1,9 +1,11 @@
 import type { ApiProviderInfo } from "@core/api"
+import { getExtensionSourceDir } from "@shared/dirac/constants"
 import { DiracRulesToggles } from "@shared/dirac-rules"
 import fs from "fs/promises"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
-import { handlePermissionsCommand } from "./PermissionsCommandHandler"
+import { SkillMetadata } from "@/shared/skills"
+import { getSkillContent } from "../context/instructions/user-instructions/skills"
 import { CommandPermissionController } from "../permissions/CommandPermissionController"
 import {
 	condenseToolResponse,
@@ -13,9 +15,7 @@ import {
 	reportBugToolResponse,
 } from "../prompts/commands"
 import { StateManager } from "../storage/StateManager"
-import { getSkillContent } from "../context/instructions/user-instructions/skills"
-import { SkillMetadata } from "@/shared/skills"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
+import { handlePermissionsCommand } from "./PermissionsCommandHandler"
 
 type FileBasedWorkflow = {
 	fullPath: string
@@ -46,8 +46,12 @@ export async function parseSlashCommands(
 	permissionController?: CommandPermissionController,
 	extensionPath?: string,
 	sourceDir: string = getExtensionSourceDir(),
-): Promise<{ processedText: string; needsDiracrulesFileCheck: boolean; isDirectResponse?: boolean; directResponseText?: string }> {
-
+): Promise<{
+	processedText: string
+	needsDiracrulesFileCheck: boolean
+	isDirectResponse?: boolean
+	directResponseText?: string
+}> {
 	// agent-kiki fork: dropped "askDirac" — RAG over upstream Dirac source code, irrelevant for our fork
 	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions"]
 
@@ -131,7 +135,9 @@ export async function parseSlashCommands(
 					const { processedText: feedback } = await handlePermissionsCommand(tagContent, permissionController)
 					const textWithoutSlashCommand = removeSlashCommand(text, tagContent, contentStartIndex, slashMatch)
 					// We return the feedback as a system instruction so the agent knows it happened
-					const processedText = `<explicit_instructions type="permissions">\n${feedback}\n</explicit_instructions>\n` + textWithoutSlashCommand
+					const processedText =
+						`<explicit_instructions type="permissions">\n${feedback}\n</explicit_instructions>\n` +
+						textWithoutSlashCommand
 					telemetryService.captureSlashCommandUsed(ulid, commandName, "builtin")
 					return { processedText, needsDiracrulesFileCheck: false }
 				}
@@ -143,7 +149,8 @@ export async function parseSlashCommands(
 				// even if there is no additional query text.
 
 				const replacement = commandReplacements[commandName]
-				const processedText = (typeof replacement === "string" ? replacement : await replacement) + textWithoutSlashCommand
+				const processedText =
+					(typeof replacement === "string" ? replacement : await replacement) + textWithoutSlashCommand
 
 				// Track telemetry for builtin slash command usage
 				telemetryService.captureSlashCommandUsed(ulid, commandName, "builtin")
@@ -250,4 +257,3 @@ export async function parseSlashCommands(
 	// if no supported commands are found, return the original text
 	return { processedText: text, needsDiracrulesFileCheck: false }
 }
-

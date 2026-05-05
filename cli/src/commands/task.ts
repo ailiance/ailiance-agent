@@ -32,7 +32,8 @@ export async function runTaskInPlainTextMode(
 	// In plain text mode we can't show the interactive auth flow
 	const hasAuth = await isAuthConfigured()
 	if (!hasAuth) {
-		printWarning("Not authenticated. Please run 'dirac auth' first to configure your API credentials.")
+		// agent-kiki fork: rebrand 'dirac auth' -> 'aki auth'
+		printWarning("Not authenticated. Please run 'aki auth' first to configure your API credentials.")
 		await disposeCliContext(ctx)
 		exit(1)
 	}

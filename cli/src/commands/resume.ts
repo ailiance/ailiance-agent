@@ -30,7 +30,8 @@ export async function resumeTask(
 	const historyItem = await findTaskInHistory(taskId)
 	if (!historyItem) {
 		printWarning(`Task not found: ${taskId}`)
-		printInfo("Use 'dirac history' to see available tasks.")
+		// agent-kiki fork: rebrand 'dirac history' -> 'aki history'
+		printInfo("Use 'aki history' to see available tasks.")
 		await disposeCliContext(ctx)
 		exit(1)
 	}
@@ -89,7 +90,8 @@ export async function continueTask(options: TaskOptions) {
 
 	if (!historyItem) {
 		printWarning(`No previous task found for ${ctx.workspacePath}`)
-		printInfo("Start a new task or use 'dirac history' to browse previous tasks.")
+		// agent-kiki fork: rebrand 'dirac history' -> 'aki history'
+		printInfo("Start a new task or use 'aki history' to browse previous tasks.")
 		await disposeCliContext(ctx)
 		exit(1)
 	}
