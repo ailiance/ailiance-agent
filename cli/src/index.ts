@@ -119,13 +119,7 @@ program
 		return checkForUpdates(CLI_VERSION, options)
 	})
 
-program
-	.command("kanban")
-	.description("Run npx kanban --agent dirac")
-	.action(async () => {
-		const { runKanbanAlias } = await import("./commands/kanban")
-		return runKanbanAlias()
-	})
+// agent-kiki fork: drop upstream Dirac kanban integration — we don't ship it.
 
 // agent-kiki fork: trace rotation + listing CLI
 const traceCommand = program.command("trace").description("Manage agent-kiki run traces")
@@ -184,21 +178,11 @@ program
 	.option("--headers <headers>", "Custom headers for OpenAI-compatible provider (key1=value1,key2=value2 or JSON)")
 	.option("--hooks-dir <path>", "Path to additional hooks directory for runtime hook injection")
 	.option("--acp", "Run in ACP (Agent Client Protocol) mode for editor integration")
-	.option("--kanban", "Run npx kanban --agent dirac")
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
 	.option("--continue", "Resume the most recent task from the current working directory")
 	.action(async (prompt, options) => {
+		// agent-kiki fork: kanban path removed.
 		const { printWarning } = await import("./utils/display")
-		if (options.kanban) {
-			if (prompt) {
-				printWarning("Use --kanban without a prompt.")
-				exit(1)
-			}
-			const { runKanbanAlias } = await import("./commands/kanban")
-			await runKanbanAlias()
-			return
-		}
-
 		// Check for ACP mode first - this takes precedence over everything else
 		if (options.acp) {
 			const { runAcpMode } = await import("./acp/index.js")
