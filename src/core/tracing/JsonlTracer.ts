@@ -18,8 +18,9 @@ export const TRACING_DIR_NAME = ".agent-kiki/runs"
 // "key: value" / "key=value" / "Authorization: Bearer <token>" shapes.
 // The optional [A-Za-z0-9_-]* between the keyword and the separator catches
 // suffixed fields like aws_secret_access_key=... or api_key_v2: ....
+// Keyword set kept in sync with the object-key regex in scrubObjectKey().
 const SECRET_KV_PATTERN =
-	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'}\)]+)/gi
+	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase|private[_-]?key|ssh[_-]?key|signing[_-]?key|certificate|conn(?:ection)?[_-]?str|aws[_-]?secret|aws[_-]?access[_-]?key)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'}\)]+)/gi
 const BEARER_PATTERN = /(authorization["'\s]*[=:]["'\s]*(?:bearer|basic)\s+)([A-Za-z0-9._\-+/=]+)/gi
 // Well-known token shapes:
 //   - sk-..., ghp_..., xox?-..., JWT (eyJ...)

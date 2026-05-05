@@ -93,6 +93,24 @@ describe("scrubSecrets", () => {
 		expect(out.env).not.toContain("wJalrXUtnFEMIabc")
 		expect(out.env).toContain("[REDACTED]")
 	})
+
+	it("redacts free-text private_key=value", () => {
+		const out = scrubSecrets({ note: "set private_key=abcdef-secret-key inline" }) as { note: string }
+		expect(out.note).not.toContain("abcdef-secret-key")
+		expect(out.note).toContain("[REDACTED]")
+	})
+
+	it("redacts free-text ssh_key:value", () => {
+		const out = scrubSecrets({ env: "ssh_key:ssh-rsa-AAAAB3NzaC1yc2EAAAA more" }) as { env: string }
+		expect(out.env).not.toContain("AAAAB3NzaC1yc2E")
+		expect(out.env).toContain("[REDACTED]")
+	})
+
+	it("redacts free-text certificate=value", () => {
+		const out = scrubSecrets({ env: "certificate=PEMfakeBody other" }) as { env: string }
+		expect(out.env).not.toContain("PEMfakeBody")
+		expect(out.env).toContain("[REDACTED]")
+	})
 })
 
 describe("JsonlTracer", () => {
