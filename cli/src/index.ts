@@ -344,6 +344,37 @@ routerCmd
 		return runRouterStatus()
 	})
 
+// Local stack management (proxy + router together)
+const stackCmd = program.command("stack").description("Manage local stack (proxy + router)")
+stackCmd
+	.command("install")
+	.description("Install both proxy and router")
+	.action(async () => {
+		const { runStackInstall } = await import("./commands/stack")
+		return runStackInstall()
+	})
+stackCmd
+	.command("start")
+	.description("Start the full stack")
+	.action(async () => {
+		const { runStackStart } = await import("./commands/stack")
+		return runStackStart()
+	})
+stackCmd
+	.command("stop")
+	.description("Stop the full stack")
+	.action(async () => {
+		const { runStackStop } = await import("./commands/stack")
+		return runStackStop()
+	})
+stackCmd
+	.command("status")
+	.description("Get stack status")
+	.action(async () => {
+		const { runStackStatus } = await import("./commands/stack")
+		return runStackStatus()
+	})
+
 // Parse and run
 if (process.env.VITEST !== "true") {
 	program.parse()
