@@ -367,6 +367,15 @@ export async function readTaskHistoryFromState(): Promise<HistoryItem[]> {
 		} catch (parseError) {
 			telemetryService.captureExtensionStorageError(parseError, "parseError_attemptingRecovery")
 
+			// Backup corrupt file before any recovery attempt
+			const backupPath = `${filePath}.corrupt.${Date.now()}.bak`
+			try {
+				await fs.copyFile(filePath, backupPath)
+				Logger.warn(`[Disk] Corrupt taskHistory.json backed up to ${backupPath}`)
+			} catch (backupErr) {
+				Logger.error("[Disk] Failed to backup corrupt taskHistory.json:", backupErr)
+			}
+
 			const result = await reconstructTaskHistory(false)
 			if (result && result.reconstructedTasks > 0) {
 				// Read the reconstructed file
@@ -374,8 +383,7 @@ export async function readTaskHistoryFromState(): Promise<HistoryItem[]> {
 				return JSON.parse(newContents)
 			}
 
-			// Recovery failed, all we can do is return an empty array or throw an error, thus preventing the app from starting up
-			// This will wipe out the taskHistory
+			Logger.error(`[Disk] taskHistory recovery failed; original preserved at ${backupPath}`)
 			return []
 		}
 	} catch (error) {
