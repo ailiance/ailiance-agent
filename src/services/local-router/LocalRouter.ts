@@ -130,55 +130,144 @@ export class LocalRouter {
 
 	/**
 	 * Try to extract a tool call from the accumulated text buffer.
-	 * Accepts three formats in priority order:
-	 *   1. <tool_call>{...}</tool_call>
-	 *   2. ```json\n{...}\n```  (JSON fence with a "name" field)
-	 *   3. ```bash|sh|shell\n<cmd>\n```  → execute_command (only when listed in tools)
+	 * Accepts five formats in priority order:
+	 *   1. ```tool\n{...}\n```  (preferred few-shot format)
+	 *   2. <tool_call>{...}</tool_call>
+	 *   3. ```json\n{...}\n```  (JSON fence with a "name" field)
+	 *   4. ```bash|sh|shell|console\n<cmd>\n```  → execute_command (only when listed in tools)
+	 *   5. plain function-call syntax: read_file("foo.txt") or read_file(path="foo.txt")
 	 */
 	private static tryExtract(
 		buf: string,
 		tools: ChatTool[],
-	): { match: RegExpMatchArray; toolCall: { name: string; arguments: object } } | null {
-		const xmlRegex = /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/
-		const jsonFenceRegex = /```json\s*(\{[\s\S]*?\})\s*```/
-		const bashFenceRegex = /```(?:bash|sh|shell)\s*([\s\S]*?)```/
+	): { match: RegExpMatchArray; toolCall: { name: string; arguments: Record<string, unknown> } } | null {
+		const toolNames = new Set(tools.map((t) => t.function.name))
 
-		const x = buf.match(xmlRegex)
-		if (x) {
+		// 1. ```tool fence (preferred)
+		const toolFence = buf.match(/```tool\s*(\{[\s\S]*?\})\s*```/)
+		if (toolFence) {
 			try {
-				const parsed = JSON.parse(x[1]) as { name?: string; arguments?: unknown; args?: unknown }
-				if (parsed.name) {
-					return { match: x, toolCall: { name: parsed.name, arguments: (parsed.arguments ?? parsed.args ?? {}) as object } }
+				const parsed = JSON.parse(toolFence[1]) as { name?: string; arguments?: unknown; args?: unknown }
+				if (parsed.name && toolNames.has(parsed.name)) {
+					return {
+						match: toolFence,
+						toolCall: {
+							name: parsed.name,
+							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
+						},
+					}
 				}
 			} catch {
 				// malformed JSON — fall through
 			}
 		}
 
-		const j = buf.match(jsonFenceRegex)
-		if (j) {
+		// 2. <tool_call>{...}</tool_call>
+		const xml = buf.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
+		if (xml) {
 			try {
-				const parsed = JSON.parse(j[1]) as { name?: string; arguments?: unknown; args?: unknown }
-				if (parsed.name) {
-					return { match: j, toolCall: { name: parsed.name, arguments: (parsed.arguments ?? parsed.args ?? {}) as object } }
+				const parsed = JSON.parse(xml[1]) as { name?: string; arguments?: unknown; args?: unknown }
+				if (parsed.name && toolNames.has(parsed.name)) {
+					return {
+						match: xml,
+						toolCall: {
+							name: parsed.name,
+							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
+						},
+					}
 				}
 			} catch {
 				// malformed JSON — fall through
 			}
 		}
 
-		const b = buf.match(bashFenceRegex)
-		if (b && tools.some((t) => t.function.name === "execute_command")) {
-			const command = b[1].trim()
-			if (command) {
-				return {
-					match: b,
-					toolCall: { name: "execute_command", arguments: { command, requires_approval: false } },
+		// 3. ```json fence with name field
+		const jsonFence = buf.match(/```json\s*(\{[\s\S]*?\})\s*```/)
+		if (jsonFence) {
+			try {
+				const parsed = JSON.parse(jsonFence[1]) as { name?: string; arguments?: unknown; args?: unknown }
+				if (parsed.name && toolNames.has(parsed.name)) {
+					return {
+						match: jsonFence,
+						toolCall: {
+							name: parsed.name,
+							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
+						},
+					}
+				}
+			} catch {
+				// malformed JSON — fall through
+			}
+		}
+
+		// 4. ```bash | ```sh | ```shell | ```console → execute_command
+		if (toolNames.has("execute_command")) {
+			const bashFence = buf.match(/```(?:bash|sh|shell|console)\s*([\s\S]*?)```/)
+			if (bashFence) {
+				const command = bashFence[1].trim()
+				if (command) {
+					return {
+						match: bashFence,
+						toolCall: { name: "execute_command", arguments: { command, requires_approval: false } },
+					}
+				}
+			}
+		}
+
+		// 5. Plain function-call syntax: read_file("foo.txt") or read_file(path="foo.txt")
+		for (const toolName of toolNames) {
+			const re = new RegExp(`\\b${toolName}\\s*\\(([^)]*)\\)`)
+			const m = buf.match(re)
+			if (m) {
+				const argsStr = m[1].trim()
+				const args = LocalRouter.parsePlainArgs(
+					argsStr,
+					tools.find((t) => t.function.name === toolName),
+				)
+				if (args !== null) {
+					return { match: m, toolCall: { name: toolName, arguments: args } }
 				}
 			}
 		}
 
 		return null
+	}
+
+	/**
+	 * Parse plain function-call args: "foo.txt", "path='foo.txt'", "path='foo.txt', recursive=true"
+	 * Returns null if parsing fails or unsupported.
+	 */
+	private static parsePlainArgs(s: string, tool: ChatTool | undefined): Record<string, unknown> | null {
+		if (!tool) return null
+		const params = tool.function.parameters as { properties?: Record<string, { type?: string }>; required?: string[] }
+		const propNames = Object.keys(params?.properties ?? {})
+		if (propNames.length === 0) return null
+
+		const trimmed = s.trim()
+		if (!trimmed) return {}
+
+		// Single positional arg → assign to first required param (or first prop)
+		if (!trimmed.includes("=") && !trimmed.includes(":")) {
+			// Strip quotes
+			const value = trimmed.replace(/^["']|["']$/g, "")
+			const firstParam = (params.required && params.required[0]) || propNames[0]
+			return { [firstParam]: value }
+		}
+
+		// Named args: key=value, key="value", key='value'
+		const out: Record<string, unknown> = {}
+		const re = /(\w+)\s*[=:]\s*(?:"([^"]*)"|'([^']*)'|(\w+))/g
+		let match: RegExpExecArray | null
+		// biome-ignore lint/suspicious/noAssignInExpressions: regex exec loop idiom
+		while ((match = re.exec(trimmed)) !== null) {
+			const key = match[1]
+			const val = match[2] ?? match[3] ?? match[4]
+			if (val === "true") out[key] = true
+			else if (val === "false") out[key] = false
+			else if (/^-?\d+$/.test(val)) out[key] = Number.parseInt(val, 10)
+			else out[key] = val
+		}
+		return Object.keys(out).length > 0 ? out : null
 	}
 
 	async *chatStream(req: ChatRequest): AsyncGenerator<ChatStreamChunk> {
@@ -209,7 +298,49 @@ export class LocalRouter {
 				// Emulate via system prompt injection
 				needsEmulation = true
 				const toolDescriptions = formatToolsAsPromptText(req.tools)
-				const emulationPreamble = `\n\n${toolDescriptions}\n\nYou have access to tools. To call one, output a code block in this exact format:\n\n\`\`\`json\n{"name": "tool_name", "arguments": {"key": "value"}}\n\`\`\`\n\nDo NOT use bash code blocks for shell commands - always use the JSON format above with name="execute_command" and arguments.command="<your command>".\n\nWait for the tool result before continuing. Do not call the same tool twice in a row.\n`
+				const emulationPreamble = `
+
+${toolDescriptions}
+
+You have access to the following tools to interact with files and execute commands. To call a tool, respond with EXACTLY this format (a single fenced JSON block):
+
+\`\`\`tool
+{"name": "tool_name", "arguments": {"key": "value"}}
+\`\`\`
+
+EXAMPLES:
+
+User: read the file foo.txt
+Assistant:
+\`\`\`tool
+{"name": "read_file", "arguments": {"path": "foo.txt"}}
+\`\`\`
+
+User: list files in src/
+Assistant:
+\`\`\`tool
+{"name": "list_files", "arguments": {"path": "src/", "recursive": false}}
+\`\`\`
+
+User: write "hello world" to greeting.txt
+Assistant:
+\`\`\`tool
+{"name": "write_to_file", "arguments": {"path": "greeting.txt", "content": "hello world"}}
+\`\`\`
+
+User: run "ls -la"
+Assistant:
+\`\`\`tool
+{"name": "execute_command", "arguments": {"command": "ls -la", "requires_approval": false}}
+\`\`\`
+
+RULES:
+- One tool call per response. Wait for the result.
+- Use the exact tool name (no variations like "readFile" or "fs.read").
+- Always use the \`\`\`tool fence (not bash, json, python, or other).
+- Do NOT explain what you will do BEFORE calling. Just call the tool.
+
+`
 				const sysIdx = body.messages.findIndex((m: { role: string }) => m.role === "system")
 				if (sysIdx >= 0) {
 					body.messages[sysIdx] = {
@@ -321,10 +452,21 @@ export class LocalRouter {
 								}
 								// Yield text before any partial marker; hold the rest.
 								// "```" alone is a prefix of all fence markers — hold it too.
-								const partialMarkers = ["<tool_call", "```json", "```bash", "```sh", "```shell", "```"]
+								const partialMarkers = [
+									"<tool_call",
+									"```tool",
+									"```json",
+									"```bash",
+									"```sh",
+									"```shell",
+									"```console",
+									"```",
+								]
+								// Also hold if we see a tool name followed by "(" (plain function-call pattern)
+								const toolCallStarters = (req.tools ?? []).map((t) => `${t.function.name}(`)
 								let earliestPartial = -1
-								for (const marker of partialMarkers) {
-									const i = textBuffer.indexOf(marker)
+								for (const m of [...partialMarkers, ...toolCallStarters]) {
+									const i = textBuffer.indexOf(m)
 									if (i !== -1 && (earliestPartial === -1 || i < earliestPartial)) earliestPartial = i
 								}
 								if (earliestPartial > 0) {
