@@ -9,6 +9,7 @@ const makeEndpoint = (overrides: Partial<WorkerEndpoint> = {}): WorkerEndpoint =
 	modelId: "test-model",
 	capabilities: ["general"],
 	priority: 10,
+	ctxMax: Number.POSITIVE_INFINITY,
 	...overrides,
 })
 
