@@ -4,7 +4,7 @@
 
 ### Agent de code souverain — extension VS Code + CLI Ink, audit JSONL EU AI Act, branché sur la passerelle eu-kiki par défaut
 
-[![release](https://img.shields.io/badge/release-v0.4.0-7e3af2)](docs/CHANGELOG.md)
+[![release](https://img.shields.io/badge/release-v0.5.0--beta-7e3af2)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![sovereignty](https://img.shields.io/badge/EU--sovereign-100%25-7e3af2)](https://github.com/L-electron-Rare/eu-kiki)
 [![heritage](https://img.shields.io/badge/heritage-Dirac%20%2F%20Cline-1f4e8a)](https://github.com/dirac-run/dirac)
@@ -67,6 +67,38 @@ flowchart TB
     class cloud ext
     class tracer audit
 ```
+
+## v0.5.0-beta — Universal tool calling
+
+agent-kiki now ships a full agentic loop with tool emulation that works
+across **every** EU-sovereign worker on the cluster:
+
+- **Qwen 32B AWQ** (primary, vLLM native function calling)
+- **Eurollm 22B**, **Apertus 70B**, **Devstral 24B** (worker-side emulation)
+- **Gemma 3 4B** (gateway-side emulation)
+
+The gateway force-routes any request with `tools[]` to the most reliable
+worker, so file editing (`write_to_file`, `edit_file`, `read_file`) and
+command execution (`execute_command`) work end-to-end with `aki` running
+against your local stack.
+
+See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHANGELOG.md) for details.
+
+### What's new in v0.5
+
+- **Universal tool emulation** — 5 formats parsed in LocalRouter (`<tool_call>`,
+  ` ```tool `, ` ```json `, ` ```bash `, ` ```tool_code `, plain `read_file("...")`)
+- **Force-route to tool-capable workers** — requests with `tools[]` prioritize
+  `supportsTools:true` workers automatically
+- **`aki timeline`** — Ink CLI view of task history grouped by day with emoji
+  classification and cursor navigation
+- **Anti-hallucination guard** — "TOOL CONSTRAINTS" section in system prompt
+  prevents workers from inventing tool names (`digikey:`, `bom:`, `kicad:` etc.)
+- **Imperative verbs → ACT** — "fais/fait/écris/ajoute/réalise/génère/construis/
+  implémente" always trigger Act mode regardless of prompt length
+- **`function.id` propagation fix** — critical fix for multi-turn tool calls
+  (commit `783cc66`). Previously `tool_result` fell back to plain text, breaking
+  the OpenAI tools protocol. Now `toolUseIdMap` maps correctly across turns.
 
 ## v0.4 highlights
 

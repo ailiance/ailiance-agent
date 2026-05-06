@@ -74,6 +74,55 @@ shows `→ tower-gemma · code · ~3500 tok` (with `· cache` if cache hit).
 LocalRouter = "fast path for trusted EU workers".
 LiteLLM proxy = "broad provider coverage with full features (retry, fallback, cost tracking)".
 
+## Tool emulation
+
+When a request includes `tools[]`, LocalRouter can emulate function calling for
+workers that do not natively support OpenAI tool_call format. Five response
+formats are parsed:
+
+| Format | Example |
+|--------|---------|
+| XML `<tool_call>` | `<tool_call>{"name":"read_file","arguments":{"path":"foo.ts"}}</tool_call>` |
+| Fenced ` ```tool ` | ` ```tool\n{"name":"write_to_file",...}\n``` ` |
+| Fenced ` ```json ` | ` ```json\n{"tool":"execute_command","args":{...}}\n``` ` |
+| Fenced ` ```bash ` | ` ```bash\nexecute_command("npm test")\n``` ` |
+| Gemma ` ```tool_code ` | ` ```tool_code\nread_file("src/index.ts")\n``` ` |
+| Plain call | `read_file("src/index.ts")` |
+
+The emulation layer normalizes all formats into the OpenAI `tool_calls` schema
+before returning to the agent loop.
+
+### Few-shot emulation prompt
+
+Workers that require emulation receive a few-shot system prefix with three
+concrete examples (`write_to_file`, `execute_command`, `list_files`) using the
+`<tool_call>` format. The prompt is injected **only** when `tools[]` is present
+in the request — zero overhead for non-agentic requests.
+
+## Force-route
+
+When `tools[]` is present in the request, LocalRouter bypasses the normal
+capability/priority ranking and pre-filters workers by `supportsTools: true`.
+Only if no such worker is healthy does it fall back to the standard routing
+flow (with emulation as safety net).
+
+Worker config example:
+
+```ts
+{ id: "kxkm-qwen32b", url: "http://...:8000/v1", modelId: "qwen32b-awq",
+  capabilities: ["code", "reason", "general"],
+  supportsTools: true,   // native vLLM function calling
+  priority: 9, ctxMax: 32768 }
+```
+
+### Server-side force-route (eu-kiki gateway)
+
+The eu-kiki gateway performs an additional server-side force-route: any request
+with a non-empty `tools[]` array is redirected to Qwen 32B AWQ (vLLM, kxkm-ai)
+regardless of the worker selected by LocalRouter. This ensures agentic tasks
+always hit the most reliable native FC worker. This patch lives in the gateway
+repo (`eu-kiki`), not in this repo.
+
 ## See also
 
 - [`docs/local-stack.md`](./local-stack.md) — full Python stack alternative

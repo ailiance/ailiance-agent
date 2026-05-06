@@ -28,9 +28,17 @@ Strong signals that suggest reflection/analysis is needed:
 - Multi-file: `tous les fichiers`, `chaque test`, `dans tout le projet`
 - Question: `comment ferais-tu`
 
-### Act triggers (must be ≤80 chars)
+### Act triggers — imperative verbs (no length limit)
 
-Quick conversational/action prompts:
+Strong action intent words that always switch to Act mode regardless of prompt length:
+- `fais`, `fait`, `écris`, `ajoute`, `réalise`, `génère`, `construis`, `implémente`
+
+Example: `"fais la structure de dossier complète pour ce projet en esp-idf et kicad"` → **ACT**
+(Previously ≤80 chars would have been required; imperative verbs bypass this cap.)
+
+### Act triggers — soft action (must be ≤120 chars)
+
+Quick conversational/action prompts (cap raised from 80 → 120 chars in v0.5):
 - Greetings: `bonjour`, `salut`, `hello`, `hi`, `merci`, `thanks`
 - Actions: `liste`, `montre`, `affiche`, `lis`, `ouvre`, `crée`,
   `lance`, `exécute`, `read`, `list`, `show`, `open`, `run`
