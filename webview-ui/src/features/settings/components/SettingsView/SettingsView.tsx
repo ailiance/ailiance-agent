@@ -5,6 +5,7 @@ import {
     FlaskConical,
     Info,
     type LucideIcon,
+    Server,
     SlidersHorizontal,
     SquareMousePointer,
     SquareTerminal,
@@ -12,10 +13,12 @@ import {
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useEvent } from "react-use"
+import { useAppStore } from "@/app/store/appStore"
 import { useUserStore } from "@/entities/user/store/userStore"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/shared/api/grpc-client"
+import { Button } from "@/shared/ui/button"
 import { Tab, TabContent, TabList, TabTrigger } from "@/shared/ui/Tab"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip"
 import ViewHeader from "@/shared/ui/ViewHeader"
@@ -134,6 +137,7 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 
 	const { version, environment } = useSettingsStore()
 	const activeOrganization = useUserStore((state) => state.activeOrganization)
+	const { navigateToStackConfig, hideSettings } = useAppStore()
 
 	const [activeTab, setActiveTab] = useState<string>(targetSection || SETTINGS_TABS[0].id)
 
@@ -252,6 +256,26 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 					onValueChange={setActiveTab}
 					value={activeTab}>
 					{SETTINGS_TABS.filter((tab) => !tab.hidden?.({ activeOrganization })).map(renderTabItem)}
+
+					{/* Stack & Plugins navigation button */}
+					<div className="mt-auto p-2">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									className="w-full justify-start gap-2 opacity-70 hover:opacity-100"
+									size="sm"
+									variant="ghost"
+									onClick={() => {
+										hideSettings()
+										navigateToStackConfig()
+									}}>
+									<Server className="h-4 w-4" />
+									<span className="hidden sm:block text-xs">Stack & Plugins</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Stack & Plugins monitoring</TooltipContent>
+						</Tooltip>
+					</div>
 				</TabList>
 
 				<TabContent className="flex-1 overflow-auto">{ActiveContent}</TabContent>

@@ -208,6 +208,36 @@ export class SlashServiceClient extends ProtoBusClient {
 		return this.makeUnaryRequest("getAvailableSlashCommands", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.SlashCommandsResponse.fromJSON)
 	}
 }
+export class StackServiceClient extends ProtoBusClient {
+	static override serviceName: string = "dirac.StackService"
+    static async getStackSnapshot(request: proto.dirac.EmptyRequest): Promise<proto.dirac.StackSnapshot> {
+		return this.makeUnaryRequest("getStackSnapshot", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.StackSnapshot.fromJSON)
+	}
+    static async startStack(request: proto.dirac.EmptyRequest): Promise<proto.dirac.StackActionResult> {
+		return this.makeUnaryRequest("startStack", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.StackActionResult.fromJSON)
+	}
+    static async stopStack(request: proto.dirac.EmptyRequest): Promise<proto.dirac.StackActionResult> {
+		return this.makeUnaryRequest("stopStack", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.StackActionResult.fromJSON)
+	}
+    static async restartStack(request: proto.dirac.EmptyRequest): Promise<proto.dirac.StackActionResult> {
+		return this.makeUnaryRequest("restartStack", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.StackActionResult.fromJSON)
+	}
+    static async setUseLocalStack(request: proto.dirac.BooleanRequest): Promise<proto.dirac.Empty> {
+		return this.makeUnaryRequest("setUseLocalStack", request, proto.dirac.BooleanRequest.toJSON, proto.dirac.Empty.fromJSON)
+	}
+    static async setEnabledMcpServers(request: proto.dirac.StringArrayRequest): Promise<proto.dirac.Empty> {
+		return this.makeUnaryRequest("setEnabledMcpServers", request, proto.dirac.StringArrayRequest.toJSON, proto.dirac.Empty.fromJSON)
+	}
+    static async setMcpToolDenylist(request: proto.dirac.StringArrayRequest): Promise<proto.dirac.Empty> {
+		return this.makeUnaryRequest("setMcpToolDenylist", request, proto.dirac.StringArrayRequest.toJSON, proto.dirac.Empty.fromJSON)
+	}
+    static async setMcpToolAllowlist(request: proto.dirac.StringArrayRequest): Promise<proto.dirac.Empty> {
+		return this.makeUnaryRequest("setMcpToolAllowlist", request, proto.dirac.StringArrayRequest.toJSON, proto.dirac.Empty.fromJSON)
+	}
+    static async updateJinaRoutes(request: proto.dirac.UpdateJinaRoutesRequest): Promise<proto.dirac.Empty> {
+		return this.makeUnaryRequest("updateJinaRoutes", request, proto.dirac.UpdateJinaRoutesRequest.toJSON, proto.dirac.Empty.fromJSON)
+	}
+}
 export class StateServiceClient extends ProtoBusClient {
 	static override serviceName: string = "dirac.StateService"
     static async getLatestState(request: proto.dirac.EmptyRequest): Promise<proto.dirac.State> {

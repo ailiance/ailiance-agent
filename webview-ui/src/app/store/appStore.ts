@@ -18,6 +18,7 @@ interface AppState {
 	showHistory: boolean
 	showAccount: boolean
 	showWorktrees: boolean
+	showStackConfig: boolean
 	showAnnouncement: boolean
 	showWelcome: boolean
 	expandTaskHeader: boolean
@@ -29,6 +30,7 @@ interface AppState {
 	setShowHistory: (show: boolean) => void
 	setShowAccount: (show: boolean) => void
 	setShowWorktrees: (show: boolean) => void
+	setShowStackConfig: (show: boolean) => void
 	setShowAnnouncement: (show: boolean) => void
 	setShowWelcome: (show: boolean) => void
 	setExpandTaskHeader: (expand: boolean) => void
@@ -40,6 +42,7 @@ interface AppState {
 	navigateToHistory: () => void
 	navigateToAccount: () => void
 	navigateToWorktrees: () => void
+	navigateToStackConfig: () => void
 	navigateToChat: () => void
 
 	// Hide
@@ -47,6 +50,7 @@ interface AppState {
 	hideHistory: () => void
 	hideAccount: () => void
 	hideWorktrees: () => void
+	hideStackConfig: () => void
 	hideAnnouncement: () => void
 
 	// Hydration
@@ -64,6 +68,7 @@ export const useAppStore = create<AppState>((set) => ({
 	shouldShowAnnouncement: false,
 	onboardingModels: undefined,
 	showWorktrees: false,
+	showStackConfig: false,
 	showAnnouncement: false,
 	showWelcome: false,
 	expandTaskHeader: false,
@@ -74,6 +79,7 @@ export const useAppStore = create<AppState>((set) => ({
 	setShowHistory: (show) => set({ showHistory: show }),
 	setShowAccount: (show) => set({ showAccount: show }),
 	setShowWorktrees: (show) => set({ showWorktrees: show }),
+	setShowStackConfig: (show) => set({ showStackConfig: show }),
 	setShowAnnouncement: (show) => set({ showAnnouncement: show }),
 	setShowWelcome: (show) => set({ showWelcome: show }),
 	setExpandTaskHeader: (expand) => set({ expandTaskHeader: expand }),
@@ -85,6 +91,7 @@ export const useAppStore = create<AppState>((set) => ({
 			showHistory: false,
 			showAccount: false,
 			showWorktrees: false,
+			showStackConfig: false,
 			settingsTargetSection: targetSection,
 			showSettings: true,
 		}),
@@ -93,6 +100,7 @@ export const useAppStore = create<AppState>((set) => ({
 			showHistory: false,
 			showAccount: false,
 			showWorktrees: false,
+			showStackConfig: false,
 			settingsTargetSection: opts.targetSection,
 			showSettings: true,
 		}),
@@ -101,6 +109,7 @@ export const useAppStore = create<AppState>((set) => ({
 			showSettings: false,
 			showAccount: false,
 			showWorktrees: false,
+			showStackConfig: false,
 			showHistory: true,
 		}),
 	navigateToAccount: () =>
@@ -108,6 +117,7 @@ export const useAppStore = create<AppState>((set) => ({
 			showSettings: false,
 			showHistory: false,
 			showWorktrees: false,
+			showStackConfig: false,
 			showAccount: true,
 		}),
 	navigateToWorktrees: () =>
@@ -116,6 +126,15 @@ export const useAppStore = create<AppState>((set) => ({
 			showHistory: false,
 			showAccount: false,
 			showWorktrees: true,
+			showStackConfig: false,
+		}),
+	navigateToStackConfig: () =>
+		set({
+			showSettings: false,
+			showHistory: false,
+			showAccount: false,
+			showWorktrees: false,
+			showStackConfig: true,
 		}),
 	navigateToChat: () =>
 		set({
@@ -123,6 +142,7 @@ export const useAppStore = create<AppState>((set) => ({
 			showHistory: false,
 			showAccount: false,
 			showWorktrees: false,
+			showStackConfig: false,
 		}),
 
 	hideSettings: () =>
@@ -133,6 +153,7 @@ export const useAppStore = create<AppState>((set) => ({
 	hideHistory: () => set({ showHistory: false }),
 	hideAccount: () => set({ showAccount: false }),
 	hideWorktrees: () => set({ showWorktrees: false }),
+	hideStackConfig: () => set({ showStackConfig: false }),
 	hideAnnouncement: () => set({ showAnnouncement: false }),
 
 	hydrate: () => {
