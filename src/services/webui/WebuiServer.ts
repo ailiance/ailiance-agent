@@ -139,6 +139,11 @@ export class WebuiServer {
 				return
 			}
 
+			// Server-side worker health probes (avoid CORS from browser)
+			if (reqPath === "/api/probe-workers") {
+				return this.serveProbeWorkers(res)
+			}
+
 			// /spa → webview-ui SPA (standalone build)
 			if (reqPath === "/spa" || reqPath === "/spa/") {
 				if (!buildDir) {
@@ -197,6 +202,34 @@ export class WebuiServer {
 		const { status, data } = await grpcRouter.handle(methodPath, body)
 		res.writeHead(status, { "Content-Type": "application/json" })
 		res.end(JSON.stringify(data))
+	}
+
+	private async serveProbeWorkers(res: http.ServerResponse): Promise<void> {
+		const targets = [
+			{ id: "proxy", url: "http://127.0.0.1:4000/health/readiness" },
+			{ id: "router", url: "http://127.0.0.1:5050/health" },
+			{ id: "gw", url: "http://100.78.191.52:9300/health" },
+			{ id: "apertus", url: "http://100.116.92.12:9301/health" },
+			{ id: "eurollm", url: "http://100.116.92.12:9303/health" },
+			{ id: "devstral", url: "http://100.112.121.126:9302/health" },
+			{ id: "gemma", url: "http://100.78.6.122:9304/v1/models" },
+		]
+		const results = await Promise.all(
+			targets.map(async (t) => {
+				const ctrl = new AbortController()
+				const timeout = setTimeout(() => ctrl.abort(), 3000)
+				try {
+					const r = await fetch(t.url, { signal: ctrl.signal })
+					clearTimeout(timeout)
+					return { id: t.id, up: r.ok, status: r.status }
+				} catch {
+					clearTimeout(timeout)
+					return { id: t.id, up: false, status: 0 }
+				}
+			}),
+		)
+		res.writeHead(200, { "Content-Type": "application/json" })
+		res.end(JSON.stringify(results))
 	}
 
 	private async serveLanding(res: http.ServerResponse): Promise<void> {

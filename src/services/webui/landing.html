@@ -58,26 +58,28 @@
   <script>
     async function probe(url, elId) {
       const el = document.getElementById(elId)
-      const ctrl = new AbortController()
-      const timeout = setTimeout(() => ctrl.abort(), 3000)
-      try {
-        const r = await fetch(url, { signal: ctrl.signal, mode: "cors" })
-        clearTimeout(timeout)
-        el.textContent = r.ok ? "● up" : "● " + r.status
-        el.className = r.ok ? "status-up" : "status-down"
-      } catch {
-        clearTimeout(timeout)
-        el.textContent = "● down"
-        el.className = "status-down"
-      }
+      if (!el) return
+      el.textContent = up ? "● up" : "● down"
+      el.className = up ? "status-up" : "status-down"
     }
-    probe("http://127.0.0.1:4000/health/readiness", "proxy-status")
-    probe("http://127.0.0.1:5050/health", "router-status")
-    probe("http://100.78.191.52:9300/health", "gw-status")
-    probe("http://100.116.92.12:9301/health", "apertus-status")
-    probe("http://100.116.92.12:9303/health", "eurollm-status")
-    probe("http://100.112.121.126:9302/health", "devstral-status")
-    probe("http://100.78.6.122:9304/v1/models", "gemma-status")
+    // Use server-side probe to avoid browser CORS issues
+    async function refreshAll() {
+      try {
+        const r = await fetch("/api/probe-workers")
+        const arr = await r.json()
+        for (const w of arr) {
+          probe(null, w.id + "-status", w.up)
+        }
+      } catch (e) { /* ignore */ }
+    }
+    function probe(_url, elId, up) {
+      const el = document.getElementById(elId)
+      if (!el) return
+      el.textContent = up ? "● up" : "● down"
+      el.className = up ? "status-up" : "status-down"
+    }
+    refreshAll()
+    setInterval(refreshAll, 5000)
 
     fetch("/api/version").then(function(r) { return r.text() }).then(function(v) {
       document.getElementById("version").textContent = v.trim() || "?"
