@@ -3,10 +3,10 @@ import { normalizeOpenaiReasoningEffort } from "@shared/storage/types"
 import OpenAI from "openai"
 import type { ChatCompletionTool } from "openai/resources/chat/completions"
 import {
-	processResponsesEvents,
-	ResponsesWebsocketManager,
-	shouldRetryWithFullContext,
-	parseSseResponse
+    processResponsesEvents,
+    ResponsesWebsocketManager,
+    shouldRetryWithFullContext,
+    parseSseResponse
 } from "./openai-responses-utils"
 import * as os from "os"
 // Removed unused undici imports
@@ -338,6 +338,6 @@ export class OpenAiCodexHandler implements ApiHandler {
 
 		const info: ModelInfo = openAiCodexModels[id]
 
-		return { id, info }
+		return { id, info: { ...info, supportsStrictTools: true } }
 	}
 }

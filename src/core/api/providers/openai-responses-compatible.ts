@@ -8,10 +8,10 @@ import { convertToOpenAIResponsesInput } from "../transform/openai-response-form
 import { ApiStream } from "../transform/stream"
 import { Logger } from "@/shared/services/Logger"
 import {
-	buildResponseCreateParams,
-	mapResponseTools,
-	processResponsesEvents,
-	shouldRetryWithFullContext
+    buildResponseCreateParams,
+    mapResponseTools,
+    processResponsesEvents,
+    shouldRetryWithFullContext
 } from "./openai-responses-utils"
 import { ChatCompletionTool } from "openai/resources/chat/completions"
 
@@ -58,7 +58,7 @@ export class OpenAiResponsesCompatibleHandler implements ApiHandler {
 		const model = this.getModel()
 		const { input, previousResponseId } = convertToOpenAIResponsesInput(messages, { usePreviousResponseId: true })
 		const { input: fullInput } = convertToOpenAIResponsesInput(messages, { usePreviousResponseId: false })
-		const responseTools = mapResponseTools(finalTools)
+		const responseTools = mapResponseTools(finalTools, model.info.supportsStrictTools)
 		this.abortController = new AbortController()
 
 		const buildParams = (inp: any, prevId?: string) =>

@@ -37,6 +37,8 @@ type OpenRouterSupportedParams =
 	| "top_k"
 	| "top_logprobs"
 	| "top_p"
+	| "structured_outputs"
+	| "parallel_tool_calls"
 
 /**
  * The raw model information returned by the OpenRouter API to list models
@@ -139,6 +141,8 @@ async function fetchAndCacheModels(controller: Controller): Promise<Record<strin
 					// If thinking is supported, set maxBudget with a default value as a placeholder
 					// to ensure it has a valid thinkingConfig that lets the application know thinking is supported.
 					thinkingConfig: supportThinking ? { maxBudget: ANTHROPIC_MAX_THINKING_BUDGET } : undefined,
+
+					supportsStrictTools: rawModel.supported_parameters?.includes("structured_outputs") ?? undefined,
 					supportsGlobalEndpoint: rawModel.supports_global_endpoint ?? undefined,
 					tiers: rawModel.tiers ?? undefined,
 				}

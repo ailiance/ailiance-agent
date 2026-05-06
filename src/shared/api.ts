@@ -133,6 +133,8 @@ export interface ModelInfo {
 	temperature?: number
 	supportsTools?: boolean
 
+	supportsStrictTools?: boolean
+
 	apiFormat?: ApiFormat // The API format used by this model
 }
 
@@ -891,11 +893,12 @@ export const vertexGlobalModels: Record<string, ModelInfo> = Object.fromEntries(
 
 export const openAiModelInfoSaneDefaults: OpenAiCompatibleModelInfo = {
 	maxTokens: -1,
-	contextWindow: 128_000,
+	contextWindow: 256_000,
 	supportsImages: true,
 	supportsPromptCache: false,
 	supportsTools: true,
 	supportsReasoning: true,
+	supportsStrictTools: false,
 	isR1FormatRequired: false,
 	inputPrice: 0,
 	outputPrice: 0,

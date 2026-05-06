@@ -98,7 +98,8 @@ export class DiracToolSet {
 				return toolSpecInputSchema
 			default:
 				// Default to OpenAI Compatible converter
-				return toolSpecFunctionDefinition
+				return (tool: DiracToolSpec, ctx: SystemPromptContext) =>
+					toolSpecFunctionDefinition(tool, ctx, ctx.providerInfo?.model?.info?.supportsStrictTools ?? false)
 		}
 	}
 

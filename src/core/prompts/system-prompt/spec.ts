@@ -47,10 +47,63 @@ interface DiracToolSpecParameter {
  * Converts a DiracToolSpec into an OpenAI ChatCompletionTool definition
  * Docs: https://openrouter.ai/docs/features/tool-calling#step-1-inference-request-with-tools
  */
-export function toolSpecFunctionDefinition(tool: DiracToolSpec, context: SystemPromptContext): OpenAITool {
+export function toolSpecFunctionDefinition(tool: DiracToolSpec, context: SystemPromptContext, strict = false): OpenAITool {
 	// Check if the tool should be included based on context requirements
 	if (tool.contextRequirements && !tool.contextRequirements(context)) {
 		throw new Error(`Tool ${tool.name} does not meet context requirements`)
+	}
+
+	/**
+	 * Recursively processes a JSON schema to comply with OpenAI's strict mode requirements.
+	 * - Sets additionalProperties: false for all objects
+	 * - Ensures all properties are in the required array
+	 * - Filters out unsupported keywords
+	 */
+	const processSchema = (schema: any): any => {
+		if (schema.type === "object") {
+			const properties: Record<string, any> = {}
+			const required: string[] = []
+
+			if (schema.properties) {
+				for (const [key, value] of Object.entries(schema.properties)) {
+					properties[key] = processSchema(value)
+					required.push(key)
+				}
+			}
+
+			return {
+				type: "object",
+				properties,
+				required,
+				additionalProperties: false,
+				...(schema.description ? { description: schema.description } : {}),
+			}
+		}
+
+		if (schema.type === "array" && schema.items) {
+			return {
+				type: "array",
+				items: processSchema(schema.items),
+				...(schema.description ? { description: schema.description } : {}),
+			}
+		}
+
+		// For non-object/array types, filter unsupported keywords if strict is enabled
+		if (strict) {
+			const {
+				type,
+				description,
+				enum: enumValues,
+				// Filtered out: minimum, maximum, pattern, minLength, maxLength, etc.
+			} = schema
+			return {
+				type,
+				...(description ? { description } : {}),
+				...(enumValues ? { enum: enumValues } : {}),
+			}
+		}
+
+		return schema
 	}
 
 	// Build the properties object for parameters
@@ -64,8 +117,8 @@ export function toolSpecFunctionDefinition(tool: DiracToolSpec, context: SystemP
 				continue
 			}
 
-			// Add to required array if parameter is required
-			if (param.required) {
+			// Add to required array if parameter is required (or if strict is enabled)
+			if (param.required || strict) {
 				required.push(param.name)
 			}
 
@@ -103,6 +156,7 @@ export function toolSpecFunctionDefinition(tool: DiracToolSpec, context: SystemP
 				"items",
 				"properties",
 			])
+
 			for (const key in param) {
 				if (!reservedKeys.has(key) && param[key] !== undefined) {
 					paramSchema[key] = param[key]
@@ -114,22 +168,21 @@ export function toolSpecFunctionDefinition(tool: DiracToolSpec, context: SystemP
 				paramSchema.description += ` Example: ${param.usage}`
 			}
 
-			properties[param.name] = paramSchema
+			properties[param.name] = strict ? processSchema(paramSchema) : paramSchema
 		}
 	}
 
-	// Build the ChatCompletionTool object
 	const chatCompletionTool: OpenAITool = {
 		type: "function",
 		function: {
 			name: tool.name,
+			strict: strict,
 			description: replacer(tool.description, context),
-			strict: false,
 			parameters: {
 				type: "object",
 				properties,
 				required,
-				additionalProperties: false,
+				...(strict ? { additionalProperties: false } : {}),
 			},
 		},
 	}

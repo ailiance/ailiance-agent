@@ -47,7 +47,7 @@ export async function* yieldUsage(info: ModelInfo, usage: any, id?: string): Asy
 	}
 }
 
-export function mapResponseTools(tools: ChatCompletionTool[]): OpenAI.Responses.Tool[] {
+export function mapResponseTools(tools: ChatCompletionTool[], strict = false): OpenAI.Responses.Tool[] {
 	const mapped = (tools || []).map((tool) => {
 		if (tool.type === "function") {
 			return {
@@ -55,7 +55,7 @@ export function mapResponseTools(tools: ChatCompletionTool[]): OpenAI.Responses.
 				name: tool.function.name,
 				description: tool.function.description,
 				parameters: tool.function.parameters ?? null,
-				strict: tool.function.strict ?? true,
+				strict: strict || (tool.function.strict ?? false),
 			}
 		}
 		if ((tool as any).type === "web_search") {

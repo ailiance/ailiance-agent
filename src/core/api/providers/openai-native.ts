@@ -202,7 +202,7 @@ export class OpenAiNativeHandler implements ApiHandler {
 		}
 
 		const { input, previousResponseId } = convertToOpenAIResponsesInput(messages, { usePreviousResponseId })
-		const responseTools = mapResponseTools(tools)
+		const responseTools = mapResponseTools(tools, model.info.supportsStrictTools)
 		this.abortController = new AbortController()
 
 		const params = buildResponseCreateParams({
@@ -278,11 +278,11 @@ export class OpenAiNativeHandler implements ApiHandler {
 		if (modelId && modelId in openAiNativeModels) {
 			const id = modelId as OpenAiNativeModelId
 			const info = openAiNativeModels[id]
-			return { id, info: { ...info } }
+			return { id, info: { ...info, supportsStrictTools: true } }
 		}
 		return {
 			id: openAiNativeDefaultModelId,
-			info: { ...openAiNativeModels[openAiNativeDefaultModelId] },
+			info: { ...openAiNativeModels[openAiNativeDefaultModelId], supportsStrictTools: true },
 		}
 	}
 }
