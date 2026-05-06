@@ -17,6 +17,7 @@
 - Gateway forces Qwen 32B (vLLM native FC) for any request with `tools[]` — most reliable agentic worker
 - Gemma `:9304` (llama.cpp pure) gets full tool emulation via gateway
 - Anti-hallucination guard in `_INJECT_TEMPLATE`
+- Qwen3-Next 80B-A3B (kxkm-ai) `--ctx-size` bumped 32k → 192k for long agentic sessions (~8 GB VRAM, 16 GB free margin)
 
 ### Workers status
 | Worker | Tool calling |

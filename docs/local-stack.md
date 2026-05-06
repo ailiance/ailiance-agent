@@ -176,3 +176,40 @@ for details.
 | You want LiteLLM's 100+ provider list | You target EU-kiki workers (Gemma/Apertus/EuroLLM) |
 | You need cost tracking, retries, complex fallback | You need lowest latency overhead |
 | You prefer external services to monitor independently | You want zero install (no Python) |
+
+## Qwen3-Next 80B-A3B (kxkm-ai, port 18888 → gateway :8002)
+
+Primary tool-capable worker for agentic requests. Launched manually via
+llama-server (no systemd unit). Tunnel: autossh `electron-server:8002` →
+`kxkm-ai:18888`. Exposed by the eu-kiki gateway on `:9300` when `tools[]`
+is present.
+
+```bash
+cd /home/kxkm
+./llama.cpp/build/bin/llama-server \
+  -m models/Qwen3-Next-80B-A3B-Instruct-Q4_K_M.gguf \
+  -ngl 99 \
+  --override-tensor "ffn_(up|gate|down)_exps\.weight=CPU" \
+  --ctx-size 196608 \
+  -fa on -b 512 -ub 256 \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  -np 1 --reasoning-format none \
+  --host 0.0.0.0 --port 18888 \
+  --api-key <key> --alias qwen-32b-awq \
+  --jinja --metrics
+```
+
+| Ctx | KV cache | VRAM used | Free margin (24 GB RTX 4090) |
+|-----|----------|-----------|------------------------------|
+| 32k | ~3-4 GB | ~7 GB | 17 GB |
+| 65k | ~7 GB | ~9 GB | 15 GB |
+| 128k | ~14 GB | ~14 GB | 10 GB |
+| **192k (current)** | ~17 GB | ~8 GB | 16 GB |
+| 256k | OOM | — | — |
+
+With MoE A3B + `--override-tensor FFN→CPU`, only attention layers remain in
+VRAM. KV cache is also compressed to q8, so VRAM stays low (~8 GB) even at
+192k. Throughput: ~31 tok/s output, ~92 tok/s prompt.
+
+`useAutoCondense: true` (default) triggers a conversation history summary
+when approaching the context limit, so practical usage fits well within 192k.

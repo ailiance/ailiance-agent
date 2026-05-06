@@ -112,7 +112,7 @@ Worker config example:
 { id: "kxkm-qwen32b", url: "http://...:8000/v1", modelId: "qwen32b-awq",
   capabilities: ["code", "reason", "general"],
   supportsTools: true,   // native vLLM function calling
-  priority: 9, ctxMax: 32768 }
+  priority: 9, ctxMax: 196608 }
 ```
 
 ### Server-side force-route (eu-kiki gateway)
@@ -122,6 +122,12 @@ with a non-empty `tools[]` array is redirected to Qwen 32B AWQ (vLLM, kxkm-ai)
 regardless of the worker selected by LocalRouter. This ensures agentic tasks
 always hit the most reliable native FC worker. This patch lives in the gateway
 repo (`eu-kiki`), not in this repo.
+
+> Qwen3-Next 80B-A3B (kxkm-ai, llama-server `:18888` → gateway `:8002`) is
+> configured with a **192k context window** (`--ctx-size 196608`, ~8 GB VRAM,
+> 16 GB free on RTX 4090 24 GB). Combined with `useAutoCondense: true` on the
+> client, agentic sessions can run hundreds of file edits without hitting the
+> context limit.
 
 ## See also
 
