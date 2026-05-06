@@ -1,6 +1,6 @@
-import { type ChildProcess, spawn } from "node:child_process"
 import { promises as fs } from "node:fs"
-import { createServer } from "node:net"
+import http, { type Server } from "node:http"
+import { createServer as createNetServer } from "node:net"
 import path from "node:path"
 
 /**
@@ -9,39 +9,58 @@ import path from "node:path"
  * unit-test tsconfig compiles to CommonJS where import.meta is unavailable.
  */
 function resolveModuleDir(): string {
-	// In CJS context (ts-node / mocha), __dirname is a real variable
 	if (typeof __dirname === "string") {
 		return __dirname
 	}
-	// In ESM context, use import.meta — wrapped in Function to prevent tsc
-	// from transforming it in CJS mode (ts-node evaluates this lazily)
 	try {
 		// biome-ignore lint: intentional runtime ESM detection
 		const meta = new Function("return import.meta")() as { url: string }
 		const { fileURLToPath } = require("node:url") as typeof import("node:url")
 		return path.dirname(fileURLToPath(meta.url))
 	} catch {
-		// Absolute fallback: resolve from cwd (works when source is co-located)
 		return path.resolve(process.cwd(), "src", "services", "webui")
 	}
+}
+
+const MIME: Record<string, string> = {
+	".html": "text/html; charset=utf-8",
+	".js": "application/javascript",
+	".mjs": "application/javascript",
+	".css": "text/css",
+	".svg": "image/svg+xml",
+	".png": "image/png",
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif": "image/gif",
+	".woff": "font/woff",
+	".woff2": "font/woff2",
+	".ttf": "font/ttf",
+	".otf": "font/otf",
+	".json": "application/json",
+	".map": "application/json",
+	".ico": "image/x-icon",
+	".txt": "text/plain; charset=utf-8",
 }
 
 export interface WebuiServerStatus {
 	running: boolean
 	url?: string
 	port?: number
-	external: boolean // true if AKI_WEBUI_URL set, no spawn
+	external: boolean // true if AKI_WEBUI_URL set, no in-process server
 }
 
 export class WebuiServer {
-	private childProcess: ChildProcess | null = null
+	private server: Server | null = null
 	private port: number | null = null
 	private externalUrl: string | null = null
 
 	/**
 	 * Resolve the webui URL.
 	 * - If AKI_WEBUI_URL env var is set → use it (no spawn)
-	 * - Else → spawn a static file server in background and return its URL
+	 * - Else → start an in-process static HTTP server on a free port (>=25463)
+	 *   serving webview-ui/build/. SPA fallback: any non-existent path → index.html.
+	 *   Server runs in this same Node process (no child spawn) for reliability.
+	 *   stop() closes it cleanly at exit.
 	 */
 	async start(): Promise<WebuiServerStatus> {
 		const fromEnv = process.env.AKI_WEBUI_URL?.trim()
@@ -49,34 +68,74 @@ export class WebuiServer {
 			this.externalUrl = fromEnv
 			return { running: true, url: fromEnv, external: true }
 		}
-		return this.spawnLocal()
+		return this.startLocal()
 	}
 
-	private async spawnLocal(): Promise<WebuiServerStatus> {
+	private async startLocal(): Promise<WebuiServerStatus> {
 		const buildDir = await this.findBuildDir()
 		if (!buildDir) {
 			return { running: false, external: false }
 		}
 		const port = await this.findFreePort(25463)
-		const moduleDir = resolveModuleDir()
-		const serverScript = path.join(moduleDir, "webui-static-server.cjs")
-		const proc = spawn(process.execPath, [serverScript, buildDir, String(port)], {
-			stdio: "ignore",
-			detached: true,
+		const server = http.createServer((req, res) => {
+			void this.handleRequest(req, res, buildDir)
 		})
-		proc.unref()
-		this.childProcess = proc
+		await new Promise<void>((resolve, reject) => {
+			server.once("error", reject)
+			server.listen(port, "127.0.0.1", () => resolve())
+		})
+		// Don't keep the event loop alive just for this server (Node will still
+		// serve while the CLI is running, but won't block exit).
+		server.unref()
+		this.server = server
 		this.port = port
 		return { running: true, url: `http://127.0.0.1:${port}`, port, external: false }
 	}
 
+	private async handleRequest(
+		req: http.IncomingMessage,
+		res: http.ServerResponse,
+		buildDir: string,
+	): Promise<void> {
+		try {
+			const reqPath = decodeURIComponent((req.url || "/").split("?")[0])
+			const safe = path.normalize(reqPath).replace(/^(\.\.[/\\])+/, "")
+			let filePath = path.join(buildDir, safe === "/" ? "index.html" : safe)
+			let stat: import("node:fs").Stats | null = null
+			try {
+				stat = await fs.stat(filePath)
+			} catch {
+				stat = null
+			}
+			if (!stat || !stat.isFile()) {
+				// SPA fallback
+				filePath = path.join(buildDir, "index.html")
+			}
+			const data = await fs.readFile(filePath)
+			const ext = path.extname(filePath).toLowerCase()
+			res.writeHead(200, {
+				"Content-Type": MIME[ext] || "application/octet-stream",
+				"Cache-Control": "no-cache",
+			})
+			res.end(data)
+		} catch {
+			res.writeHead(500)
+			res.end("internal error")
+		}
+	}
+
 	private async findBuildDir(): Promise<string | null> {
 		const moduleDir = resolveModuleDir()
-		// Try several locations relative to this module at runtime
+		// Try several locations relative to this module at runtime.
+		// In a bundled CLI, __dirname is cli/dist, so we walk up a couple of
+		// levels to reach the repo root then into webview-ui/build.
 		const candidates = [
 			path.resolve(moduleDir, "..", "..", "..", "webview-ui", "build"),
 			path.resolve(moduleDir, "..", "..", "webview-ui", "build"),
 			path.resolve(moduleDir, "..", "..", "..", "..", "webview-ui", "build"),
+			path.resolve(moduleDir, "..", "webview-ui", "build"),
+			// Last resort: cwd-based
+			path.resolve(process.cwd(), "webview-ui", "build"),
 		]
 		for (const c of candidates) {
 			try {
@@ -90,7 +149,7 @@ export class WebuiServer {
 	private findFreePort(start: number): Promise<number> {
 		return new Promise((resolve, reject) => {
 			const tryPort = (p: number) => {
-				const srv = createServer()
+				const srv = createNetServer()
 				srv.once("error", () => {
 					srv.close()
 					if (p > start + 100) reject(new Error("no free port"))
@@ -107,17 +166,18 @@ export class WebuiServer {
 	}
 
 	async stop(): Promise<void> {
-		if (this.childProcess?.pid) {
-			try {
-				process.kill(this.childProcess.pid, "SIGTERM")
-			} catch {}
-			this.childProcess = null
+		if (this.server) {
+			await new Promise<void>((resolve) => {
+				this.server?.close(() => resolve())
+			})
+			this.server = null
+			this.port = null
 		}
 	}
 
 	status(): WebuiServerStatus {
 		if (this.externalUrl) return { running: true, url: this.externalUrl, external: true }
-		if (this.childProcess && this.port)
+		if (this.server && this.port)
 			return { running: true, url: `http://127.0.0.1:${this.port}`, port: this.port, external: false }
 		return { running: false, external: false }
 	}
