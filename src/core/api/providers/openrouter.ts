@@ -5,6 +5,9 @@ import { shouldSkipReasoningForModel } from "@utils/model-utils"
 import axios from "axios"
 import OpenAI from "openai"
 import type { ChatCompletionTool as OpenAITool } from "openai/resources/chat/completions"
+import { getLocalRouter } from "@/services/local-router/instance"
+import type { LocalRouter } from "@/services/local-router/LocalRouter"
+import type { WorkerEndpoint } from "@/services/local-router/types"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
@@ -23,15 +26,21 @@ interface OpenRouterHandlerOptions extends CommonApiHandlerOptions {
 	reasoningEffort?: string
 	thinkingBudgetTokens?: number
 	enableParallelToolCalling?: boolean
+	useLocalRouter?: boolean
+	localRouterWorkers?: WorkerEndpoint[]
 }
 
 export class OpenRouterHandler implements ApiHandler {
 	private options: OpenRouterHandlerOptions
 	private client: OpenAI | undefined
+	private localRouter: LocalRouter | null = null
 	lastGenerationId?: string
 
 	constructor(options: OpenRouterHandlerOptions) {
 		this.options = options
+		if (options.useLocalRouter) {
+			this.localRouter = getLocalRouter(options.localRouterWorkers)
+		}
 	}
 
 	private ensureClient(): OpenAI {
@@ -58,6 +67,35 @@ export class OpenRouterHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: OpenAITool[]): ApiStream {
+		// Try LocalRouter first when enabled and messages are text-only.
+		if (this.localRouter) {
+			try {
+				const textOnly = messages.every((m) => typeof m.content === "string")
+				if (textOnly) {
+					const res = await this.localRouter.chat({
+						messages: [
+							{ role: "system", content: systemPrompt },
+							...messages.map((m) => ({ role: m.role, content: m.content as string })),
+						],
+						max_tokens: this.options.openRouterModelInfo?.maxTokens ?? undefined,
+						temperature: 1,
+						stream: false,
+					})
+					const text = res.choices[0]?.message?.content ?? ""
+					yield { type: "text", text }
+					yield {
+						type: "usage",
+						inputTokens: res.usage?.prompt_tokens ?? 0,
+						outputTokens: res.usage?.completion_tokens ?? 0,
+						totalCost: 0,
+					}
+					return
+				}
+			} catch (err) {
+				Logger.warn("[OpenRouter] LocalRouter failed, falling back to HTTP:", err)
+			}
+		}
+
 		const client = this.ensureClient()
 		this.lastGenerationId = undefined
 
