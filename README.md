@@ -1,60 +1,301 @@
+<div align="center">
+
 # agent-kiki
 
-> Fork of [Dirac](https://github.com/dirac-run/dirac), itself based on [Cline](https://github.com/cline/cline). Adds EU AI Act-compliant JSONL tracing, defaults to the [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) sovereign serving stack, and keeps strict compatibility with upstream tools.
->
-> CLI: `aki` (alias `agent-kiki`). Default provider: eu-kiki gateway at `http://studio:9300`.
->
-> License: Apache-2.0 (preserved from upstream).
->
-> Current release: **v0.3.0** — see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+### Agent de code souverain — extension VS Code + CLI Ink, audit JSONL EU AI Act, branché sur la passerelle eu-kiki par défaut
 
-## What's new in v0.3
+[![release](https://img.shields.io/badge/release-v0.3.1-7e3af2)](docs/CHANGELOG.md)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![fork-of](https://img.shields.io/badge/fork%20de-Dirac%20/%20Cline-1f4e8a)](https://github.com/dirac-run/dirac)
+[![tracing](https://img.shields.io/badge/tracing-EU%20AI%20Act%20JSONL-success)](src/core/tracing/JsonlTracer.ts)
+[![backend](https://img.shields.io/badge/backend-eu--kiki-7e3af2)](https://github.com/L-electron-Rare/eu-kiki)
 
-- **CLI statusline**: 2-row Claude-Code-style statusline in the chat
-  footer (cwd + branch badge + model badge + remaining-context badge
-  + live clock).
-- **Local stack auto-detect routing**: when `useLocalStack` is on,
-  agent-kiki probes `http://localhost:5050` (Jina semantic router)
-  then `http://localhost:4000` (LiteLLM proxy) before falling back
-  to the configured remote gateway.
-- **Plugin hooks runtime wiring**: PreToolUse / PostToolUse hooks
-  defined in `.claude/hooks.json` are honored by the agent loop.
-- **MCP server + tool filtering**: new settings keys
-  `enabledMcpServers`, `mcpToolDenylist`, `mcpToolAllowlist`.
-- **Provider**: `aihubmix` added.
+CLI : **`aki`** (alias `agent-kiki`) · Extension VS Code · UI webview React · Provider par défaut : passerelle [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) (`http://studio:9300`)
 
-## Caveats (V0)
+</div>
 
-This is an early fork release. Known limitations:
+---
 
-- **Backend**: defaults to the eu-kiki gateway at `http://studio:9300/v1`
-  (Tailscale-private). Override with `AGENT_KIKI_GATEWAY=<url>` or `--baseurl`.
-  The trailing `/v1` is required: eu-kiki exposes `/v1/chat/completions`.
-- **eu-kiki function-calling (resolved in v0.2)**: as of v0.2.0, eu-kiki
-  workers accept the OpenAI `tools` field, inject the spec into the
-  Mistral chat template, parse Mistral `[TOOL_CALLS]name[ARGS]json`,
-  XML `<tool_call>{...}</tool_call>`, or plain JSON tool-call formats
-  in the model output, and re-emit OpenAI-compatible SSE chunks with
-  `tool_calls` + `finish_reason: "tool_calls"`. End-to-end ReAct
-  convergence demonstrated with Devstral 24B — see
-  `docs/mvp-acceptance-2026-05-05-v0.2.md`.
-- **eu-kiki LoRA adapters**: as of v0.1.0 the worker wraps the base model
-  with `linear_to_lora_layers` and loads adapter weights via
-  `strict=False` (commit `eu-kiki:1ed24b8`). Domain-specific LoRA is
-  active when the `X-Lora-Domain` header is set. Adapter wrap inferred
-  from safetensors shape (rank, num_layers, target keys).
-- **Telemetry**: upstream Dirac sends usage events to dirac.run / PostHog.
-  This fork **disables** all telemetry. No data leaves the host.
-- **Sentinel apiKey**: when no provider is configured, the fork persists
-  `openAiApiKey="unused"` to disk as a sentinel for the openai-compatible
-  code path. The eu-kiki gateway does not validate keys.
-- **Trace gap**: tasks that abort before any valid tool call produce a
-  trace directory but empty meta/trace files. Audit downstream should treat
-  empty files as `incomplete` runs.
-- **Node.js v25 unsupported** (upstream V8 Turboshaft bug). Use Node 20,
-  22, or 24 LTS.
-- **No trace rotation**: `<cwd>/.agent-kiki/runs/` accumulates indefinitely.
-  Manual cleanup until v0.2.
+## C'est quoi
+
+Un agent de code conversationnel forké de [Dirac](https://github.com/dirac-run/dirac) (lui-même basé sur [Cline](https://github.com/cline/cline)) avec **trois différences qui comptent** :
+
+1. **Tracing JSONL EU AI Act** — chaque tour de plan / d'outil est écrit dans `.agent-kiki/runs/<task_id>/`, secrets scrubés, audit prêt pour Annex IV §1(c).
+2. **Backend eu-kiki par défaut** — la passerelle souveraine 5 workers (Apertus, Devstral, EuroLLM, Gemma 3, Qwen3-Next) au lieu d'OpenAI/Anthropic. 41 autres providers branchables (Bedrock, Vertex, DeepSeek, Mistral, OpenRouter, etc.).
+3. **Télémétrie désactivée** — upstream Dirac envoie des events à PostHog. Ce fork coupe tout. Aucune donnée ne sort de l'hôte.
+
+### Vue d'ensemble
+
+```mermaid
+flowchart TB
+    user([👤 Utilisateur])
+
+    subgraph clients["Clients"]
+        cli["CLI Ink<br/><code>aki</code> (alias <code>agent-kiki</code>)"]
+        vscode["Extension VS Code<br/>+ webview React"]
+    end
+
+    subgraph core["Cœur agent (TypeScript strict)"]
+        loop["Boucle agent<br/><code>src/core/task/</code>"]
+        tools["Tool handlers<br/><code>src/core/task/tools/</code>"]
+        tracer["JsonlTracer<br/><code>.agent-kiki/runs/&lt;task&gt;/</code>"]
+        store["State / disk<br/><code>~/.dirac · globalStorage</code>"]
+        loop --> tools
+        loop --> tracer
+        loop --> store
+    end
+
+    subgraph providers["Providers LLM (42)"]
+        eukiki["🇪🇺 eu-kiki gateway<br/><b>par défaut</b><br/>:9300 → 5 workers"]
+        cloud["Anthropic · OpenAI<br/>Bedrock · Vertex · Mistral<br/>DeepSeek · Qwen · …"]
+        local["🏠 Local stack<br/>Jina :5050 / LiteLLM :4000<br/>(auto-detect)"]
+    end
+
+    user --> cli
+    user --> vscode
+    cli --> loop
+    vscode --> loop
+    loop --> eukiki
+    loop -.->|fallback| cloud
+    loop -.->|<code>useLocalStack=true</code>| local
+
+    classDef sov fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#0c2a5b
+    classDef ext fill:#fef3c7,stroke:#92400e
+    classDef audit fill:#d1fae5,stroke:#065f46,stroke-width:2px
+    class eukiki,local sov
+    class cloud ext
+    class tracer audit
+```
+
+## Démarrer en 30 secondes
+
+```bash
+# Installation globale (Node 20 / 22 / 24 — pas Node 25)
+npm install -g agent-kiki
+
+# Premier prompt — passerelle eu-kiki par défaut
+aki "résume-moi ce dépôt en 5 puces"
+
+# Provider explicite
+aki --provider anthropic --model claude-opus-4-7 "ajoute un test pour foo()"
+
+# Mode plan (réfléchit avant d'agir)
+aki -p "refactor le module bar/ en deux modules"
+```
+
+L'extension VS Code s'installe via le `.vsix` du repo (paquet `agent-kiki-0.3.1.vsix`).
+
+## Statusline 2 lignes (v0.3)
+
+Inspirée de Claude Code. Visible en bas de la chat view :
+
+```
+ ▸ ~/Documents/Projets/agent-kiki   master
+  devstral-24b      ◉ 73%    ⏱ 11:09:42
+ / pour commandes · @ pour fichiers · Shift+↓ pour multi-ligne     ● Plan ○ Act (Tab)
+ devstral-24b ███░░░░░░░ (12 345) | 0,082 €
+ agent-kiki (master) | 3 fichiers +120 -45
+ ⏵⏵ Auto-approve all enabled (Shift+Tab)
+```
+
+- Ligne 1 : `▸ <cwd_complet>` + badge branche (vert si clean, jaune si dirty)
+- Ligne 2 : badge magenta modèle + badge contexte coloré (vert ≥ 40 %, jaune ≥ 15 %, rouge sinon) + horloge live
+
+## Ce qui distingue ce fork
+
+| | agent-kiki | Dirac upstream |
+|---|---|---|
+| **Provider par défaut** | eu-kiki gateway (5 modèles EU/CH/Asie souverains) | OpenAI |
+| **Télémétrie** | aucune (PostHog désactivé) | events vers `dirac.run` |
+| **Audit** | trace JSONL secret-scrubée par tâche, prête pour EU AI Act Annex IV | logs upstream classiques |
+| **Routage local** | auto-detect Jina :5050 / LiteLLM :4000 si `useLocalStack` | absent |
+| **Branding CLI** | `aki` (court) + statusline 2 lignes | `dirac` |
+| **Plugin hooks** | `PreToolUse` / `PostToolUse` câblés au runtime | upstream |
+| **Filtrage MCP** | `enabledMcpServers` + `mcpToolDenylist` + `mcpToolAllowlist` | upstream |
+
+Pour le reste — boucle ReAct, hash-anchored parallel edits, AST manipulation, `--auto-condense`, `--double-check-completion`, 41 providers tiers — **on hérite et on garde la compatibilité stricte avec Dirac**. Les améliorations qui ne sont pas spécifiques au fork remontent en upstream.
+
+## Boucle agent + audit JSONL
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Utilisateur
+    participant A as Agent (Task)
+    participant L as LLM (eu-kiki / autre)
+    participant T as Outils
+    participant J as JsonlTracer
+
+    U->>A: prompt initial
+    A->>J: meta.json (task_id, cwd, mode, model)
+
+    loop ReAct jusqu'à attempt_completion
+        A->>L: stream chat completions
+        L-->>A: tokens (texte + tool_calls)
+        A->>J: trace.jsonl ← phase=plan
+        opt tool_call émis
+            A->>T: exécute (read / edit / bash …)
+            T-->>A: résultat
+            A->>J: trace.jsonl ← phase=execute
+        end
+    end
+
+    A->>J: trace.jsonl ← phase=summarize
+    A-->>U: réponse finale + résumé
+
+    Note over J: Scrubber sur tous les writes :<br/>AWS keys · PEM · URLs<br/>champs <code>password / apiKey / secret</code>
+```
+
+`.agent-kiki/runs/<task_id>/`
+- **`meta.json`** — task_id, cwd, mode (plan/act), model, provider, début, fin
+- **`trace.jsonl`** — un évènement par ligne, phase ∈ `plan / execute / summarize / abort`
+
+Les secrets sont retirés au moment de l'écriture par `JsonlTracer:210` (regex blocklist). Aucune purge a posteriori nécessaire.
+
+## Providers branchables (42)
+
+```mermaid
+flowchart LR
+    subgraph default["🇪🇺 Par défaut"]
+        EU["eu-kiki gateway<br/>5 workers<br/>:9300/v1"]
+    end
+
+    subgraph cloud["☁️ Cloud / hébergés"]
+        ANT["Anthropic"]
+        OAI["OpenAI"]
+        BED["AWS Bedrock"]
+        VTX["Vertex AI"]
+        AZ["Azure OpenAI"]
+        OR["OpenRouter"]
+        DS["DeepSeek"]
+        QW["Qwen"]
+        MIS["Mistral"]
+        AIH["AIHubMix<br/>(nouveau v0.3)"]
+        ETC["… 30+ autres<br/>cf. <code>src/core/api/providers/</code>"]
+    end
+
+    subgraph local["🏠 Local"]
+        OL["Ollama"]
+        LMS["LM Studio"]
+        VLLM["vLLM"]
+        TGI["TGI"]
+        JINA["Jina :5050<br/>(auto)"]
+        LL["LiteLLM :4000<br/>(auto)"]
+    end
+
+    cli([aki / agent-kiki])
+    cli --> EU
+    cli -.-> cloud
+    cli -.-> local
+
+    classDef def fill:#dbeafe,stroke:#1e40af,stroke-width:2px
+    classDef cl fill:#fef3c7,stroke:#92400e
+    classDef lo fill:#d1fae5,stroke:#065f46
+    class default def
+    class cloud cl
+    class local lo
+```
+
+Switch : `aki --provider <nom> --model <id>` ou via le panneau de config. La liste complète : `src/core/api/providers/` (un fichier par backend). 42 providers. Configurations stockées chiffrées dans `~/.dirac/`.
+
+## Stack local auto-detect (v0.3)
+
+Active le routage local dynamique :
+
+```mermaid
+flowchart LR
+    REQ([requête LLM])
+    USE{<code>useLocalStack</code><br/>activé ?}
+    PROBE1{Jina :5050<br/>répond ?}
+    PROBE2{LiteLLM :4000<br/>répond ?}
+
+    REQ --> USE
+    USE -- non --> CONF["base URL configurée<br/>(eu-kiki par défaut)"]
+    USE -- oui --> PROBE1
+    PROBE1 -- oui --> J["Jina semantic router<br/>:5050/v1"]
+    PROBE1 -- non --> PROBE2
+    PROBE2 -- oui --> LL["LiteLLM proxy<br/>:4000/v1"]
+    PROBE2 -- non --> CONF
+
+    classDef ok fill:#d1fae5,stroke:#065f46
+    classDef miss fill:#fef3c7,stroke:#92400e
+    class J,LL ok
+    class CONF miss
+```
+
+Cache 30 s pour ne pas pinger les ports à chaque requête (`src/services/local-stack/LocalStackDetector.ts`). Activable globalement (`useLocalStack` setting key) ou par appel.
+
+## Démarrage rapide (dev)
+
+```bash
+git clone https://github.com/L-electron-Rare/agent-kiki.git
+cd agent-kiki
+npm run install:all   # bootstrap monorepo (root + cli + webview-ui)
+npm run protos        # génère src/generated/ + src/shared/proto/ — REQUIS avant build
+npm run build
+npm test              # suite mocha (root) + vitest (cli, webview-ui)
+npm run lint          # biome
+```
+
+Workspaces :
+
+| Path | Rôle |
+|------|------|
+| `src/` | Extension VS Code + cœur agent (TS strict) |
+| `cli/` | CLI Ink (binaire `aki`, build esbuild → `dist/cli.mjs`) |
+| `webview-ui/` | Frontend React (Vite + Storybook) |
+| `proto/` | Protobuf (gRPC entre host / webview / CLI) |
+| `agent-registry/`, `evals/`, `walkthrough/`, `locales/` | Assets non-code |
+
+## Configuration
+
+| Clef | Effet |
+|---|---|
+| `AGENT_KIKI_GATEWAY=<url>` (env) ou `--baseurl` | Override de la passerelle eu-kiki par défaut |
+| `useLocalStack` (setting) | Active l'auto-detect Jina :5050 / LiteLLM :4000 |
+| `enabledMcpServers` (setting) | Liste blanche des serveurs MCP à charger |
+| `mcpToolDenylist` / `mcpToolAllowlist` (setting) | Filtrage fin par outil |
+| `enableParallelToolCalling` | (déjà existant upstream) — true par défaut |
+
+L'API gateway eu-kiki attend le suffixe `/v1` (cf. eu-kiki/src/gateway/server.py — `/v1/chat/completions` est la seule route exposée).
+
+## Quoi regarder où
+
+| Tâche | Location |
+|---|---|
+| Boucle d'exécution agent / state | `src/core/task/` |
+| Provider LLM (anthropic, openai, …) | `src/core/api/providers/` |
+| Tracing JSONL + scrubber | `src/core/tracing/JsonlTracer.ts` |
+| Persistence disque | `src/core/storage/` |
+| Tool handlers | `src/core/task/tools/handlers/` |
+| Slash commands | `src/core/slash-commands/` |
+| Prompts système | `src/core/prompts/` |
+| CLI Ink (TUI) | `cli/src/` |
+| Statusline (ChatFooter) | `cli/src/components/ChatFooter.tsx` |
+| UI React (panel webview) | `webview-ui/src/` |
+| Notes acceptance MVP | `docs/` |
+
+## Changements récents
+
+Voir [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Versions actives :
+
+- **v0.3.1** (2026-05-06) — fleet eu-kiki passé à 5 workers (Gemma 3, Qwen3-Next 80B MoE)
+- **v0.3.0** (2026-05-06) — statusline 2 lignes, local stack auto-detect, plugin hooks runtime, filtrage MCP, provider AIHubMix
+- **v0.2.0** (2026-05-05) — convergence agent end-to-end avec eu-kiki (parsing tool-calls Mistral)
+- **v0.1.0** (2026-05-05) — fork initial : tracing JSONL, télémétrie off, defaults eu-kiki
+
+## Limitations connues (v0)
+
+- **Backend** : par défaut `http://studio:9300/v1` (Tailscale privé). Override via `AGENT_KIKI_GATEWAY` ou `--baseurl`. Le suffixe `/v1` est obligatoire.
+- **eu-kiki LoRA adapters** : worker wrap base + `linear_to_lora_layers`, charge les poids via `strict=False` (`eu-kiki:1ed24b8`). Adapter par domaine activé quand le header `X-Lora-Domain` est présent.
+- **Sentinel apiKey** : sans provider configuré, le fork persiste `openAiApiKey="unused"` comme sentinelle pour le code path openai-compatible. La passerelle eu-kiki ne valide pas les clés.
+- **Trace gap** : les tâches abandonnées avant un tool call valide produisent un dossier de run avec meta/trace vides. Audit downstream : traiter comme `incomplete`.
+- **Node.js v25 non supporté** (bug V8 Turboshaft upstream). Utiliser Node 20, 22 ou 24 LTS.
+- **Pas de rotation des traces** : `<cwd>/.agent-kiki/runs/` s'accumule sans purge auto. Nettoyage manuel jusqu'à v0.4.
+
+## Origine et licence
+
+Fork de [Dirac](https://github.com/dirac-run/dirac), lui-même basé sur [Cline](https://github.com/cline/cline). Les améliorations qui ne sont pas spécifiques au fork (boucle agent, optimisations de contexte, suite d'évals, parallel edits, AST manipulation, sub-agents) viennent d'upstream et restent compatibles. License **Apache-2.0**, préservée.
 
 ---
 
