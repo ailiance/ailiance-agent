@@ -1,3 +1,4 @@
+import * as childProcessModule from "child_process"
 import fs from "fs/promises"
 import path from "path"
 import { Logger } from "@/shared/services/Logger"
@@ -5,19 +6,20 @@ import { version as diracVersion } from "../../../package.json"
 import { getDistinctId } from "../../services/logging/distinctId"
 import { telemetryService } from "../../services/telemetry"
 import {
-    HookInput,
-    HookModelContext,
-    HookOutput,
-    NotificationData,
-    PostToolUseData,
-    PreCompactData,
-    PreToolUseData,
-    TaskCancelData,
-    TaskCompleteData,
-    TaskResumeData,
-    TaskStartData,
-    UserPromptSubmitData,
+	HookInput,
+	HookModelContext,
+	HookOutput,
+	NotificationData,
+	PostToolUseData,
+	PreCompactData,
+	PreToolUseData,
+	TaskCancelData,
+	TaskCompleteData,
+	TaskResumeData,
+	TaskStartData,
+	UserPromptSubmitData,
 } from "../../shared/proto/dirac/hooks"
+import type { LoadPluginHooksResult, PluginHookCommand } from "../plugins/PluginHookLoader"
 import { getAllHooksDirs } from "../storage/disk"
 import { StateManager } from "../storage/StateManager"
 import { HookExecutionError } from "./HookError"
@@ -717,7 +719,165 @@ function isExpectedHookError(error: unknown): boolean {
 	return false
 }
 
+// Default timeout (seconds) when a plugin hook doesn't specify one
+const PLUGIN_HOOK_DEFAULT_TIMEOUT_S = 10
+
+/**
+ * Executes a single plugin hook command as a child process.
+ *
+ * The command is spawned with CLAUDE_PLUGIN_ROOT set to the plugin root dir
+ * (already expanded in the command string by PluginHookLoader), plus standard
+ * environment variables (CLAUDE_TASK_ID, CLAUDE_CODE_VERSION).
+ *
+ * Fail-open: any execution error returns a successful no-op HookOutput rather
+ * than propagating. This matches the "hooks are advisory" contract.
+ */
+class PluginHookRunner<Name extends HookName> extends HookRunner<Name> {
+	constructor(
+		hookName: Name,
+		private readonly pluginHook: PluginHookCommand,
+		private readonly abortSignal?: AbortSignal,
+	) {
+		super(hookName)
+	}
+
+	override async [exec](input: HookInput): Promise<HookOutput> {
+		const { command, timeoutSeconds, pluginName } = this.pluginHook
+		const timeoutMs = (timeoutSeconds ?? PLUGIN_HOOK_DEFAULT_TIMEOUT_S) * 1000
+
+		const inputJson = JSON.stringify(HookInput.toJSON(input) as Record<string, any>)
+
+		return new Promise<HookOutput>((resolve) => {
+			const env: Record<string, string> = {
+				...(process.env as Record<string, string>),
+				CLAUDE_TASK_ID: input.taskId ?? "",
+				CLAUDE_CODE_VERSION: input.diracVersion ?? "",
+			}
+
+			const child = childProcessModule.spawn(command, [], {
+				shell: true,
+				env,
+				stdio: ["pipe", "pipe", "pipe"],
+			})
+
+			let stdout = ""
+			let settled = false
+
+			const settle = (output: HookOutput) => {
+				if (settled) return
+				settled = true
+				clearTimeout(timer)
+				resolve(output)
+			}
+
+			// Timeout
+			const timer = setTimeout(() => {
+				if (!settled) {
+					Logger.warn(`[PluginHooks] Plugin '${pluginName}' hook timed out after ${timeoutMs}ms, continuing`)
+					child.kill()
+					settle(HookOutput.create({ cancel: false }))
+				}
+			}, timeoutMs)
+
+			// Abort signal
+			if (this.abortSignal) {
+				this.abortSignal.addEventListener("abort", () => {
+					if (!settled) {
+						child.kill()
+						settle(HookOutput.create({ cancel: false }))
+					}
+				})
+			}
+
+			child.stdout?.on("data", (chunk: Buffer) => {
+				stdout += chunk.toString()
+			})
+
+			child.stderr?.on("data", (chunk: Buffer) => {
+				Logger.warn(`[PluginHooks] Plugin '${pluginName}' stderr: ${chunk.toString().trimEnd()}`)
+			})
+
+			child.on("error", (err) => {
+				Logger.warn(`[PluginHooks] Plugin '${pluginName}' spawn error: ${err.message}`)
+				settle(HookOutput.create({ cancel: false }))
+			})
+
+			child.on("close", () => {
+				if (settled) return
+				try {
+					const parsed = JSON.parse(stdout.trim())
+					const validation = validateHookOutput(parsed)
+					if (validation.valid) {
+						settle(HookOutput.fromJSON(parsed))
+						return
+					}
+				} catch {
+					// Ignore parse errors — treat as no-op
+				}
+				settle(HookOutput.create({ cancel: false }))
+			})
+
+			// Write input JSON to stdin then close
+			if (child.stdin) {
+				child.stdin.write(inputJson)
+				child.stdin.end()
+			}
+		})
+	}
+}
+
 export class HookFactory {
+	// ---------------------------------------------------------------------------
+	// Plugin hooks registry (static — shared across all HookFactory instances)
+	// ---------------------------------------------------------------------------
+
+	/** Registry: event name → plugin hook commands loaded via registerPluginHooks */
+	private static pluginHookRegistry = new Map<string, PluginHookCommand[]>()
+
+	/**
+	 * Register plugin hooks from all discovered plugins.
+	 *
+	 * Call this once at task boot (e.g. in LifecycleManager.startTask) after
+	 * `loadPluginHooks()` has resolved. Replaces any previously registered
+	 * plugin hooks for the same events (idempotent on repeated calls).
+	 *
+	 * Unsupported events (Stop, SessionStart, PermissionRequest) are already
+	 * filtered out by PluginHookLoader. Extra unknown events are silently skipped.
+	 *
+	 * @param result The result returned by `loadPluginHooks()`
+	 */
+	static registerPluginHooks(result: LoadPluginHooksResult): void {
+		// Reset previous registrations
+		HookFactory.pluginHookRegistry.clear()
+
+		for (const [event, commands] of result.byEvent) {
+			HookFactory.pluginHookRegistry.set(event, commands)
+		}
+
+		const totalCommands = [...result.byEvent.values()].reduce((n, cmds) => n + cmds.length, 0)
+		if (totalCommands > 0) {
+			Logger.log(`[PluginHooks] Registered ${totalCommands} plugin hook(s) across ${result.byEvent.size} event(s)`)
+		}
+	}
+
+	/**
+	 * Returns plugin hook commands registered for the given event name, or [].
+	 */
+	static getPluginHooksForEvent(event: string): PluginHookCommand[] {
+		return HookFactory.pluginHookRegistry.get(event) ?? []
+	}
+
+	/**
+	 * Clears the plugin hook registry. Intended for use in tests.
+	 */
+	static clearPluginHooks(): void {
+		HookFactory.pluginHookRegistry.clear()
+	}
+
+	// ---------------------------------------------------------------------------
+	// Instance methods
+	// ---------------------------------------------------------------------------
+
 	/**
 	 * Get information about discovered hooks including their script paths
 	 * @param hookName The type of hook to query
@@ -734,12 +894,14 @@ export class HookFactory {
 	}
 
 	/**
-	 * Check if any hook scripts exist for the given hook name
-	 * @returns true if at least one hook script exists, false otherwise
+	 * Check if any hook scripts exist for the given hook name.
+	 * Also returns true if any plugin hooks are registered for this event.
+	 * @returns true if at least one hook (filesystem or plugin) exists, false otherwise
 	 */
 	async hasHook<Name extends HookName>(hookName: Name): Promise<boolean> {
 		const scripts = await HookFactory.findHookScripts(hookName)
-		return scripts.length > 0
+		if (scripts.length > 0) return true
+		return HookFactory.getPluginHooksForEvent(hookName).length > 0
 	}
 
 	/**
@@ -802,11 +964,31 @@ export class HookFactory {
 		// Create runners with source and cwd determination for each script
 		// Global hooks run from primary workspace root
 		// Workspace-specific hooks run from their respective workspace root
-		const runners = scripts.map((script) => {
+		const runners: HookRunner<Name>[] = scripts.map((script) => {
 			const source = this.determineScriptSource(script, hooksDirs)
 			const cwd = this.determineHookCwd(script, hooksDirs, workspaceRoots, primaryCwd)
 			return new StdioHookRunner(hookName, script, source, streamCallback, abortSignal, taskId, toolName, cwd)
 		})
+
+		// Add plugin hook runners for this event, filtered by matcher + toolName
+		const pluginHooksForEvent = HookFactory.getPluginHooksForEvent(hookName)
+		for (const pluginHook of pluginHooksForEvent) {
+			// If matcher is set, apply regex filter against the tool name
+			if (pluginHook.matcher && toolName !== undefined) {
+				try {
+					const re = new RegExp(pluginHook.matcher)
+					if (!re.test(toolName)) {
+						continue
+					}
+				} catch {
+					Logger.warn(
+						`[PluginHooks] Plugin '${pluginHook.pluginName}' has invalid matcher regex '${pluginHook.matcher}', skipping`,
+					)
+					continue
+				}
+			}
+			runners.push(new PluginHookRunner(hookName, pluginHook, abortSignal))
+		}
 
 		if (runners.length === 0) {
 			return new NoOpRunner(hookName)

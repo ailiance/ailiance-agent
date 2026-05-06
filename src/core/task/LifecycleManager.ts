@@ -1,4 +1,5 @@
 import { executeHook } from "@core/hooks/hook-executor"
+import { HookFactory } from "@core/hooks/hook-factory"
 import { getHookModelContext } from "@core/hooks/hook-model-context"
 import { getHooksEnabledSafe } from "@core/hooks/hooks-utils"
 import { formatResponse } from "@core/prompts/responses"
@@ -112,6 +113,9 @@ export class LifecycleManager {
 				})
 			}
 		}
+
+		// Bootstrap plugin hooks (lazy, once per task start)
+		await this.bootstrapPluginHooks()
 
 		const hooksEnabled = getHooksEnabledSafe(this.dependencies.stateManager.getGlobalSettingsKey("hooksEnabled"))
 		if (hooksEnabled) {
@@ -495,7 +499,6 @@ export class LifecycleManager {
 				Logger.error("Failed to post state after setting abort flag", error)
 			}
 
-
 			this.dependencies.terminalManager.disposeAll()
 			this.dependencies.urlContentFetcher.closeBrowser()
 			await this.dependencies.browserSession.dispose()
@@ -519,6 +522,20 @@ export class LifecycleManager {
 			} catch (error) {
 				Logger.error("Failed to post final state after abort", error)
 			}
+		}
+	}
+
+	/**
+	 * Loads plugin hooks from all discovered plugins and registers them with HookFactory.
+	 * Fail-open: any error is logged and swallowed so the task can proceed without plugins.
+	 */
+	private async bootstrapPluginHooks(): Promise<void> {
+		try {
+			const { loadPluginHooks } = await import("@core/plugins/PluginHookLoader")
+			const result = await loadPluginHooks()
+			HookFactory.registerPluginHooks(result)
+		} catch (error) {
+			Logger.warn(`[PluginHooks] Failed to load plugin hooks: ${error}`)
 		}
 	}
 }
