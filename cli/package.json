@@ -1,6 +1,6 @@
 {
 	"name": "agent-kiki-cli",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to eu-kiki LLM gateway by default",
 	"files": [
 		"dist"
