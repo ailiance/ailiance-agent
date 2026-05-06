@@ -118,21 +118,21 @@ export class OpenAiHandler implements ApiHandler {
 			try {
 				const textOnly = messages.every((m) => typeof m.content === "string")
 				if (textOnly) {
-					const res = await this.localRouter.chat({
+					for await (const chunk of this.localRouter.chatStream({
 						messages: [
 							{ role: "system", content: systemPrompt },
 							...messages.map((m) => ({ role: m.role, content: m.content as string })),
 						],
 						max_tokens: this.options.openAiModelInfo?.maxTokens ?? undefined,
 						temperature: 1,
-						stream: false,
-					})
-					const text = res.choices[0]?.message?.content ?? ""
-					yield { type: "text", text }
+						stream: true,
+					})) {
+						yield chunk
+					}
 					yield {
 						type: "usage",
-						inputTokens: res.usage?.prompt_tokens ?? 0,
-						outputTokens: res.usage?.completion_tokens ?? 0,
+						inputTokens: 0,
+						outputTokens: 0,
 						totalCost: 0,
 					}
 					return
