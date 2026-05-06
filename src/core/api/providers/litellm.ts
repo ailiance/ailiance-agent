@@ -22,6 +22,7 @@ interface LiteLlmHandlerOptions extends CommonApiHandlerOptions {
 	thinkingBudgetTokens?: number
 	liteLlmUsePromptCache?: boolean
 	ulid?: string
+	useLocalStack?: boolean
 }
 
 /**
@@ -109,14 +110,32 @@ export class LiteLlmHandler implements ApiHandler {
 		this.options = options
 	}
 
-	private ensureClient(): OpenAI {
+	private async resolveBaseUrl(): Promise<string> {
+		if (this.options.useLocalStack) {
+			try {
+				const { detectStackEndpoint } = await import("@services/local-stack/LocalStackDetector")
+				const ep = await detectStackEndpoint()
+				if (ep.available && ep.url) {
+					Logger.info(`[litellm] Auto-routing via local stack: ${ep.url} (${ep.via === "router" ? "Jina router" : "LiteLLM proxy"})`)
+					return ep.url
+				}
+				Logger.warn("[litellm] useLocalStack=true but stack not running, falling back to liteLlmBaseUrl")
+			} catch (error) {
+				Logger.warn("[litellm] Failed to detect local stack, falling back to liteLlmBaseUrl:", error)
+			}
+		}
+		return this.options.liteLlmBaseUrl ?? "http://localhost:4000"
+	}
+
+	private async ensureClient(): Promise<OpenAI> {
 		if (!this.client) {
 			if (!this.options.liteLlmApiKey) {
 				throw new Error("LiteLLM API key is required")
 			}
 			try {
+				const baseURL = await this.resolveBaseUrl()
 				this.client = createOpenAIClient({
-					baseURL: this.options.liteLlmBaseUrl || "http://localhost:4000",
+					baseURL,
 					apiKey: this.options.liteLlmApiKey || "noop",
 				})
 			} catch (error) {
@@ -143,7 +162,7 @@ export class LiteLlmHandler implements ApiHandler {
 			return this.modelInfoCache
 		}
 
-		const client = this.ensureClient()
+		const client = await this.ensureClient()
 		const data = await fetchLiteLlmModelsInfo(client.baseURL, this.options.liteLlmApiKey || "")
 
 		if (data) {
@@ -210,7 +229,7 @@ export class LiteLlmHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: DiracTool[]): ApiStream {
-		const client = this.ensureClient()
+		const client = await this.ensureClient()
 
 		const formattedMessages = convertToOpenAiMessages(messages, undefined, this.getModel().info.supportsImages !== false)
 		const systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam | Anthropic.Messages.TextBlockParam = {
