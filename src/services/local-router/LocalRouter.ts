@@ -1,4 +1,5 @@
 import { Logger } from "@shared/services/Logger"
+import { estimateTokens } from "./estimateTokens"
 import { HealthMonitor } from "./HealthMonitor"
 import { PromptClassifier } from "./PromptClassifier"
 import { ResponseCache } from "./ResponseCache"
@@ -30,16 +31,33 @@ export class LocalRouter {
 	 */
 	pickWorker(req: ChatRequest): WorkerEndpoint | null {
 		const cap = this.classifier.classify(req.messages)
+		const estTokens = estimateTokens(req)
+
 		const candidates = [...this.workers.values()]
 			.filter((w) => this.health.isUp(w.id) || this.health.getHealth(w.id) === "unknown")
 			.filter((w) => w.capabilities.includes(cap))
+			.filter((w) => w.ctxMax >= estTokens)
 			.sort((a, b) => b.priority - a.priority)
 		if (candidates.length > 0) return candidates[0]
-		// Fallback: any up worker, ignoring capability
+
+		// Fallback: any up worker with sufficient ctx, ignoring capability
 		const fallback = [...this.workers.values()]
 			.filter((w) => this.health.isUp(w.id))
+			.filter((w) => w.ctxMax >= estTokens)
 			.sort((a, b) => b.priority - a.priority)
-		return fallback[0] ?? null
+		if (fallback[0]) return fallback[0]
+
+		// Last-resort: largest-ctx up worker even if undersized — let the
+		// worker fail explicitly rather than throwing "no worker" silently.
+		const lastResort = [...this.workers.values()]
+			.filter((w) => this.health.isUp(w.id))
+			.sort((a, b) => b.ctxMax - a.ctxMax)
+		if (lastResort[0]) {
+			Logger.warn(
+				`[LocalRouter] Request ~${estTokens} tokens, largest worker ${lastResort[0].id} has ctxMax=${lastResort[0].ctxMax}. Expect "context exceeded".`,
+			)
+		}
+		return lastResort[0] ?? null
 	}
 
 	async chat(req: ChatRequest): Promise<ChatResponse> {
