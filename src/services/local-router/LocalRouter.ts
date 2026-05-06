@@ -3,6 +3,7 @@ import { estimateTokens } from "./estimateTokens"
 import { HealthMonitor } from "./HealthMonitor"
 import { PromptClassifier } from "./PromptClassifier"
 import { ResponseCache } from "./ResponseCache"
+import { routingObserver } from "./RoutingObserver"
 import type { ChatRequest, ChatResponse, WorkerEndpoint } from "./types"
 
 export class LocalRouter {
@@ -64,10 +65,14 @@ export class LocalRouter {
 		const worker = this.pickWorker(req)
 		if (!worker) throw new Error("LocalRouter: no worker available")
 
+		const category = this.classifier.classify(req.messages)
+		const estTokens = estimateTokens(req)
+
 		const cacheKey = ResponseCache.keyOf(req, worker.id)
 		const cached = this.cache.get(cacheKey)
 		if (cached) {
 			Logger.info(`[LocalRouter] cache hit for ${worker.id}`)
+			routingObserver.emit({ ts: Date.now(), category, workerId: worker.id, cacheHit: true, estTokens })
 			return cached
 		}
 
@@ -84,6 +89,7 @@ export class LocalRouter {
 		}
 		const data = (await res.json()) as ChatResponse
 		this.cache.set(cacheKey, data)
+		routingObserver.emit({ ts: Date.now(), category, workerId: worker.id, cacheHit: false, estTokens })
 		return data
 	}
 }

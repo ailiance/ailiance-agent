@@ -1,6 +1,7 @@
 import * as assert from "assert"
 import * as sinon from "sinon"
 import { LocalRouter } from "../LocalRouter"
+import { routingObserver } from "../RoutingObserver"
 import type { ChatRequest, ChatResponse, WorkerEndpoint } from "../types"
 
 const makeEndpoint = (overrides: Partial<WorkerEndpoint> = {}): WorkerEndpoint => ({
@@ -29,10 +30,12 @@ describe("LocalRouter", () => {
 	beforeEach(() => {
 		sandbox = sinon.createSandbox()
 		fetchStub = sandbox.stub(globalThis, "fetch")
+		routingObserver.reset()
 	})
 
 	afterEach(() => {
 		sandbox.restore()
+		routingObserver.reset()
 	})
 
 	it("pickWorker selects by capability and health", () => {
@@ -80,6 +83,43 @@ describe("LocalRouter", () => {
 	it("chat() throws when no worker is available", async () => {
 		const router = new LocalRouter([])
 		await assert.rejects(() => router.chat(makeRequest()), /no worker available/)
+		router.dispose()
+	})
+
+	it("chat() cache hit emits cacheHit: true", async () => {
+		const resp = makeResponse()
+		fetchStub.resolves(new Response(JSON.stringify(resp), { status: 200 }))
+
+		const router = new LocalRouter([makeEndpoint()])
+		const req = makeRequest()
+		await router.chat(req) // cache miss — populates cache
+		routingObserver.reset() // clear first event
+
+		await router.chat(req) // cache hit
+		const event = routingObserver.last()
+		assert.ok(event !== null)
+		assert.strictEqual(event?.cacheHit, true)
+		assert.strictEqual(event?.workerId, "test-worker")
+		router.dispose()
+	})
+
+	it("chat() cache miss emits cacheHit: false", async () => {
+		const resp = makeResponse()
+		fetchStub.resolves(new Response(JSON.stringify(resp), { status: 200 }))
+
+		const router = new LocalRouter([makeEndpoint()])
+		await router.chat(makeRequest())
+		const event = routingObserver.last()
+		assert.ok(event !== null)
+		assert.strictEqual(event?.cacheHit, false)
+		assert.strictEqual(event?.workerId, "test-worker")
+		router.dispose()
+	})
+
+	it("chat() no worker does not emit", async () => {
+		const router = new LocalRouter([])
+		await assert.rejects(() => router.chat(makeRequest()), /no worker available/)
+		assert.strictEqual(routingObserver.last(), null)
 		router.dispose()
 	})
 })
