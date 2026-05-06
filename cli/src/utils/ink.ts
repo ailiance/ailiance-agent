@@ -1,24 +1,24 @@
 // agent-kiki fork: drain pending terminal-probe responses (CSI 14t / kitty Gi=31 / DA1)
-// before Ink starts rendering. Some terminals (kitty, recent iTerm, ghostty) answer
-// probes from libraries we transitively depend on, and the response bytes leak as
-// printable garbage like "^[[4;704;920t ^[_Gi=31;OK^[\^[[?62c" before our banner.
-//
-// Strategy: switch stdin to raw mode + give terminal ~30ms to flush any pending
-// probe replies, then drain everything from the buffer before the first render.
-async function drainPendingStdinProbes(): Promise<void> {
+// before Ink starts rendering. Probes are typically buffered by raw mode set early
+// (see installEarlyTtyHardening in index.ts). Here we only flush whatever bytes
+// look like escape sequences — preserving any user keystrokes (e.g. a quick Enter)
+// that may have arrived in the same buffer.
+function drainEscapeSequencesOnly(): void {
 	if (!process.stdin.isTTY) return
 	try {
-		const wasRaw = process.stdin.isRaw
-		process.stdin.setRawMode(true)
-		// Some terminals send probe replies asynchronously up to ~20ms after our
-		// process starts. Wait briefly so they land in the buffer before we drain.
-		await new Promise((resolve) => setTimeout(resolve, 30))
-		let chunk: Buffer | string | null
+		let chunk: Buffer | null
 		// biome-ignore lint/suspicious/noAssignInExpressions: idiomatic drain loop
-		while ((chunk = process.stdin.read()) !== null) {
-			void chunk
+		while ((chunk = process.stdin.read() as Buffer | null) !== null) {
+			// If chunk contains user keystrokes (no ESC byte), put them back.
+			// We use a simple heuristic: chunks starting with 0x1b (ESC) are
+			// terminal replies; anything else is treated as user input.
+			if (chunk.length === 0 || chunk[0] === 0x1b) {
+				continue // discard escape reply
+			}
+			// Re-inject for Ink to consume
+			process.stdin.unshift(chunk)
+			break
 		}
-		if (!wasRaw) process.stdin.setRawMode(false)
 	} catch {
 		// Non-TTY or unsupported terminal — nothing to drain.
 	}
@@ -31,27 +31,14 @@ export async function runInkApp(element: any, cleanup: () => Promise<void>): Pro
 	const { render } = await import("ink")
 	const { restoreConsole } = await import("./console")
 
-	// agent-kiki fork: consume probe replies BEFORE clearing — the clear-screen
-	// itself can race with late probe replies, so we drain (with a short wait)
-	// then immediately clear so any garbage that already printed is hidden.
-	await drainPendingStdinProbes()
+	// agent-kiki fork: consume probe replies that arrived during boot.
+	// Raw mode is already on (set in index.ts top-level), so probes were
+	// buffered without echoing to stdout. We discard escape sequences but
+	// preserve any keystrokes the user may have typed during boot.
+	drainEscapeSequencesOnly()
 
 	// Clear terminal for clean UI - robot will render at row 1
 	process.stdout.write("\x1b[2J\x1b[H")
-
-	// Final drain after clear in case the terminal sent late replies between
-	// the two steps. No wait this time — pure non-blocking flush.
-	if (process.stdin.isTTY) {
-		try {
-			let chunk: Buffer | string | null
-			// biome-ignore lint/suspicious/noAssignInExpressions: idiomatic drain
-			while ((chunk = process.stdin.read()) !== null) {
-				void chunk
-			}
-		} catch {
-			// ignore
-		}
-	}
 
 	// Note: incrementalRendering is enabled to reduce terminal bandwidth and improve responsiveness.
 	// We previously disabled this due to resize glitches, but our useTerminalSize hook now
