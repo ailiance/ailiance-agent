@@ -144,6 +144,41 @@ traceCommand
 		return runTracePrune(options)
 	})
 
+// Plugin marketplace command with subcommands
+const pluginCmd = program.command("plugin").description("Manage Claude Code plugins")
+
+pluginCmd
+	.command("install <target>")
+	.description("Install plugin from github (user/repo) or URL")
+	.action(async (target) => {
+		const { runPluginInstall } = await import("./commands/plugin")
+		return runPluginInstall(target)
+	})
+
+pluginCmd
+	.command("list")
+	.description("List installed plugins")
+	.action(async () => {
+		const { runPluginList } = await import("./commands/plugin")
+		return runPluginList()
+	})
+
+pluginCmd
+	.command("remove <name>")
+	.description("Remove a plugin")
+	.action(async (name) => {
+		const { runPluginRemove } = await import("./commands/plugin")
+		return runPluginRemove(name)
+	})
+
+pluginCmd
+	.command("update [name]")
+	.description("Update plugin(s) — omit name to update all")
+	.action(async (name) => {
+		const { runPluginUpdate } = await import("./commands/plugin")
+		return runPluginUpdate(name)
+	})
+
 // Dev command with subcommands
 const devCommand = program.command("dev").description("Developer tools and utilities")
 
