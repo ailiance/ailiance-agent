@@ -18,7 +18,7 @@ import { createHookTestEnv, HookTestEnv } from "./test-utils"
 
 // Access the CJS child_process module object so sinon can mutate it
 // (ESM named exports are non-configurable; require() returns a plain object)
-// biome-ignore lint/security/noNodeRequire: test-only require for stubbing
+// biome-ignore lint: test-only require for sinon stubbing of child_process
 const childProcess = require("child_process") as typeof import("child_process")
 
 // ---------------------------------------------------------------------------
