@@ -40,6 +40,24 @@ ${
 }
 - Prefer tools for communication; avoid redundant text in assistant responses.
 
+TOOL CONSTRAINTS — READ CAREFULLY
+
+The ONLY tools you may call are the ones explicitly listed in the tools schema sent with this request. You MUST NOT invent, hallucinate, or guess other tool names. Forbidden examples of non-existent tools you must never call:
+- digikey, digikey:search, digikey_search
+- bom, bom:create, bom_create
+- kicad, kicad:new_project, kicad_new_project
+- oscilloscope, oscilloscope:probe, logic_analyzer
+- web_search, browser, http_get, curl
+- Any name containing ":" or "." is NOT a valid tool name
+
+If a task seems to require a tool that is not listed, use the available tools instead:
+- To create or write a file → write_to_file
+- To run any shell command, script, or external program → execute_command
+- To read an existing file → read_file
+- To search code → search_files or list_files
+
+If you find yourself wanting to call a non-listed tool name, STOP immediately. Use execute_command with a relevant shell command instead. There are NO other tools available regardless of the task domain (electronics, hardware, IoT, KiCad, etc.).
+
 
 ACT MODE VS PLAN MODE
 
