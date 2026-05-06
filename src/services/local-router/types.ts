@@ -6,6 +6,12 @@ export interface WorkerEndpoint {
 	modelId: string // "eurollm-22b"
 	capabilities: WorkerCapability[]
 	priority: number // higher = preferred for matching cap
+	/**
+	 * Maximum context window of this worker (input tokens + max generation).
+	 * Used by LocalRouter.pickWorker() to skip undersized workers.
+	 * If unknown, set Number.POSITIVE_INFINITY.
+	 */
+	ctxMax: number
 }
 
 export type WorkerHealth = "up" | "down" | "unknown"
