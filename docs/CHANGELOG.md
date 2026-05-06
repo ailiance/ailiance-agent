@@ -3,6 +3,23 @@
 All notable changes to agent-kiki are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] — 2026-05-06
+
+### Changed
+- Default eu-kiki gateway now exposes 5 production workers — added
+  `eu-kiki/gemma3-4b` (tower / NVIDIA Quadro P2000) and restored
+  `eu-kiki/qwen3-next-80b-a3b-instruct` (kxkm-ai / RTX 4090, MoE
+  expert offload via llama.cpp, reached over an `autossh` tunnel
+  from electron-server:8002).
+- Auto-router metadata refreshed to reflect router-v6: 32 domains
+  (down from 34), top-1 87.7 % / top-3 98 % on the AI-Act-traceable
+  clean corpus.
+
+### Fixed
+- Provider README + cockpit /about page clarify backend portability:
+  the eu-kiki HTTP contract is not tied to Apple Silicon (also runs
+  on CUDA, ROCm, x86 CPU, ARM CPU).
+
 ## [0.3.0] — 2026-05-06
 
 ### Added
