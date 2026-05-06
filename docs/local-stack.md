@@ -116,6 +116,47 @@ To disable, set `useLocalStack: false` (or omit) and aki uses `liteLlmBaseUrl` a
 
 > Detection results are cached for 30 seconds — no per-request port scan overhead.
 
+## Mode "speed" : LocalRouter natif
+
+Au lieu de passer par le stack Python (LiteLLM proxy + Jina router), aki
+embed un mini-routeur in-process qui :
+- Cache les réponses LLM (LRU 100 entries, TTL 1h)
+- Ping les workers en arrière-plan toutes les 30s (skip ceux DOWN)
+- Classifie les prompts par heuristic (code/fr/reason/general) et choisit
+  le meilleur worker dispo
+
+Activation :
+
+```json
+{
+  "useLocalRouter": true
+}
+```
+
+Pas besoin de `aki stack install/start` — le LocalRouter est embarqué.
+
+Pour configurer tes propres workers :
+
+```json
+{
+  "useLocalRouter": true,
+  "localRouterWorkers": [
+    {
+      "id": "my-mlx",
+      "url": "http://my-mac.tailscale.ts.net:8080/v1",
+      "modelId": "qwen-coder-32b",
+      "capabilities": ["code", "general"],
+      "priority": 10
+    }
+  ]
+}
+```
+
+**Limitations PR2** : le LocalRouter ne prend en charge que les messages texte
+(pas d'images, pas de tool_calls). Les messages avec blocs non-texte
+et le streaming passent automatiquement par le proxy HTTP classique.
+PR3 ajoutera le streaming via LocalRouter si demandé.
+
 ## Troubleshooting
 
 - **`aki stack install` fails on Python**: install via `brew install uv` (recommended) or `brew install python@3.11`
