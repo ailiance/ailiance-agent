@@ -102,6 +102,9 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	aihubmixAppCode: { default: undefined as string | undefined },
 	enableParallelToolCalling: { default: true as boolean },
 
+	// Local stack auto-detect: route LiteLLM via local stack when running
+	useLocalStack: { default: false as boolean },
+
 	// Plan mode configurations
 	planModeApiModelId: { default: undefined as string | undefined },
 	planModeThinkingBudgetTokens: { default: undefined as number | undefined },
@@ -238,9 +241,6 @@ const USER_SETTINGS_FIELDS = {
 
 	writePromptMetadataEnabled: { default: false as boolean },
 	writePromptMetadataDirectory: { default: undefined as string | undefined },
-
-	// Local stack auto-detect
-	useLocalStack: { default: false as boolean },
 
 	// MCP server and tool filtering
 	enabledMcpServers: { default: undefined as string[] | undefined },

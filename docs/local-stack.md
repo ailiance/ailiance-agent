@@ -95,6 +95,27 @@ Edit your aki `settings.json` (workspace or global):
 
 All three settings are optional. Without them, all plugin MCP servers and all their tools are available.
 
+## Auto-detect (zero-config)
+
+Once you've started the stack with `aki stack start`, enable auto-detect in your settings:
+
+```json
+{
+  "useLocalStack": true
+}
+```
+
+Now whenever the LiteLLM provider is used, aki will:
+1. Check if the local stack is running
+2. If yes → route via the Jina router (port 5050) automatically
+3. If no → fall back to your `liteLlmBaseUrl` setting
+
+You don't need to update `liteLlmBaseUrl` to switch between local stack mode and remote LiteLLM mode.
+
+To disable, set `useLocalStack: false` (or omit) and aki uses `liteLlmBaseUrl` as before.
+
+> Detection results are cached for 30 seconds — no per-request port scan overhead.
+
 ## Troubleshooting
 
 - **`aki stack install` fails on Python**: install via `brew install uv` (recommended) or `brew install python@3.11`

@@ -27,5 +27,6 @@ registerProvider("litellm", {
 			),
 			liteLlmUsePromptCache: options.liteLlmUsePromptCache,
 			ulid: options.ulid,
+			useLocalStack: options.useLocalStack,
 		}),
 })

@@ -6,13 +6,13 @@ import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
+import { DiracTool } from "@/shared/tools"
 import { isAnthropicModelId } from "@/utils/model-utils"
 import { ApiHandler, CommonApiHandlerOptions } from ".."
 import { withRetry } from "../retry"
 import { convertToOpenAiMessages } from "../transform/openai-format"
-import { getOpenAIToolParams, ToolCallProcessor } from "../transform/tool-call-processor"
-import { DiracTool } from "@/shared/tools"
 import { ApiStream } from "../transform/stream"
+import { getOpenAIToolParams, ToolCallProcessor } from "../transform/tool-call-processor"
 
 interface LiteLlmHandlerOptions extends CommonApiHandlerOptions {
 	liteLlmApiKey?: string
@@ -116,7 +116,9 @@ export class LiteLlmHandler implements ApiHandler {
 				const { detectStackEndpoint } = await import("@services/local-stack/LocalStackDetector")
 				const ep = await detectStackEndpoint()
 				if (ep.available && ep.url) {
-					Logger.info(`[litellm] Auto-routing via local stack: ${ep.url} (${ep.via === "router" ? "Jina router" : "LiteLLM proxy"})`)
+					Logger.info(
+						`[litellm] Auto-routing via local stack: ${ep.url} (${ep.via === "router" ? "Jina router" : "LiteLLM proxy"})`,
+					)
 					return ep.url
 				}
 				Logger.warn("[litellm] useLocalStack=true but stack not running, falling back to liteLlmBaseUrl")
@@ -339,10 +341,10 @@ export class LiteLlmHandler implements ApiHandler {
 
 			// Handle normal text content
 			if (delta?.content) {
-			// Handle tool calls
-			if (delta?.tool_calls) {
-				yield* toolCallProcessor.processToolCallDeltas(delta.tool_calls)
-			}
+				// Handle tool calls
+				if (delta?.tool_calls) {
+					yield* toolCallProcessor.processToolCallDeltas(delta.tool_calls)
+				}
 
 				yield {
 					type: "text",
