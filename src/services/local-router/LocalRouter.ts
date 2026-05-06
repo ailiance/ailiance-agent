@@ -41,23 +41,48 @@ export class LocalRouter {
 	/**
 	 * Pick the best worker for a request based on capability classification
 	 * and current health. Returns null if no suitable worker is up.
+	 *
+	 * When req.tools is non-empty, workers with supportsTools:true are
+	 * preferred. If no tool-capable worker is available, the router falls
+	 * back to emulated workers with a warning.
 	 */
 	pickWorker(req: ChatRequest): WorkerEndpoint | null {
 		const cap = this.classifier.classify(req.messages)
 		const estTokens = estimateTokens(req)
 
-		const candidates = [...this.workers.values()]
+		let candidates = [...this.workers.values()]
 			.filter((w) => this.health.isUp(w.id) || this.health.getHealth(w.id) === "unknown")
 			.filter((w) => w.capabilities.includes(cap))
 			.filter((w) => w.ctxMax >= estTokens)
 			.sort((a, b) => b.priority - a.priority)
+
+		// When tools are requested, prefer native tool-capable workers.
+		if (req.tools && req.tools.length > 0 && candidates.length > 0) {
+			const native = candidates.filter((w) => w.supportsTools)
+			if (native.length > 0) {
+				candidates = native
+			} else {
+				Logger.warn("[LocalRouter] No tool-capable worker available; falling back to emulation")
+			}
+		}
+
 		if (candidates.length > 0) return candidates[0]
 
 		// Fallback: any up worker with sufficient ctx, ignoring capability
-		const fallback = [...this.workers.values()]
+		let fallback = [...this.workers.values()]
 			.filter((w) => this.health.isUp(w.id))
 			.filter((w) => w.ctxMax >= estTokens)
 			.sort((a, b) => b.priority - a.priority)
+
+		if (req.tools && req.tools.length > 0 && fallback.length > 0) {
+			const native = fallback.filter((w) => w.supportsTools)
+			if (native.length > 0) {
+				fallback = native
+			} else {
+				Logger.warn("[LocalRouter] No tool-capable worker available in fallback; falling back to emulation")
+			}
+		}
+
 		if (fallback[0]) return fallback[0]
 
 		// Last-resort: largest-ctx up worker even if undersized — let the
@@ -104,17 +129,58 @@ export class LocalRouter {
 	}
 
 	/**
-	 * Streaming version of chat(). Yields incremental text chunks as they
-	 * arrive from the worker via SSE. Cache is bypassed (streaming responses
-	 * aren't cacheable). Routing event is emitted before the first chunk.
-	 *
-	 * When tools are requested and the worker does not support native function
-	 * calling (supportsTools === false), the tools are injected into the system
-	 * prompt and the response text is parsed for <tool_call>...</tool_call>
-	 * patterns, which are yielded as tool_call chunks.
-	 *
-	 * @throws Error if no suitable worker is available
+	 * Try to extract a tool call from the accumulated text buffer.
+	 * Accepts three formats in priority order:
+	 *   1. <tool_call>{...}</tool_call>
+	 *   2. ```json\n{...}\n```  (JSON fence with a "name" field)
+	 *   3. ```bash|sh|shell\n<cmd>\n```  → execute_command (only when listed in tools)
 	 */
+	private static tryExtract(
+		buf: string,
+		tools: ChatTool[],
+	): { match: RegExpMatchArray; toolCall: { name: string; arguments: object } } | null {
+		const xmlRegex = /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/
+		const jsonFenceRegex = /```json\s*(\{[\s\S]*?\})\s*```/
+		const bashFenceRegex = /```(?:bash|sh|shell)\s*([\s\S]*?)```/
+
+		const x = buf.match(xmlRegex)
+		if (x) {
+			try {
+				const parsed = JSON.parse(x[1]) as { name?: string; arguments?: unknown; args?: unknown }
+				if (parsed.name) {
+					return { match: x, toolCall: { name: parsed.name, arguments: (parsed.arguments ?? parsed.args ?? {}) as object } }
+				}
+			} catch {
+				// malformed JSON — fall through
+			}
+		}
+
+		const j = buf.match(jsonFenceRegex)
+		if (j) {
+			try {
+				const parsed = JSON.parse(j[1]) as { name?: string; arguments?: unknown; args?: unknown }
+				if (parsed.name) {
+					return { match: j, toolCall: { name: parsed.name, arguments: (parsed.arguments ?? parsed.args ?? {}) as object } }
+				}
+			} catch {
+				// malformed JSON — fall through
+			}
+		}
+
+		const b = buf.match(bashFenceRegex)
+		if (b && tools.some((t) => t.function.name === "execute_command")) {
+			const command = b[1].trim()
+			if (command) {
+				return {
+					match: b,
+					toolCall: { name: "execute_command", arguments: { command, requires_approval: false } },
+				}
+			}
+		}
+
+		return null
+	}
+
 	async *chatStream(req: ChatRequest): AsyncGenerator<ChatStreamChunk> {
 		const worker = this.pickWorker(req)
 		if (!worker) throw new Error("LocalRouter: no worker available")
@@ -143,7 +209,7 @@ export class LocalRouter {
 				// Emulate via system prompt injection
 				needsEmulation = true
 				const toolDescriptions = formatToolsAsPromptText(req.tools)
-				const emulationPreamble = `\n\n${toolDescriptions}\n\nTo call a tool, output EXACTLY:\n<tool_call>\n{"name": "tool_name", "arguments": {...}}\n</tool_call>\n\nDo not output the same tool call twice. Wait for the tool result before continuing.\n`
+				const emulationPreamble = `\n\n${toolDescriptions}\n\nYou have access to tools. To call one, output a code block in this exact format:\n\n\`\`\`json\n{"name": "tool_name", "arguments": {"key": "value"}}\n\`\`\`\n\nDo NOT use bash code blocks for shell commands - always use the JSON format above with name="execute_command" and arguments.command="<your command>".\n\nWait for the tool result before continuing. Do not call the same tool twice in a row.\n`
 				const sysIdx = body.messages.findIndex((m: { role: string }) => m.role === "system")
 				if (sysIdx >= 0) {
 					body.messages[sysIdx] = {
@@ -195,7 +261,25 @@ export class LocalRouter {
 					const data = line.slice(5).trim()
 					if (data === "[DONE]") {
 						// Flush any pending text on DONE
-						if (textBuffer && !needsEmulation) yield { type: "text", text: textBuffer }
+						if (textBuffer && !needsEmulation) {
+							yield { type: "text", text: textBuffer }
+						} else if (textBuffer && needsEmulation) {
+							// Emulation: try one last parse, then flush remaining as text
+							const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+							if (extracted) {
+								const { match, toolCall } = extracted
+								const before = textBuffer.slice(0, match.index!)
+								if (before.trim()) yield { type: "text", text: before }
+								yield {
+									type: "tool_call",
+									id: `call_${Date.now()}_done`,
+									name: toolCall.name,
+									argumentsRaw: JSON.stringify(toolCall.arguments),
+								}
+							} else if (textBuffer.trim()) {
+								yield { type: "text", text: textBuffer }
+							}
+						}
 						return
 					}
 					try {
@@ -220,42 +304,40 @@ export class LocalRouter {
 						if (delta.content) {
 							if (needsEmulation) {
 								textBuffer += delta.content
-								// Extract complete <tool_call>...</tool_call> blocks
+								// Extract complete tool call blocks (XML, json fence, bash fence)
 								for (;;) {
-									const m = textBuffer.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
-									if (!m) break
-									const before = textBuffer.slice(0, m.index!)
+									const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+									if (!extracted) break
+									const { match, toolCall } = extracted
+									const before = textBuffer.slice(0, match.index!)
 									if (before.trim()) yield { type: "text", text: before }
-									try {
-										const parsed = JSON.parse(m[1]) as {
-											name?: string
-											arguments?: unknown
-											args?: unknown
-										}
-										yield {
-											type: "tool_call",
-											id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-											name: parsed.name ?? "",
-											argumentsRaw: JSON.stringify(parsed.arguments ?? parsed.args ?? {}),
-										}
-									} catch {
-										// malformed JSON inside tool_call — skip
+									yield {
+										type: "tool_call",
+										id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+										name: toolCall.name,
+										argumentsRaw: JSON.stringify(toolCall.arguments),
 									}
-									textBuffer = textBuffer.slice(m.index! + m[0].length)
+									textBuffer = textBuffer.slice(match.index! + match[0].length)
 								}
-								// Yield any text before a partial <tool_call> tag
-								const partialIdx = textBuffer.indexOf("<tool_call")
-								if (partialIdx > 0) {
-									yield { type: "text", text: textBuffer.slice(0, partialIdx) }
-									textBuffer = textBuffer.slice(partialIdx)
-								} else if (partialIdx === -1) {
-									// No partial — flush all accumulated text
+								// Yield text before any partial marker; hold the rest.
+								// "```" alone is a prefix of all fence markers — hold it too.
+								const partialMarkers = ["<tool_call", "```json", "```bash", "```sh", "```shell", "```"]
+								let earliestPartial = -1
+								for (const marker of partialMarkers) {
+									const i = textBuffer.indexOf(marker)
+									if (i !== -1 && (earliestPartial === -1 || i < earliestPartial)) earliestPartial = i
+								}
+								if (earliestPartial > 0) {
+									yield { type: "text", text: textBuffer.slice(0, earliestPartial) }
+									textBuffer = textBuffer.slice(earliestPartial)
+								} else if (earliestPartial === -1) {
+									// No partial marker — flush all accumulated text
 									if (textBuffer) {
 										yield { type: "text", text: textBuffer }
 										textBuffer = ""
 									}
 								}
-								// else partialIdx === 0 — wait for more data
+								// else earliestPartial === 0 — wait for more data
 							} else {
 								yield { type: "text", text: delta.content }
 							}
@@ -267,20 +349,16 @@ export class LocalRouter {
 			}
 			// Final flush of any remaining buffered text
 			if (textBuffer) {
-				const m = textBuffer.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
-				if (m) {
-					const before = textBuffer.slice(0, m.index!)
+				const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+				if (extracted) {
+					const { match, toolCall } = extracted
+					const before = textBuffer.slice(0, match.index!)
 					if (before.trim()) yield { type: "text", text: before }
-					try {
-						const parsed = JSON.parse(m[1]) as { name?: string; arguments?: unknown; args?: unknown }
-						yield {
-							type: "tool_call",
-							id: `call_${Date.now()}_final`,
-							name: parsed.name ?? "",
-							argumentsRaw: JSON.stringify(parsed.arguments ?? parsed.args ?? {}),
-						}
-					} catch {
-						// malformed — ignore
+					yield {
+						type: "tool_call",
+						id: `call_${Date.now()}_final`,
+						name: toolCall.name,
+						argumentsRaw: JSON.stringify(toolCall.arguments),
 					}
 				} else if (!needsEmulation) {
 					yield { type: "text", text: textBuffer }
