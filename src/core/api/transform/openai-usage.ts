@@ -43,7 +43,7 @@ export function formatOpenAiCompatibleUsage(
 
 	return {
 		type: "usage",
-		inputTokens: Math.max(0, totalInputTokens - cacheReadTokens - cacheWriteTokens),
+		inputTokens: Math.max(0, totalInputTokens - cacheReadTokens),
 		outputTokens: outputTokens,
 		cacheReadTokens: cacheReadTokens,
 		cacheWriteTokens: cacheWriteTokens,
