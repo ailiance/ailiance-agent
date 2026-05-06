@@ -264,7 +264,10 @@ export class LiteLlmHandler implements ApiHandler {
 						temperature: 1,
 						stream: true,
 					})) {
-						yield chunk
+						// tools are never passed here (guard above), so only text chunks expected
+						if (chunk.type === "text") {
+							yield { type: "text", text: chunk.text }
+						}
 					}
 					yield {
 						type: "usage",

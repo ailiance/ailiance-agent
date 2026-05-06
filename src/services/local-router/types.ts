@@ -12,9 +12,25 @@ export interface WorkerEndpoint {
 	 * If unknown, set Number.POSITIVE_INFINITY.
 	 */
 	ctxMax: number
+	/**
+	 * Whether this worker supports OpenAI-style native function calling
+	 * (tools[] param + tool_calls in response). When false, LocalRouter
+	 * emulates tools by injecting them into the system prompt and parsing
+	 * <tool_call>{...}</tool_call> patterns from the streamed text.
+	 */
+	supportsTools: boolean
 }
 
 export type WorkerHealth = "up" | "down" | "unknown"
+
+export interface ChatTool {
+	type: "function"
+	function: {
+		name: string
+		description?: string
+		parameters: object
+	}
+}
 
 export interface ChatRequest {
 	messages: Array<{ role: string; content: string }>
@@ -22,6 +38,7 @@ export interface ChatRequest {
 	max_tokens?: number
 	temperature?: number
 	stream?: boolean
+	tools?: ChatTool[]
 }
 
 export interface ChatResponse {
