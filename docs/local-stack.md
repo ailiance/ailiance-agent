@@ -163,3 +163,16 @@ PR3 ajoutera le streaming via LocalRouter si demandé.
 - **Slow first start of router**: it downloads the embeddings model from Hugging Face (~80 MB). Subsequent starts are instant.
 - **Provider returns 401**: set `liteLlmApiKey` in aki to match the master key in `~/.aki/litellm/config.yaml`
 - **Logs**: `~/.aki/litellm.log` and `~/.aki/jina-router.log`
+
+## Alternative: in-process LocalRouter
+
+For most users, `aki` ships with an **in-process LocalRouter** that
+provides similar features (multi-worker dispatch, cache, health monitoring)
+without requiring Python sub-processes. See [docs/local-router.md](./local-router.md)
+for details.
+
+| Use the local stack when... | Use LocalRouter when... |
+|---|---|
+| You want LiteLLM's 100+ provider list | You target EU-kiki workers (Gemma/Apertus/EuroLLM) |
+| You need cost tracking, retries, complex fallback | You need lowest latency overhead |
+| You prefer external services to monitor independently | You want zero install (no Python) |
