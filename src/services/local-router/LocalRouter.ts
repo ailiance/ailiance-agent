@@ -50,9 +50,7 @@ export class LocalRouter {
 
 		// Last-resort: largest-ctx up worker even if undersized — let the
 		// worker fail explicitly rather than throwing "no worker" silently.
-		const lastResort = [...this.workers.values()]
-			.filter((w) => this.health.isUp(w.id))
-			.sort((a, b) => b.ctxMax - a.ctxMax)
+		const lastResort = [...this.workers.values()].filter((w) => this.health.isUp(w.id)).sort((a, b) => b.ctxMax - a.ctxMax)
 		if (lastResort[0]) {
 			Logger.warn(
 				`[LocalRouter] Request ~${estTokens} tokens, largest worker ${lastResort[0].id} has ctxMax=${lastResort[0].ctxMax}. Expect "context exceeded".`,

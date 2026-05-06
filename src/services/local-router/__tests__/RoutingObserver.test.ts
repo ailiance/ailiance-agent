@@ -1,6 +1,6 @@
 import * as assert from "assert"
-import { routingObserver } from "../RoutingObserver"
 import type { RoutingEvent } from "../RoutingObserver"
+import { routingObserver } from "../RoutingObserver"
 
 const makeEvent = (overrides: Partial<RoutingEvent> = {}): RoutingEvent => ({
 	ts: Date.now(),
