@@ -249,7 +249,7 @@ export const e2e = test
 		channel: "stable",
 	})
 	.extend<{ openVSCode: (workspacePath: string) => Promise<ElectronApplication> }>({
-		openVSCode: async ({ userDataDir, channel }, use, testInfo) => {
+		openVSCode: async ({ userDataDir, extensionsDir, channel }, use, testInfo) => {
 			const executablePath = await downloadAndUnzipVSCode(channel, undefined, new SilentReporter())
 
 			await use(async (workspacePath: string) => {
@@ -277,10 +277,13 @@ export const e2e = test
 						"--no-sandbox",
 						"--disable-updates",
 						"--disable-workspace-trust",
-						"--disable-extensions", // Run VS Code with all extensions disabled other than the one under test.
+						// NOTE: do NOT use --disable-extensions; it disables ALL extensions,
+						// including the one under test (extensionDevelopmentPath). userDataDir is a
+						// fresh mkdtempSync so no other extensions are present anyway.
 						"--skip-welcome",
 						"--skip-release-notes",
 						`--user-data-dir=${userDataDir}`,
+						`--extensions-dir=${extensionsDir}`,
 						`--install-extension=${path.join(E2ETestHelper.CODEBASE_ROOT_DIR, "dist", "e2e.vsix")}`,
 						`--extensionDevelopmentPath=${E2ETestHelper.CODEBASE_ROOT_DIR}`,
 						workspacePath,
