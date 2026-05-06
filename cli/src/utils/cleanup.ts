@@ -13,6 +13,14 @@ export async function disposeTelemetryServices(): Promise<void> {
 }
 
 export async function disposeCliContext(ctx: CliContext | null): Promise<void> {
+	// Best-effort stop of webui static server (detached child, non-blocking)
+	try {
+		const { webuiServer } = await import("@/services/webui/WebuiServer")
+		await webuiServer.stop()
+	} catch {
+		// WebuiServer may not be initialized
+	}
+
 	if (!ctx) {
 		try {
 			const { SymbolIndexService } = await import("@/services/symbol-index/SymbolIndexService")
