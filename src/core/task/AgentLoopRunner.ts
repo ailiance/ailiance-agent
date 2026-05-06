@@ -1,11 +1,13 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
 import { formatResponse } from "@core/prompts/responses"
+import { showSystemNotification } from "@integrations/notifications"
+import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { ErrorService } from "@services/error"
 import { telemetryService } from "@services/telemetry"
 import { findLastIndex } from "@shared/array"
 import { DiracApiReqCancelReason } from "@shared/ExtensionMessage"
-import { DiracContent } from "@shared/messages/content"
+import { DiracContent, DiracUserContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
 import { convertDiracMessageToProto } from "@shared/proto-conversions/dirac-message"
 import { Logger } from "@shared/services/Logger"
@@ -90,7 +92,7 @@ export class AgentLoopRunner {
 			mode: mode,
 		}
 
-		const mistakeResult = await this.task.handleMistakeLimitReached(userContent)
+		const mistakeResult = await this.handleMistakeLimitReached(userContent)
 		if (mistakeResult.didEndLoop) {
 			return true
 		}
@@ -616,5 +618,72 @@ export class AgentLoopRunner {
 		} catch (_error) {
 			return true
 		}
+	}
+
+	async handleMistakeLimitReached(
+		userContent: DiracContent[],
+	): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
+		if (
+			this.taskState.consecutiveMistakeCount <
+			this.task.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")
+		) {
+			return { didEndLoop: false, userContent }
+		}
+
+		// In yolo mode, don't wait for user input - fail the task
+		if (this.task.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
+			const errorMessage =
+				`[YOLO MODE] Task failed: Too many consecutive mistakes ` +
+				`(${this.taskState.consecutiveMistakeCount}). ` +
+				`The model may not be capable enough for this task. ` +
+				`Consider using a more capable model.`
+			await this.task.say("error", errorMessage)
+			return { didEndLoop: true, userContent }
+		}
+
+		const autoApprovalSettings = this.task.stateManager.getGlobalSettingsKey("autoApprovalSettings")
+		if (autoApprovalSettings.enableNotifications) {
+			showSystemNotification({
+				subtitle: "Error",
+				message: "Dirac is having trouble. Would you like to continue the task?",
+			})
+		}
+
+		const { response, text, images, files } = await this.task.ask(
+			"mistake_limit_reached",
+			`Tool use failure. Can potentially be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`,
+		)
+
+		if (response === "messageResponse") {
+			await this.task.say("user_feedback", text, images, files)
+
+			const feedbackUserContent: DiracUserContent[] = []
+			feedbackUserContent.push({
+				type: "text",
+				text: formatResponse.tooManyMistakes(text),
+			})
+
+			if (images && images.length > 0) {
+				feedbackUserContent.push(...formatResponse.imageBlocks(images))
+			}
+
+			let fileContentString = ""
+			if (files && files.length > 0) {
+				fileContentString = await processFilesIntoText(files)
+			}
+
+			if (fileContentString) {
+				feedbackUserContent.push({
+					type: "text",
+					text: fileContentString,
+				})
+			}
+
+			userContent = feedbackUserContent
+		}
+
+		this.taskState.consecutiveMistakeCount = 0
+		this.taskState.autoRetryAttempts = 0
+		return { didEndLoop: false, userContent }
 	}
 }

@@ -11,21 +11,18 @@ import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
 import { initializeMcpForTask } from "@core/mcp/bootstrap"
 import { mcpClientManager } from "@core/mcp/McpClientManager"
 import { CommandPermissionController } from "@core/permissions"
-import { formatResponse } from "@core/prompts/responses"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { HostProvider } from "@hosts/host-provider"
 import { ICheckpointManager } from "@integrations/checkpoints/types"
 import { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
 import { FileEditProvider } from "@integrations/editor/FileEditProvider"
-import { processFilesIntoText } from "@integrations/misc/extract-text"
-import { showSystemNotification } from "@integrations/notifications"
 import { type CommandExecutionOptions, CommandExecutor, StandaloneTerminalManager } from "@integrations/terminal"
 import { ITerminalManager } from "@integrations/terminal/types"
 import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
-import { DiracContent, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
+import { DiracContent, DiracToolResponseContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
 import { Logger } from "@shared/services/Logger"
 import { DiracDefaultTool } from "@shared/tools"
@@ -401,69 +398,6 @@ export class Task {
 
 	async getEnvironmentDetails(includeFileDetails = false): Promise<string> {
 		return this.environmentManager.getEnvironmentDetails(includeFileDetails)
-	}
-
-	async handleMistakeLimitReached(userContent: DiracContent[]): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
-		if (this.taskState.consecutiveMistakeCount < this.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
-			return { didEndLoop: false, userContent }
-		}
-
-		// In yolo mode, don't wait for user input - fail the task
-		if (this.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
-			const errorMessage =
-				`[YOLO MODE] Task failed: Too many consecutive mistakes (${this.taskState.consecutiveMistakeCount}). ` +
-				`The model may not be capable enough for this task. Consider using a more capable model.`
-			await this.say("error", errorMessage)
-			// End the task loop with failure
-			return { didEndLoop: true, userContent } // didEndLoop = true, signals task completion/failure
-		}
-
-		const autoApprovalSettings = this.stateManager.getGlobalSettingsKey("autoApprovalSettings")
-		if (autoApprovalSettings.enableNotifications) {
-			showSystemNotification({
-				subtitle: "Error",
-				message: "Dirac is having trouble. Would you like to continue the task?",
-			})
-		}
-
-		const { response, text, images, files } = await this.ask(
-			"mistake_limit_reached",
-			`Tool use failure. Can potentially be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`,
-		)
-
-		if (response === "messageResponse") {
-			// Display the user's message in the chat UI
-			await this.say("user_feedback", text, images, files)
-
-			// This userContent is for the *next* API call.
-			const feedbackUserContent: DiracUserContent[] = []
-			feedbackUserContent.push({
-				type: "text",
-				text: formatResponse.tooManyMistakes(text),
-			})
-
-			if (images && images.length > 0) {
-				feedbackUserContent.push(...formatResponse.imageBlocks(images))
-			}
-
-			let fileContentString = ""
-			if (files && files.length > 0) {
-				fileContentString = await processFilesIntoText(files)
-			}
-
-			if (fileContentString) {
-				feedbackUserContent.push({
-					type: "text",
-					text: fileContentString,
-				})
-			}
-
-			userContent = feedbackUserContent
-		}
-
-		this.taskState.consecutiveMistakeCount = 0
-		this.taskState.autoRetryAttempts = 0 // need to reset this if the user chooses to manually retry after the mistake limit is reached
-		return { didEndLoop: false, userContent }
 	}
 
 	async loadContext(
