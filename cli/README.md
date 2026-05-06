@@ -1,3 +1,28 @@
+# agent-kiki CLI (`aki`) — v0.3.0
+
+> Fork of Dirac/Cline. Binary `aki` (alias `agent-kiki`). Defaults to
+> the [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) gateway at
+> `http://studio:9300/v1`. See the root [`README.md`](../README.md)
+> and [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) for the full
+> release notes.
+
+## Statusline (v0.3)
+
+The chat view renders a 2-row statusline at the top of its footer,
+inspired by the Claude Code statusline:
+
+- **Row 1** — current working directory (tildified) and a colored
+  git-branch badge: green when clean, yellow with a trailing `*`
+  when dirty.
+- **Row 2** — magenta model badge, colored remaining-context badge
+  (green ≥ 40%, yellow ≥ 15%, red below) and a live `HH:MM:SS`
+  clock.
+
+The original instructions / Plan-Act toggle / model+ctx bar /
+repo-diff stats / auto-approve rows are preserved underneath.
+
+---
+
 # Dirac - Accurate & Highly Token Efficient Open Source AI Agent
 
 <p align="center">

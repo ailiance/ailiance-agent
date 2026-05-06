@@ -5,6 +5,23 @@
 > CLI: `aki` (alias `agent-kiki`). Default provider: eu-kiki gateway at `http://studio:9300`.
 >
 > License: Apache-2.0 (preserved from upstream).
+>
+> Current release: **v0.3.0** — see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+
+## What's new in v0.3
+
+- **CLI statusline**: 2-row Claude-Code-style statusline in the chat
+  footer (cwd + branch badge + model badge + remaining-context badge
+  + live clock).
+- **Local stack auto-detect routing**: when `useLocalStack` is on,
+  agent-kiki probes `http://localhost:5050` (Jina semantic router)
+  then `http://localhost:4000` (LiteLLM proxy) before falling back
+  to the configured remote gateway.
+- **Plugin hooks runtime wiring**: PreToolUse / PostToolUse hooks
+  defined in `.claude/hooks.json` are honored by the agent loop.
+- **MCP server + tool filtering**: new settings keys
+  `enabledMcpServers`, `mcpToolDenylist`, `mcpToolAllowlist`.
+- **Provider**: `aihubmix` added.
 
 ## Caveats (V0)
 
