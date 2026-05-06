@@ -1,6 +1,17 @@
 import { AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { ApiProvider, DEFAULT_API_PROVIDER, LiteLLMModelInfo, ModelInfo, OpenAiCompatibleModelInfo } from "@shared/api"
-import type { WorkerEndpoint } from "@services/local-router/types"
+
+// Inlined to avoid cross-package import (webview-ui can't reach @services/*)
+type WorkerCapability = "fr" | "code" | "embed" | "reason" | "general"
+interface WorkerEndpoint {
+	id: string
+	url: string
+	modelId: string
+	capabilities: WorkerCapability[]
+	priority: number
+	ctxMax: number
+}
+
 import { BrowserSettings, DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
 import { DiracRulesToggles } from "@shared/dirac-rules"
 import { HistoryItem } from "@shared/HistoryItem"
