@@ -3,6 +3,23 @@ import http, { type Server } from "node:http"
 import { createServer as createNetServer } from "node:net"
 import path from "node:path"
 
+function getAkiVersion(): string {
+	const moduleDir = resolveModuleDir()
+	const candidates = [
+		path.resolve(moduleDir, "..", "..", "..", "package.json"),
+		path.resolve(moduleDir, "..", "..", "package.json"),
+		path.resolve(process.cwd(), "package.json"),
+	]
+	for (const p of candidates) {
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic require for version lookup
+			const pkg = require(p) as { name?: string; version?: string }
+			if (pkg.name === "agent-kiki" && pkg.version) return pkg.version
+		} catch {}
+	}
+	return "?"
+}
+
 /**
  * Resolve the directory of this module, compatible with both CJS (mocha tests)
  * and ESM (CLI runtime). We avoid import.meta.url at module level since the
@@ -73,9 +90,7 @@ export class WebuiServer {
 
 	private async startLocal(): Promise<WebuiServerStatus> {
 		const buildDir = await this.findBuildDir()
-		if (!buildDir) {
-			return { running: false, external: false }
-		}
+		// buildDir may be null if webview-ui/build is missing; landing still works
 		const port = await this.findFreePort(25463)
 		const server = http.createServer((req, res) => {
 			void this.handleRequest(req, res, buildDir)
@@ -92,15 +107,41 @@ export class WebuiServer {
 		return { running: true, url: `http://127.0.0.1:${port}`, port, external: false }
 	}
 
-	private async handleRequest(
-		req: http.IncomingMessage,
-		res: http.ServerResponse,
-		buildDir: string,
-	): Promise<void> {
+	private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse, buildDir: string | null): Promise<void> {
 		try {
 			const reqPath = decodeURIComponent((req.url || "/").split("?")[0])
+
+			// Custom landing on root
+			if (reqPath === "/" || reqPath === "/index.html") {
+				return this.serveLanding(res)
+			}
+
+			// Version endpoint for landing
+			if (reqPath === "/api/version") {
+				res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" })
+				res.end(getAkiVersion())
+				return
+			}
+
+			// /spa → webview-ui SPA (standalone build)
+			if (reqPath === "/spa" || reqPath === "/spa/") {
+				if (!buildDir) {
+					res.writeHead(503)
+					res.end("webview-ui build not found")
+					return
+				}
+				const spaPath = path.join(buildDir, "index.html")
+				return this.serveStaticFile(spaPath, res)
+			}
+
+			// Static assets from webview-ui/build
+			if (!buildDir) {
+				res.writeHead(503)
+				res.end("webview-ui build not found")
+				return
+			}
 			const safe = path.normalize(reqPath).replace(/^(\.\.[/\\])+/, "")
-			let filePath = path.join(buildDir, safe === "/" ? "index.html" : safe)
+			let filePath = path.join(buildDir, safe)
 			let stat: import("node:fs").Stats | null = null
 			try {
 				stat = await fs.stat(filePath)
@@ -111,17 +152,40 @@ export class WebuiServer {
 				// SPA fallback
 				filePath = path.join(buildDir, "index.html")
 			}
-			const data = await fs.readFile(filePath)
-			const ext = path.extname(filePath).toLowerCase()
-			res.writeHead(200, {
-				"Content-Type": MIME[ext] || "application/octet-stream",
-				"Cache-Control": "no-cache",
-			})
-			res.end(data)
+			return this.serveStaticFile(filePath, res)
 		} catch {
 			res.writeHead(500)
 			res.end("internal error")
 		}
+	}
+
+	private async serveLanding(res: http.ServerResponse): Promise<void> {
+		const moduleDir = resolveModuleDir()
+		const candidates = [
+			path.resolve(moduleDir, "landing.html"),
+			path.resolve(moduleDir, "..", "..", "..", "src", "services", "webui", "landing.html"),
+			path.resolve(process.cwd(), "src", "services", "webui", "landing.html"),
+		]
+		for (const c of candidates) {
+			try {
+				const data = await fs.readFile(c)
+				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" })
+				res.end(data)
+				return
+			} catch {}
+		}
+		res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
+		res.end("<h1>agent-kiki</h1><p>Landing page not found.</p>")
+	}
+
+	private async serveStaticFile(filePath: string, res: http.ServerResponse): Promise<void> {
+		const data = await fs.readFile(filePath)
+		const ext = path.extname(filePath).toLowerCase()
+		res.writeHead(200, {
+			"Content-Type": MIME[ext] || "application/octet-stream",
+			"Cache-Control": "no-cache",
+		})
+		res.end(data)
 	}
 
 	private async findBuildDir(): Promise<string | null> {

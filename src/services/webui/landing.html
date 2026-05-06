@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>agent-kiki dashboard</title>
+  <style>
+    body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 2rem; }
+    h1 { color: #58a6ff; margin-bottom: 0.25rem; }
+    .version { color: #8b949e; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; }
+    .card h2 { font-size: 1.1rem; margin-top: 0; color: #58a6ff; }
+    .status-up { color: #3fb950; }
+    .status-down { color: #f85149; }
+    .status-unknown { color: #d29922; }
+    .row { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #21262d; font-size: 0.9rem; }
+    .row:last-child { border-bottom: none; }
+    .footer { margin-top: 3rem; color: #8b949e; font-size: 0.85rem; text-align: center; }
+    a { color: #58a6ff; }
+    code { background: #21262d; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>agent-kiki</h1>
+  <div class="version">EU-sovereign coding agent · v<span id="version">…</span></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Local stack</h2>
+      <div class="row"><span>LiteLLM proxy</span><span id="proxy-status" class="status-unknown">…</span></div>
+      <div class="row"><span>Jina router</span><span id="router-status" class="status-unknown">…</span></div>
+    </div>
+
+    <div class="card">
+      <h2>EU-kiki workers</h2>
+      <div class="row"><span>Gateway (electron-server :9300)</span><span id="gw-status" class="status-unknown">…</span></div>
+      <div class="row"><span>Apertus 70b (studio :9301)</span><span id="apertus-status" class="status-unknown">…</span></div>
+      <div class="row"><span>EuroLLM 22b (studio :9303)</span><span id="eurollm-status" class="status-unknown">…</span></div>
+      <div class="row"><span>Devstral 24b (macm1 :9302)</span><span id="devstral-status" class="status-unknown">…</span></div>
+      <div class="row"><span>Gemma 3 4b (tower :9304)</span><span id="gemma-status" class="status-unknown">…</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Quick links</h2>
+      <div class="row"><a href="vscode://saoudrizwan.claude-dev/openInNewTab">Open in VS Code extension</a></div>
+      <div class="row"><a href="https://github.com/L-electron-Rare/agent-kiki" target="_blank">GitHub repo</a></div>
+      <div class="row"><span>CLI command</span><code>aki</code></div>
+      <div class="row"><span>Stack mgmt</span><code>aki stack {start,stop,status}</code></div>
+      <div class="row"><span>Plugins</span><code>aki plugin {list,install,...}</code></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    For the full UI (chat, settings, monitoring), use VS Code with the agent-kiki extension.
+  </div>
+
+  <script>
+    async function probe(url, elId) {
+      const el = document.getElementById(elId)
+      const ctrl = new AbortController()
+      const timeout = setTimeout(() => ctrl.abort(), 3000)
+      try {
+        const r = await fetch(url, { signal: ctrl.signal, mode: "cors" })
+        clearTimeout(timeout)
+        el.textContent = r.ok ? "● up" : "● " + r.status
+        el.className = r.ok ? "status-up" : "status-down"
+      } catch {
+        clearTimeout(timeout)
+        el.textContent = "● down"
+        el.className = "status-down"
+      }
+    }
+    probe("http://127.0.0.1:4000/health/readiness", "proxy-status")
+    probe("http://127.0.0.1:5050/health", "router-status")
+    probe("http://100.78.191.52:9300/health", "gw-status")
+    probe("http://100.116.92.12:9301/health", "apertus-status")
+    probe("http://100.116.92.12:9303/health", "eurollm-status")
+    probe("http://100.112.121.126:9302/health", "devstral-status")
+    probe("http://100.78.6.122:9304/v1/models", "gemma-status")
+
+    fetch("/api/version").then(function(r) { return r.text() }).then(function(v) {
+      document.getElementById("version").textContent = v.trim() || "?"
+    }).catch(function() {
+      document.getElementById("version").textContent = "?"
+    })
+  </script>
+</body>
+</html>
