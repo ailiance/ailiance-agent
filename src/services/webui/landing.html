@@ -56,27 +56,21 @@
   </div>
 
   <script>
-    async function probe(url, elId) {
+    function setStatus(elId, up) {
       const el = document.getElementById(elId)
       if (!el) return
       el.textContent = up ? "● up" : "● down"
       el.className = up ? "status-up" : "status-down"
     }
-    // Use server-side probe to avoid browser CORS issues
+    // Server-side probe avoids browser CORS issues with EU-kiki workers.
     async function refreshAll() {
       try {
         const r = await fetch("/api/probe-workers")
         const arr = await r.json()
         for (const w of arr) {
-          probe(null, w.id + "-status", w.up)
+          setStatus(w.id + "-status", w.up)
         }
       } catch (e) { /* ignore */ }
-    }
-    function probe(_url, elId, up) {
-      const el = document.getElementById(elId)
-      if (!el) return
-      el.textContent = up ? "● up" : "● down"
-      el.className = up ? "status-up" : "status-down"
     }
     refreshAll()
     setInterval(refreshAll, 5000)
