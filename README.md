@@ -68,6 +68,21 @@ flowchart TB
     class tracer audit
 ```
 
+## v0.4 highlights
+
+- **Plugin marketplace**: `aki plugin install <github-url>` to install Claude Code plugins
+- **MCP integration**: discover and use MCP servers from installed plugins
+- **LocalRouter** (in-process LLM router): cache, health monitoring, ctx-aware skip,
+  SSE streaming. See [docs/local-router.md](./docs/local-router.md).
+- **Local stack** (`aki stack {start,stop,status}`): managed LiteLLM proxy + Jina
+  semantic router. See [docs/local-stack.md](./docs/local-stack.md).
+- **Auto plan/act mode** (opt-in): `autoModeFromPrompt: true` to choose mode
+  from prompt content. See [docs/auto-mode.md](./docs/auto-mode.md).
+- **Web UI** at `http://127.0.0.1:25463` with worker status dashboard, SPA standalone
+  on `/spa`, gRPC HTTP backend on `/grpc/StackService/*`.
+- **Refactor**: Task class reduced from 1970 → 592 lines (-70%) for maintainability.
+- **+170 tests** (1047 → 1238), 0 régressions.
+
 ## Démarrer en 30 secondes
 
 ```bash
