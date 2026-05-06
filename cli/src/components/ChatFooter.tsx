@@ -1,8 +1,32 @@
-import React from "react"
 import { Box, Text } from "ink"
+import os from "node:os"
+import React, { useEffect, useState } from "react"
 import { COLORS } from "../constants/colors"
 import { createContextBar } from "../utils/display"
 import type { GitDiffStats } from "../utils/git"
+
+/**
+ * Replace the user's home prefix with `~` so the cwd row stays
+ * compact, matching the Claude Code statusline convention.
+ */
+function tildify(p: string): string {
+	const home = os.homedir()
+	if (home && p.startsWith(home)) {
+		return "~" + p.slice(home.length)
+	}
+	return p
+}
+
+/**
+ * Map remaining-context percentage to a saturated badge color.
+ * green ≥ 40, yellow ≥ 15, red otherwise (matches the user's
+ * Claude Code statusline thresholds).
+ */
+function ctxBadgeColor(pct: number): "green" | "yellow" | "red" {
+	if (pct >= 40) return "green"
+	if (pct >= 15) return "yellow"
+	return "red"
+}
 
 interface ChatFooterProps {
 	mode: "act" | "plan"
@@ -29,10 +53,50 @@ export const ChatFooter: React.FC<ChatFooterProps> = ({
 	autoApproveAll,
 	show = true,
 }) => {
+	// Tick the clock every second so the statusline time stays live.
+	const [now, setNow] = useState<Date>(() => new Date())
+	useEffect(() => {
+		const id = setInterval(() => setNow(new Date()), 1000)
+		return () => clearInterval(id)
+	}, [])
+
 	if (!show) return null
+
+	const cwdDisplay = tildify(workspacePath)
+	const isDirty = !!(gitDiffStats && gitDiffStats.files > 0)
+	const branchBadgeBg = isDirty ? "yellow" : "green"
+	const hasCtx = lastApiReqTotalTokens > 0 && contextWindowSize > 0
+	const ctxRemainPct = hasCtx
+		? Math.max(0, Math.round(100 * (1 - lastApiReqTotalTokens / contextWindowSize)))
+		: null
+	const ctxColor = ctxRemainPct === null ? "green" : ctxBadgeColor(ctxRemainPct)
+	const timeStr = now.toLocaleTimeString("fr-FR", { hour12: false })
 
 	return (
 		<Box flexDirection="column" width="100%">
+			{/* Statusline row 1: cwd + branch badge */}
+			<Box gap={1} paddingLeft={1} paddingRight={1}>
+				<Text bold color="cyan">
+					▸ {cwdDisplay}
+				</Text>
+				{gitBranch && (
+					<Text bold backgroundColor={branchBadgeBg} color="white">
+						{` ${gitBranch}${isDirty ? "*" : ""} `}
+					</Text>
+				)}
+			</Box>
+
+			{/* Statusline row 2: model badge + ctx badge + time */}
+			<Box gap={1} paddingLeft={1} paddingRight={1}>
+				<Text bold backgroundColor="magenta" color="white">
+					{` ${modelId} `}
+				</Text>
+				<Text bold backgroundColor={ctxColor} color="white">
+					{ctxRemainPct === null ? "  ◉ —%  " : `  ◉ ${ctxRemainPct}%  `}
+				</Text>
+				<Text dimColor>⏱ {timeStr}</Text>
+			</Box>
+
 			{/* Row 1: Instructions (left, can wrap) | Plan/Act toggle (right, no wrap) */}
 			<Box justifyContent="space-between" paddingLeft={1} paddingRight={1} width="100%">
 				<Box flexShrink={1} flexWrap="wrap">
