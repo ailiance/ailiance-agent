@@ -122,4 +122,60 @@ describe("LocalRouter", () => {
 		assert.strictEqual(routingObserver.last(), null)
 		router.dispose()
 	})
+
+	// ── chatStream ──────────────────────────────────────────────────────────
+
+	it("chatStream() yields SSE deltas", async () => {
+		const sseBody = [
+			'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+			"",
+			'data: {"choices":[{"delta":{"content":" world"}}]}',
+			"",
+			"data: [DONE]",
+			"",
+		].join("\n")
+
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const router = new LocalRouter([makeEndpoint()])
+		const chunks: Array<{ type: string; text: string }> = []
+		for await (const chunk of router.chatStream(makeRequest())) {
+			chunks.push(chunk)
+		}
+		assert.deepStrictEqual(chunks, [
+			{ type: "text", text: "Hello" },
+			{ type: "text", text: " world" },
+		])
+		router.dispose()
+	})
+
+	it("chatStream() throws when no worker is available", async () => {
+		const router = new LocalRouter([])
+		await assert.rejects(async () => {
+			// Need to actually start iterating to trigger the throw
+			for await (const _ of router.chatStream(makeRequest())) {
+				// noop
+			}
+		}, /no worker available/)
+		router.dispose()
+	})
+
+	it("chatStream() throws on worker error response", async () => {
+		fetchStub.resolves(new Response("Internal error", { status: 500 }))
+
+		const router = new LocalRouter([makeEndpoint()])
+		await assert.rejects(async () => {
+			for await (const _ of router.chatStream(makeRequest())) {
+				// noop
+			}
+		}, /worker test-worker returned 500/)
+		router.dispose()
+	})
 })

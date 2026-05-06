@@ -240,7 +240,7 @@ export class LiteLlmHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: DiracTool[]): ApiStream {
-		// Try LocalRouter first (non-streaming, text-only path)
+		// Try LocalRouter first (streaming, text-only path)
 		if (this.localRouter) {
 			const allTextOnly = messages.every(
 				(m) => typeof m.content === "string" || (Array.isArray(m.content) && m.content.every((b) => b.type === "text")),
@@ -257,18 +257,18 @@ export class LiteLlmHandler implements ApiHandler {
 									: (m.content as Array<{ type: string; text: string }>).map((b) => b.text).join(""),
 						})),
 					]
-					const res = await this.localRouter.chat({
+					for await (const chunk of this.localRouter.chatStream({
 						messages: routerMessages,
 						max_tokens: this.options.liteLlmModelInfo?.maxTokens,
 						temperature: 1,
-						stream: false,
-					})
-					const text = res.choices[0]?.message?.content ?? ""
-					yield { type: "text", text }
+						stream: true,
+					})) {
+						yield chunk
+					}
 					yield {
 						type: "usage",
-						inputTokens: res.usage?.prompt_tokens ?? 0,
-						outputTokens: res.usage?.completion_tokens ?? 0,
+						inputTokens: 0,
+						outputTokens: 0,
 						totalCost: 0,
 					}
 					return
