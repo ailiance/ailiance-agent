@@ -83,8 +83,14 @@ export class E2ETestHelper {
 				}
 
 				try {
+					const url = frame.url()
 					const title = await frame.title()
-					if (title.startsWith("Dirac")) {
+					// VS Code webviews live under vscode-webview:// or have title set by HTML.
+					// Accept either an explicit title match or any non-empty webview URL frame
+					// that is not the main host window.
+					const isWebviewUrl = /vscode-webview:\/\/|webview\/index\.html/i.test(url)
+					const titleMatches = /dirac|agent-kiki|webview/i.test(title)
+					if (isWebviewUrl || titleMatches) {
 						this.cachedFrame = frame
 						return frame
 					}
@@ -98,7 +104,21 @@ export class E2ETestHelper {
 		}
 
 		// Use longer timeout (30s) for sidebar - macOS CI runners can be slow
-		await E2ETestHelper.waitUntil(async () => (await findSidebarFrame()) !== null, 30000)
+		try {
+			await E2ETestHelper.waitUntil(async () => (await findSidebarFrame()) !== null, 30000)
+		} catch (e) {
+			const frameInfo = await Promise.all(
+				page.frames().map(async (f) => {
+					try {
+						return f.isDetached() ? "<detached>" : { url: f.url(), title: await f.title() }
+					} catch {
+						return "<error>"
+					}
+				}),
+			)
+			console.error("[E2E] getSidebar timeout. Frames:", JSON.stringify(frameInfo))
+			throw e
+		}
 		return (await findSidebarFrame()) || page.mainFrame()
 	}
 
@@ -119,16 +139,19 @@ export class E2ETestHelper {
 	}
 
 	public async signin(webview: Frame): Promise<void> {
-		await webview.getByRole("button", { name: "Login to Dirac" }).click({ delay: 100 })
+		await webview.getByRole("button", { name: "Sign in to Dirac" }).click({ delay: 100 })
 
 		// Verify start up page is no longer visible
-		await expect(webview.getByRole("button", { name: "Login to Dirac" })).not.toBeVisible()
+		await expect(webview.getByRole("button", { name: "Sign in to Dirac" })).not.toBeVisible()
 
 		await webview.getByRole("button", { name: "Close" }).click({ delay: 50 })
 	}
 
 	public static async openDiracSidebar(page: Page): Promise<void> {
-		await page.getByRole("tab", { name: /Dirac/ }).locator("a").click()
+		await page
+			.getByRole("tab", { name: /Dirac|agent-kiki/ })
+			.locator("a")
+			.click()
 	}
 
 	public static async runCommandPalette(page: Page, command: string): Promise<void> {
