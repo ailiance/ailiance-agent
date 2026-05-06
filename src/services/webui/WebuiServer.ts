@@ -111,6 +111,21 @@ export class WebuiServer {
 		try {
 			const reqPath = decodeURIComponent((req.url || "/").split("?")[0])
 
+			// CORS headers for standalone SPA mode
+			res.setHeader("Access-Control-Allow-Origin", "*")
+			res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+			if (req.method === "OPTIONS") {
+				res.writeHead(204)
+				res.end()
+				return
+			}
+
+			// gRPC HTTP routes: /grpc/<service>/<method>
+			if (reqPath.startsWith("/grpc/")) {
+				return this.handleGrpc(req, res, reqPath.slice(6))
+			}
+
 			// Custom landing on root
 			if (reqPath === "/" || reqPath === "/index.html") {
 				return this.serveLanding(res)
@@ -157,6 +172,30 @@ export class WebuiServer {
 			res.writeHead(500)
 			res.end("internal error")
 		}
+	}
+
+	private async handleGrpc(req: http.IncomingMessage, res: http.ServerResponse, methodPath: string): Promise<void> {
+		let body: unknown = {}
+		if (req.method === "POST") {
+			const chunks: Buffer[] = []
+			await new Promise<void>((resolve, reject) => {
+				req.on("data", (c: Buffer) => chunks.push(c))
+				req.on("end", () => resolve())
+				req.on("error", reject)
+			})
+			const raw = Buffer.concat(chunks).toString("utf8")
+			if (raw) {
+				try {
+					body = JSON.parse(raw)
+				} catch {
+					body = {}
+				}
+			}
+		}
+		const { grpcRouter } = await import("./GrpcRouter")
+		const { status, data } = await grpcRouter.handle(methodPath, body)
+		res.writeHead(status, { "Content-Type": "application/json" })
+		res.end(JSON.stringify(data))
 	}
 
 	private async serveLanding(res: http.ServerResponse): Promise<void> {

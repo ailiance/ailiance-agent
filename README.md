@@ -4,9 +4,10 @@
 
 ### Agent de code souverain — extension VS Code + CLI Ink, audit JSONL EU AI Act, branché sur la passerelle eu-kiki par défaut
 
-[![release](https://img.shields.io/badge/release-v0.3.1-7e3af2)](docs/CHANGELOG.md)
+[![release](https://img.shields.io/badge/release-v0.4.0-7e3af2)](docs/CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![fork-of](https://img.shields.io/badge/fork%20de-Dirac%20/%20Cline-1f4e8a)](https://github.com/dirac-run/dirac)
+[![sovereignty](https://img.shields.io/badge/EU--sovereign-100%25-7e3af2)](https://github.com/L-electron-Rare/eu-kiki)
+[![heritage](https://img.shields.io/badge/heritage-Dirac%20%2F%20Cline-1f4e8a)](https://github.com/dirac-run/dirac)
 [![tracing](https://img.shields.io/badge/tracing-EU%20AI%20Act%20JSONL-success)](src/core/tracing/JsonlTracer.ts)
 [![backend](https://img.shields.io/badge/backend-eu--kiki-7e3af2)](https://github.com/L-electron-Rare/eu-kiki)
 
