@@ -1,8 +1,9 @@
 import * as assert from "assert"
 import * as sinon from "sinon"
+import type { ChatStreamChunk } from "../LocalRouter"
 import { LocalRouter } from "../LocalRouter"
 import { routingObserver } from "../RoutingObserver"
-import type { ChatRequest, ChatResponse, WorkerEndpoint } from "../types"
+import type { ChatRequest, ChatResponse, ChatTool, WorkerEndpoint } from "../types"
 
 const makeEndpoint = (overrides: Partial<WorkerEndpoint> = {}): WorkerEndpoint => ({
 	id: "test-worker",
@@ -11,6 +12,7 @@ const makeEndpoint = (overrides: Partial<WorkerEndpoint> = {}): WorkerEndpoint =
 	capabilities: ["general"],
 	priority: 10,
 	ctxMax: Number.POSITIVE_INFINITY,
+	supportsTools: false,
 	...overrides,
 })
 
@@ -145,7 +147,7 @@ describe("LocalRouter", () => {
 		fetchStub.resolves(new Response(stream, { status: 200 }))
 
 		const router = new LocalRouter([makeEndpoint()])
-		const chunks: Array<{ type: string; text: string }> = []
+		const chunks: ChatStreamChunk[] = []
 		for await (const chunk of router.chatStream(makeRequest())) {
 			chunks.push(chunk)
 		}
@@ -176,6 +178,139 @@ describe("LocalRouter", () => {
 				// noop
 			}
 		}, /worker test-worker returned 500/)
+		router.dispose()
+	})
+
+	// ── tool emulation ──────────────────────────────────────────────────────
+
+	it("chatStream() passes tools natively when supportsTools:true", async () => {
+		const sseBody = ['data: {"choices":[{"delta":{"content":"done"}}]}', "", "data: [DONE]", ""].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: true })])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		assert.ok(Array.isArray(callBody.tools), "body should have tools array")
+		assert.strictEqual(callBody.tools[0].function.name, "read_file")
+		assert.strictEqual(callBody.tool_choice, "auto")
+		router.dispose()
+	})
+
+	it("chatStream() injects tools into system prompt when supportsTools:false", async () => {
+		const sseBody = ['data: {"choices":[{"delta":{"content":"done"}}]}', "", "data: [DONE]", ""].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const req: ChatRequest = {
+			messages: [
+				{ role: "system", content: "You are an assistant." },
+				{ role: "user", content: "hello" },
+			],
+			tools: [tool],
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		for await (const _ of router.chatStream(req)) {
+			// consume
+		}
+
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		assert.strictEqual(callBody.tools, undefined, "tools should not be passed natively")
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		assert.ok(sysMsg, "system message should be present")
+		assert.ok(sysMsg.content.includes("read_file"), "tool name should appear in system prompt")
+		assert.ok(sysMsg.content.includes("<tool_call>"), "tool_call tag instructions should be in system prompt")
+		router.dispose()
+	})
+
+	it("chatStream() emulation: parses <tool_call> and yields tool_call chunk", async () => {
+		// Send the whole response as a single SSE chunk with embedded tool_call
+		const content = 'Hello <tool_call>\n{"name":"foo","arguments":{"x":1}}\n</tool_call>'
+		const sseBody = [`data: {"choices":[{"delta":{"content":${JSON.stringify(content)}}}]}`, "", "data: [DONE]", ""].join(
+			"\n",
+		)
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "foo", description: "Foo tool", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.ok(toolChunks.length >= 1, "should yield at least one tool_call chunk")
+		const tc = toolChunks[0] as Extract<ChatStreamChunk, { type: "tool_call" }>
+		assert.strictEqual(tc.name, "foo")
+		assert.strictEqual(tc.argumentsRaw, JSON.stringify({ x: 1 }))
+
+		const textChunks = chunks.filter((c) => c.type === "text")
+		const allText = textChunks.map((c) => (c as Extract<ChatStreamChunk, { type: "text" }>).text).join("")
+		assert.ok(allText.includes("Hello"), "text before tool_call should be yielded")
+		router.dispose()
+	})
+
+	it("chatStream() passes through native tool_calls delta from supportsTools worker", async () => {
+		const sseBody = [
+			'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_abc","function":{"name":"bar","arguments":"{\\"y\\":2}"}}]}}]}',
+			"",
+			"data: [DONE]",
+			"",
+		].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const router = new LocalRouter([makeEndpoint({ supportsTools: true })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream(makeRequest())) {
+			chunks.push(chunk)
+		}
+
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.strictEqual(toolChunks.length, 1)
+		const tc = toolChunks[0] as Extract<ChatStreamChunk, { type: "tool_call" }>
+		assert.strictEqual(tc.id, "call_abc")
+		assert.strictEqual(tc.name, "bar")
+		assert.strictEqual(tc.argumentsRaw, '{"y":2}')
 		router.dispose()
 	})
 })
