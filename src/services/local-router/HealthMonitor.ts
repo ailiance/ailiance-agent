@@ -1,0 +1,59 @@
+import type { WorkerEndpoint, WorkerHealth } from "./types"
+
+export class HealthMonitor {
+	private health = new Map<string, WorkerHealth>()
+	private timers = new Map<string, NodeJS.Timeout>()
+	private workers: Map<string, WorkerEndpoint>
+
+	constructor(workers: Map<string, WorkerEndpoint>) {
+		this.workers = workers
+		for (const id of workers.keys()) this.health.set(id, "unknown")
+	}
+
+	/**
+	 * Start periodic health checks (30s). Also performs an initial ping
+	 * which serves as wake-up / preheat for each worker.
+	 */
+	start(): void {
+		for (const [id, w] of this.workers) {
+			// Initial ping (preheat) + recurring
+			this.check(id, w).catch(() => {})
+			const t = setInterval(() => this.check(id, w).catch(() => {}), 30_000)
+			this.timers.set(id, t)
+		}
+	}
+
+	stop(): void {
+		for (const t of this.timers.values()) clearInterval(t)
+		this.timers.clear()
+	}
+
+	getHealth(id: string): WorkerHealth {
+		return this.health.get(id) ?? "unknown"
+	}
+
+	isUp(id: string): boolean {
+		return this.health.get(id) === "up"
+	}
+
+	private async check(id: string, w: WorkerEndpoint): Promise<void> {
+		try {
+			// Try a lightweight /health endpoint first; fall back to /v1/models
+			const base = w.url.replace(/\/v1\/?$/, "").replace(/\/$/, "")
+			const ctrl = new AbortController()
+			const timeout = setTimeout(() => ctrl.abort(), 5_000)
+			try {
+				const r = await fetch(`${base}/health`, { signal: ctrl.signal })
+				this.health.set(id, r.ok ? "up" : "down")
+			} catch {
+				// try /v1/models
+				const r = await fetch(`${base}/v1/models`, { signal: ctrl.signal })
+				this.health.set(id, r.ok ? "up" : "down")
+			} finally {
+				clearTimeout(timeout)
+			}
+		} catch {
+			this.health.set(id, "down")
+		}
+	}
+}
