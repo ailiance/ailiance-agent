@@ -1,6 +1,4 @@
 import { ApiHandler, ApiProviderInfo } from "@core/api"
-import { ApiStream } from "@core/api/transform/stream"
-import { ToolUse } from "@core/assistant-message"
 import { ContextManager } from "@core/context/context-management/ContextManager"
 
 import { EnvironmentContextTracker } from "@core/context/context-tracking/EnvironmentContextTracker"
@@ -23,7 +21,6 @@ import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DiracContent, DiracToolResponseContent } from "@shared/messages/content"
-import { DiracMessageModelInfo } from "@shared/messages/metrics"
 import { Logger } from "@shared/services/Logger"
 import { DiracDefaultTool } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
@@ -49,6 +46,8 @@ import { buildTaskManagers, buildTaskServices } from "./TaskFactory"
 import { TaskMessenger } from "./TaskMessenger"
 import { TaskState } from "./TaskState"
 import { ToolExecutor } from "./ToolExecutor"
+import type { AgentLoopRunnerContext } from "./types/agent-loop-runner"
+import type { ApiRequestHandlerContext } from "./types/api-request-handler"
 
 export type ToolResponse = DiracToolResponseContent
 
@@ -385,15 +384,59 @@ export class Task {
 			cancelTask: this.cancelTask,
 		}
 
-		// Sprint 2 PR3: instantiate after all fields are ready (needs this as Task facade).
-		this.agentLoopRunner = new AgentLoopRunner(this, this.taskState)
+		// PR6: narrow context — ApiRequestHandler
+		const apiRequestHandlerCtx: ApiRequestHandlerContext = {
+			taskId: this.taskId,
+			taskState: this.taskState,
+			api: this.api,
+			contextManager: this.contextManager,
+			diracIgnoreController: this.diracIgnoreController,
+			stateManager: this.stateManager,
+			messageStateHandler: this.messageStateHandler,
+			workspaceManager: this.workspaceManager,
+			controller: this.controller,
+			cwd: this.cwd,
+			terminalExecutionMode: this.terminalExecutionMode,
+			say: this.say.bind(this),
+			ask: this.ask.bind(this),
+			postStateToWebview: this.postStateToWebview,
+			handleContextWindowExceededError: () => this.apiConversationManager.handleContextWindowExceededError(),
+			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
+			isParallelToolCallingEnabled: this.isParallelToolCallingEnabled.bind(this),
+		}
+		this.apiRequestHandler = new ApiRequestHandler(apiRequestHandlerCtx)
 
-		// Sprint 2 PR4: instantiate after all fields are ready (needs this as Task facade).
-		this.apiRequestHandler = new ApiRequestHandler(this, this.taskState)
-	}
-
-	async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[], isStreamComplete = false) {
-		return this.responseProcessor.processNativeToolCalls(assistantTextOnly, toolBlocks, isStreamComplete)
+		// PR6: narrow context — AgentLoopRunner (must come after apiRequestHandler)
+		const agentLoopRunnerCtx: AgentLoopRunnerContext = {
+			taskId: this.taskId,
+			ulid: this.ulid,
+			taskState: this.taskState,
+			say: this.say.bind(this),
+			ask: this.ask.bind(this),
+			api: this.api,
+			streamHandler: this.streamHandler,
+			diffViewProvider: this.diffViewProvider,
+			checkpointManager: this.checkpointManager,
+			toolExecutor: this.toolExecutor,
+			messageStateHandler: this.messageStateHandler,
+			modelContextTracker: this.modelContextTracker,
+			stateManager: this.stateManager,
+			controller: this.controller,
+			postStateToWebview: this.postStateToWebview,
+			reinitExistingTaskFromId: this.reinitExistingTaskFromId,
+			abortTask: this.abortTask.bind(this),
+			getCurrentProviderInfo: this.getCurrentProviderInfo.bind(this),
+			attemptApiRequest: (idx, compact) => this.apiRequestHandler.attempt(idx, compact),
+			processNativeToolCalls: (text, blocks, complete) =>
+				this.responseProcessor.processNativeToolCalls(text, blocks, complete),
+			presentAssistantMessage: () => this.responseProcessor.presentAssistantMessage(),
+			processAssistantResponse: (params) => this.responseProcessor.processAssistantResponse(params),
+			handleEmptyAssistantResponse: (params) => this.responseProcessor.handleEmptyAssistantResponse(params),
+			initializeCheckpoints: (isFirst) => this.lifecycleManager.initializeCheckpoints(isFirst),
+			determineContextCompaction: (idx) => this.apiConversationManager.determineContextCompaction(idx),
+			prepareApiRequest: (params) => this.apiConversationManager.prepareApiRequest(params),
+		}
+		this.agentLoopRunner = new AgentLoopRunner(agentLoopRunnerCtx)
 	}
 
 	async getEnvironmentDetails(includeFileDetails = false): Promise<string> {
@@ -545,83 +588,5 @@ export class Task {
 			lastGenerationId?: string
 		}>
 		return apiLike.getLastRequestId?.() ?? apiLike.lastGenerationId
-	}
-
-	async handleContextWindowExceededError(): Promise<void> {
-		return this.apiConversationManager.handleContextWindowExceededError()
-	}
-
-	async *attemptApiRequest(previousApiReqIndex: number, shouldCompact?: boolean): ApiStream {
-		yield* this.apiRequestHandler.attempt(previousApiReqIndex, shouldCompact)
-	}
-
-	async presentAssistantMessage() {
-		return this.responseProcessor.presentAssistantMessage()
-	}
-
-	async recursivelyMakeDiracRequests(userContent: DiracContent[], includeFileDetails = false): Promise<boolean> {
-		return this.agentLoopRunner.makeRequest(userContent, includeFileDetails)
-	}
-	async initializeCheckpoints(isFirstRequest: boolean): Promise<void> {
-		return this.lifecycleManager.initializeCheckpoints(isFirstRequest)
-	}
-
-	async determineContextCompaction(previousApiReqIndex: number): Promise<boolean> {
-		return this.apiConversationManager.determineContextCompaction(previousApiReqIndex)
-	}
-
-	async prepareApiRequest(params: {
-		userContent: DiracContent[]
-		shouldCompact: boolean
-		includeFileDetails: boolean
-		useCompactPrompt: boolean
-		previousApiReqIndex: number
-		isFirstRequest: boolean
-		providerId: string
-		modelId: string
-		mode: string
-	}): Promise<{
-		userContent: DiracContent[]
-		lastApiReqIndex: number
-		isDirectResponse?: boolean
-		directResponseText?: string
-	}> {
-		return this.apiConversationManager.prepareApiRequest(params)
-	}
-
-	async processAssistantResponse(params: {
-		assistantMessage: string
-		assistantTextOnly: string
-		assistantTextSignature?: string
-		assistantMessageId: string
-		providerId: string
-		modelId: string
-		mode: string
-		taskMetrics: {
-			inputTokens: number
-			outputTokens: number
-			cacheWriteTokens: number
-			cacheReadTokens: number
-			totalCost?: number
-		}
-		modelInfo: DiracMessageModelInfo
-		toolUseHandler: ReturnType<StreamResponseHandler["getHandlers"]>["toolUseHandler"]
-	}): Promise<boolean> {
-		return this.responseProcessor.processAssistantResponse(params)
-	}
-
-	async handleEmptyAssistantResponse(params: {
-		modelInfo: DiracMessageModelInfo
-		taskMetrics: {
-			inputTokens: number
-			outputTokens: number
-			cacheWriteTokens: number
-			cacheReadTokens: number
-			totalCost?: number
-		}
-		providerId: string
-		model: any
-	}): Promise<boolean> {
-		return this.responseProcessor.handleEmptyAssistantResponse(params)
 	}
 }

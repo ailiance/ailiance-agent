@@ -14,9 +14,9 @@ import { Logger } from "@shared/services/Logger"
 import { Session } from "@shared/services/Session"
 import { isLocalModel } from "@utils/model-utils"
 import pWaitFor from "p-wait-for"
-import type { Task } from "./index"
 import { StreamChunkCoordinator } from "./StreamChunkCoordinator"
 import { TaskState } from "./TaskState"
+import type { AgentLoopRunnerContext } from "./types/agent-loop-runner"
 import { updateApiReqMsg } from "./utils"
 
 /**
@@ -24,39 +24,28 @@ import { updateApiReqMsg } from "./utils"
  *
  * Sprint 2 PR3 — step 3A: initiateLoop extracted from Task.initiateTaskLoop.
  * Sprint 2 PR3 — step 3B: makeRequest extracted from Task.recursivelyMakeDiracRequests.
+ * PR6 — narrowed from Task to AgentLoopRunnerContext interface.
  */
 export class AgentLoopRunner {
-	constructor(
-		private readonly task: Task,
-		private readonly taskState: TaskState,
-	) {}
+	private readonly taskState: TaskState
+
+	constructor(private readonly ctx: AgentLoopRunnerContext) {
+		this.taskState = ctx.taskState
+	}
 
 	/**
 	 * Drive the outer while-loop that calls makeRequest
 	 * until the task completes or is aborted.
-	 *
-	 * Extracted from Task.initiateTaskLoop — public API of Task is preserved
-	 * via the thin wrapper that delegates here.
 	 */
 	async initiateLoop(userContent: DiracContent[]): Promise<void> {
 		let nextUserContent = userContent
 		let includeFileDetails = true
 		while (!this.taskState.abort) {
-			const didEndLoop = await this.task.recursivelyMakeDiracRequests(nextUserContent, includeFileDetails)
-			includeFileDetails = false // we only need file details the first time
-
-			//  The way this agentic loop works is that dirac will be given a task that he then calls tools to complete. unless there's an attempt_completion call, we keep responding back to him with his tool's responses until he either attempt_completion or does not use anymore tools. If he does not use anymore tools, we ask him to consider if he's completed the task and then call attempt_completion, otherwise proceed with completing the task.
-
-			//const totalCost = this.calculateApiCost(totalInputTokens, totalOutputTokens)
+			const didEndLoop = await this.makeRequest(nextUserContent, includeFileDetails)
+			includeFileDetails = false
 			if (didEndLoop) {
-				// For now a task never 'completes'. This will only happen if the user hits max requests and denies resetting the count.
-				//this.say("task_completed", `Task completed. Total API usage cost: ${totalCost}`)
 				break
 			}
-			// this.say(
-			// 	"tool",
-			// 	"Dirac responded with only text blocks but has not called attempt_completion yet. Forcing him to continue with task..."
-			// )
 			nextUserContent = [
 				{
 					type: "text",
@@ -70,19 +59,16 @@ export class AgentLoopRunner {
 	/**
 	 * Execute one ReAct iteration: stream an API request, process chunks,
 	 * handle tool calls, and recurse with tool results.
-	 *
-	 * Extracted from Task.recursivelyMakeDiracRequests — public API of Task is
-	 * preserved via the thin wrapper that delegates here.
 	 */
 	async makeRequest(userContent: DiracContent[], includeFileDetails = false): Promise<boolean> {
 		if (this.taskState.abort) {
 			throw new Error("Task instance aborted")
 		}
 
-		const { model, providerId, customPrompt, mode } = this.task.getCurrentProviderInfo()
+		const { model, providerId, customPrompt, mode } = this.ctx.getCurrentProviderInfo()
 		if (providerId && model.id) {
 			try {
-				await this.task.modelContextTracker.recordModelUsage(providerId, model.id, mode)
+				await this.ctx.modelContextTracker.recordModelUsage(providerId, model.id, mode)
 			} catch {}
 		}
 
@@ -99,17 +85,17 @@ export class AgentLoopRunner {
 		userContent = mistakeResult.userContent
 
 		const previousApiReqIndex = findLastIndex(
-			this.task.messageStateHandler.getDiracMessages(),
+			this.ctx.messageStateHandler.getDiracMessages(),
 			(m) => m.say === "api_req_started",
 		)
 		const isFirstRequest =
-			this.task.messageStateHandler.getDiracMessages().filter((m) => m.say === "api_req_started").length === 0
-		await this.task.initializeCheckpoints(isFirstRequest)
+			this.ctx.messageStateHandler.getDiracMessages().filter((m) => m.say === "api_req_started").length === 0
+		await this.ctx.initializeCheckpoints(isFirstRequest)
 
-		const useCompactPrompt = customPrompt === "compact" && isLocalModel(this.task.getCurrentProviderInfo())
-		const shouldCompact = await this.task.determineContextCompaction(previousApiReqIndex)
+		const useCompactPrompt = customPrompt === "compact" && isLocalModel(this.ctx.getCurrentProviderInfo())
+		const shouldCompact = await this.ctx.determineContextCompaction(previousApiReqIndex)
 
-		const apiRequestData = await this.task.prepareApiRequest({
+		const apiRequestData = await this.ctx.prepareApiRequest({
 			userContent,
 			shouldCompact,
 			includeFileDetails,
@@ -125,7 +111,7 @@ export class AgentLoopRunner {
 		const lastApiReqIndex = apiRequestData.lastApiReqIndex
 
 		if (apiRequestData.isDirectResponse && apiRequestData.directResponseText) {
-			await this.task.say("text", apiRequestData.directResponseText)
+			await this.ctx.say("text", apiRequestData.directResponseText)
 			return true
 		}
 
@@ -152,7 +138,7 @@ export class AgentLoopRunner {
 				cancelReason?: DiracApiReqCancelReason,
 				streamingFailedMessage?: string,
 			) => {
-				const modelInfo = this.task.api.getModel().info
+				const modelInfo = this.ctx.api.getModel().info
 				const contextWindow = modelInfo.contextWindow
 				const totalTokens =
 					taskMetrics.inputTokens +
@@ -162,14 +148,14 @@ export class AgentLoopRunner {
 				const contextUsagePercentage = contextWindow ? Math.round((totalTokens / contextWindow) * 100) : undefined
 				await updateApiReqMsg({
 					partial: true,
-					messageStateHandler: this.task.messageStateHandler,
+					messageStateHandler: this.ctx.messageStateHandler,
 					lastApiReqIndex,
 					inputTokens: taskMetrics.inputTokens,
 					outputTokens: taskMetrics.outputTokens,
 					reasoningTokens: taskMetrics.reasoningTokens,
 					cacheWriteTokens: taskMetrics.cacheWriteTokens,
 					cacheReadTokens: taskMetrics.cacheReadTokens,
-					api: this.task.api,
+					api: this.ctx.api,
 					totalCost: taskMetrics.totalCost,
 					cancelReason,
 					streamingFailedMessage,
@@ -190,9 +176,9 @@ export class AgentLoopRunner {
 						}
 
 						await updateApiReqMsgFromMetrics()
-						await this.task.postStateToWebview()
+						await this.ctx.postStateToWebview()
 						await telemetryService.captureTokenUsage(
-							this.task.ulid,
+							this.ctx.ulid,
 							usageInputTokens,
 							usageOutputTokens,
 							providerId,
@@ -201,7 +187,7 @@ export class AgentLoopRunner {
 						)
 					})
 					.catch((error) => {
-						Logger.debug(`[Task ${this.task.taskId}] Failed to process usage chunk side effects: ${error}`)
+						Logger.debug(`[Task ${this.ctx.taskId}] Failed to process usage chunk side effects: ${error}`)
 					})
 			}
 
@@ -210,22 +196,22 @@ export class AgentLoopRunner {
 				await usageChunkSideEffectsQueue
 				await updateApiReqMsgFromMetrics(cancelReason, streamingFailedMessage)
 				const lastApiReqIndex = findLastIndex(
-					this.task.messageStateHandler.getDiracMessages(),
+					this.ctx.messageStateHandler.getDiracMessages(),
 					(m) => m.say === "api_req_started",
 				)
 				if (lastApiReqIndex !== -1) {
-					await this.task.messageStateHandler.updateDiracMessage(lastApiReqIndex, { partial: false })
+					await this.ctx.messageStateHandler.updateDiracMessage(lastApiReqIndex, { partial: false })
 				}
 			}
 
 			const abortStream = async (cancelReason: DiracApiReqCancelReason, streamingFailedMessage?: string) => {
 				Session.get().finalizeRequest()
 
-				if (this.task.diffViewProvider.isEditing) {
-					await this.task.diffViewProvider.revertChanges()
+				if (this.ctx.diffViewProvider.isEditing) {
+					await this.ctx.diffViewProvider.revertChanges()
 				}
 
-				const diracMessages = this.task.messageStateHandler.getDiracMessages()
+				const diracMessages = this.ctx.messageStateHandler.getDiracMessages()
 				diracMessages.forEach((msg) => {
 					if (msg.partial) {
 						msg.partial = false
@@ -233,9 +219,9 @@ export class AgentLoopRunner {
 					}
 				})
 				await finalizeApiReqMsg(cancelReason, streamingFailedMessage)
-				await this.task.messageStateHandler.saveDiracMessagesAndUpdateHistory()
+				await this.ctx.messageStateHandler.saveDiracMessagesAndUpdateHistory()
 
-				await this.task.messageStateHandler.addToApiConversationHistory({
+				await this.ctx.messageStateHandler.addToApiConversationHistory({
 					role: "assistant",
 					content: [
 						{
@@ -262,7 +248,7 @@ export class AgentLoopRunner {
 				})
 
 				telemetryService.captureConversationTurnEvent(
-					this.task.ulid,
+					this.ctx.ulid,
 					providerId,
 					modelInfo.modelId,
 					"assistant",
@@ -285,16 +271,14 @@ export class AgentLoopRunner {
 			this.taskState.presentAssistantMessageLocked = false
 			this.taskState.presentAssistantMessageHasPendingUpdates = false
 			this.taskState.didAutomaticallyRetryFailedApiRequest = false
-			await this.task.diffViewProvider.reset()
-			this.task.streamHandler.reset()
+			await this.ctx.diffViewProvider.reset()
+			this.ctx.streamHandler.reset()
 			this.taskState.toolUseIdMap.clear()
 
-			const { toolUseHandler, reasonsHandler } = this.task.streamHandler.getHandlers()
+			const { toolUseHandler, reasonsHandler } = this.ctx.streamHandler.getHandlers()
 			// agent-kiki fork: tracing — measure latency of every API roundtrip
-			// so the planner turn is recorded even if the stream errors out
-			// before any tool executes.
 			const plannerStartedAt = Date.now()
-			const stream = this.task.attemptApiRequest(previousApiReqIndex, shouldCompact)
+			const stream = this.ctx.attemptApiRequest(previousApiReqIndex, shouldCompact)
 
 			let assistantMessageId = ""
 			let assistantMessage = ""
@@ -308,7 +292,7 @@ export class AgentLoopRunner {
 
 			const finalizePendingReasoningMessage = async (thinking: string): Promise<boolean> => {
 				const pendingReasoningIndex = findLastIndex(
-					this.task.messageStateHandler.getDiracMessages(),
+					this.ctx.messageStateHandler.getDiracMessages(),
 					(message) => message.type === "say" && message.say === "reasoning" && message.partial === true,
 				)
 
@@ -316,14 +300,14 @@ export class AgentLoopRunner {
 					return false
 				}
 
-				await this.task.messageStateHandler.updateDiracMessage(pendingReasoningIndex, {
+				await this.ctx.messageStateHandler.updateDiracMessage(pendingReasoningIndex, {
 					text: thinking,
 					partial: false,
 				})
-				const completedReasoning = this.task.messageStateHandler.getDiracMessages()[pendingReasoningIndex]
+				const completedReasoning = this.ctx.messageStateHandler.getDiracMessages()[pendingReasoningIndex]
 				if (completedReasoning) {
 					await sendPartialMessageEvent(convertDiracMessageToProto(completedReasoning))
-					await this.task.postStateToWebview()
+					await this.ctx.postStateToWebview()
 				}
 				return true
 			}
@@ -334,7 +318,7 @@ export class AgentLoopRunner {
 			try {
 				streamCoordinator = new StreamChunkCoordinator(stream, {
 					onUsageChunk: (chunk) => {
-						this.task.streamHandler.setRequestId(chunk.id)
+						this.ctx.streamHandler.setRequestId(chunk.id)
 						didReceiveUsageChunk = true
 						taskMetrics.inputTokens += chunk.inputTokens
 						taskMetrics.outputTokens += chunk.outputTokens
@@ -368,7 +352,7 @@ export class AgentLoopRunner {
 					switch (chunk.type) {
 						case "reasoning": {
 							const details = chunk.details ? (Array.isArray(chunk.details) ? chunk.details : [chunk.details]) : []
-							this.task.streamHandler.processReasoningDelta({
+							this.ctx.streamHandler.processReasoningDelta({
 								id: chunk.id,
 								reasoning: chunk.reasoning,
 								signature: chunk.signature,
@@ -379,13 +363,13 @@ export class AgentLoopRunner {
 							if (!this.taskState.abort) {
 								const thinkingBlock = reasonsHandler.getCurrentReasoning()
 								if (thinkingBlock?.thinking && chunk.reasoning && assistantMessage.length === 0) {
-									await this.task.say("reasoning", thinkingBlock.thinking, undefined, undefined, true)
+									await this.ctx.say("reasoning", thinkingBlock.thinking, undefined, undefined, true)
 								}
 							}
 							break
 						}
 						case "tool_calls": {
-							this.task.streamHandler.processToolUseDelta(
+							this.ctx.streamHandler.processToolUseDelta(
 								{
 									id: chunk.tool_call.function?.id,
 									type: "tool_use",
@@ -399,10 +383,7 @@ export class AgentLoopRunner {
 								this.taskState.toolUseIdMap.set(chunk.tool_call.call_id, chunk.tool_call.function.id)
 							}
 
-							await this.task.processNativeToolCalls(
-								assistantTextOnly,
-								toolUseHandler.getPartialToolUsesAsContent(),
-							)
+							await this.ctx.processNativeToolCalls(assistantTextOnly, toolUseHandler.getPartialToolUsesAsContent())
 							break
 						}
 						case "text": {
@@ -416,7 +397,7 @@ export class AgentLoopRunner {
 							if (chunk.signature) {
 								assistantTextSignature = chunk.signature
 							}
-							this.task.streamHandler.processTextDelta(chunk)
+							this.ctx.streamHandler.processTextDelta(chunk)
 
 							if (chunk.id) {
 								assistantMessageId = chunk.id
@@ -425,10 +406,7 @@ export class AgentLoopRunner {
 							assistantTextOnly += chunk.text
 							const prevLength = this.taskState.assistantMessageContent.length
 
-							await this.task.processNativeToolCalls(
-								assistantTextOnly,
-								toolUseHandler.getPartialToolUsesAsContent(),
-							)
+							await this.ctx.processNativeToolCalls(assistantTextOnly, toolUseHandler.getPartialToolUsesAsContent())
 
 							if (this.taskState.assistantMessageContent.length > prevLength) {
 								this.taskState.userMessageContentReady = false
@@ -437,12 +415,12 @@ export class AgentLoopRunner {
 						}
 					}
 
-					await this.task
+					await this.ctx
 						.presentAssistantMessage()
 						.catch((error) => Logger.debug(`[Task] Failed to present message: ${error}`))
 
 					if (this.taskState.abort) {
-						this.task.api.abort?.()
+						this.ctx.api.abort?.()
 						if (!this.taskState.abandoned) {
 							await abortStream("user_cancelled")
 						}
@@ -465,11 +443,8 @@ export class AgentLoopRunner {
 				await usageChunkSideEffectsQueue
 
 				// agent-kiki fork: tracing — record this planner roundtrip.
-				// This fires for every successful API call, including ones whose
-				// assistant text contains no valid tool_call (which would never
-				// reach the per-tool tracing hook in ToolExecutor).
 				try {
-					this.task.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt)
+					this.ctx.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt)
 				} catch (_err) {
 					// non-fatal
 				}
@@ -479,7 +454,7 @@ export class AgentLoopRunner {
 					if (finalReasoning?.thinking) {
 						const finalizedPendingReasoning = await finalizePendingReasoningMessage(finalReasoning.thinking)
 						if (!finalizedPendingReasoning) {
-							await this.task.say("reasoning", finalReasoning.thinking, undefined, undefined, false)
+							await this.ctx.say("reasoning", finalReasoning.thinking, undefined, undefined, false)
 						}
 						didFinalizeReasoningForUi = true
 					}
@@ -487,14 +462,11 @@ export class AgentLoopRunner {
 			} catch (error) {
 				await streamCoordinator?.stop()
 				if (!this.taskState.abandoned) {
-					const diracError = ErrorService.get().toDiracError(error, this.task.api.getModel().id)
+					const diracError = ErrorService.get().toDiracError(error, this.ctx.api.getModel().id)
 					const errorMessage = diracError.serialize()
 					// agent-kiki fork: tracing — record the failed roundtrip
-					// before the recovery / abort branches consume the error,
-					// so audit traces capture API failures (e.g. transport
-					// errors, parse errors, "too many consecutive mistakes").
 					try {
-						this.task.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [errorMessage])
+						this.ctx.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [errorMessage])
 					} catch (_err) {
 						// non-fatal
 					}
@@ -503,7 +475,7 @@ export class AgentLoopRunner {
 
 						const delay = 2000 * 2 ** (this.taskState.autoRetryAttempts - 1)
 
-						await this.task.say(
+						await this.ctx.say(
 							"error_retry",
 							JSON.stringify({
 								attempt: this.taskState.autoRetryAttempts,
@@ -514,13 +486,13 @@ export class AgentLoopRunner {
 						)
 
 						setTimeoutPromise(delay).then(async () => {
-							if (this.task.controller.task) {
-								this.task.controller.task.taskState.autoRetryAttempts = this.taskState.autoRetryAttempts
-								await this.task.controller.task.handleWebviewAskResponse("yesButtonClicked", "", [])
+							if (this.ctx.controller.task) {
+								this.ctx.controller.task.taskState.autoRetryAttempts = this.taskState.autoRetryAttempts
+								await this.ctx.controller.task.handleWebviewAskResponse("yesButtonClicked", "", [])
 							}
 						})
 					} else if (this.taskState.autoRetryAttempts >= 3) {
-						await this.task.say(
+						await this.ctx.say(
 							"error_retry",
 							JSON.stringify({
 								attempt: 3,
@@ -532,12 +504,10 @@ export class AgentLoopRunner {
 						)
 					}
 
-					// agent-kiki fork: tracing close hook — distinguish the
-					// streaming-failure path from a user-initiated abort so the
-					// trace meta carries exit_reason="error".
-					this.task.abortTask("error", 1)
+					// agent-kiki fork: tracing close hook
+					this.ctx.abortTask("error", 1)
 					await abortStream("streaming_failed", errorMessage)
-					await this.task.reinitExistingTaskFromId(this.task.taskId)
+					await this.ctx.reinitExistingTaskFromId(this.ctx.taskId)
 				}
 			} finally {
 				this.taskState.isStreaming = false
@@ -545,7 +515,7 @@ export class AgentLoopRunner {
 			}
 
 			if (!didReceiveUsageChunk) {
-				const apiStreamUsage = await this.task.api.getApiStreamUsage?.()
+				const apiStreamUsage = await this.ctx.api.getApiStreamUsage?.()
 				if (apiStreamUsage) {
 					taskMetrics.inputTokens += apiStreamUsage.inputTokens
 					taskMetrics.outputTokens += apiStreamUsage.outputTokens
@@ -564,14 +534,14 @@ export class AgentLoopRunner {
 			}
 
 			await finalizeApiReqMsg()
-			await this.task.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-			await this.task.postStateToWebview()
+			await this.ctx.messageStateHandler.saveDiracMessagesAndUpdateHistory()
+			await this.ctx.postStateToWebview()
 
 			if (this.taskState.abort) {
 				throw new Error("Dirac instance aborted")
 			}
 
-			const assistantHasContent = await this.task.processAssistantResponse({
+			const assistantHasContent = await this.ctx.processAssistantResponse({
 				assistantMessage,
 				assistantTextOnly,
 				assistantTextSignature,
@@ -587,7 +557,7 @@ export class AgentLoopRunner {
 			let didEndLoop = false
 			if (assistantHasContent) {
 				await pWaitFor(() => this.taskState.userMessageContentReady)
-				await this.task.checkpointManager?.saveCheckpoint()
+				await this.ctx.checkpointManager?.saveCheckpoint()
 
 				const didToolUse = this.taskState.assistantMessageContent.some((block) => block.type === "tool_use")
 				const hitTokenLimit = stopReason === "MAX_TOKENS" || stopReason === "max_tokens" || stopReason === "length"
@@ -606,7 +576,7 @@ export class AgentLoopRunner {
 				const recDidEndLoop = await this.makeRequest(this.taskState.userMessageContent)
 				didEndLoop = recDidEndLoop
 			} else {
-				return await this.task.handleEmptyAssistantResponse({
+				return await this.ctx.handleEmptyAssistantResponse({
 					modelInfo,
 					taskMetrics,
 					providerId,
@@ -621,22 +591,22 @@ export class AgentLoopRunner {
 	}
 
 	async handleMistakeLimitReached(userContent: DiracContent[]): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
-		if (this.taskState.consecutiveMistakeCount < this.task.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
+		if (this.taskState.consecutiveMistakeCount < this.ctx.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
 			return { didEndLoop: false, userContent }
 		}
 
 		// In yolo mode, don't wait for user input - fail the task
-		if (this.task.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
+		if (this.ctx.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
 			const errorMessage =
 				`[YOLO MODE] Task failed: Too many consecutive mistakes ` +
 				`(${this.taskState.consecutiveMistakeCount}). ` +
 				`The model may not be capable enough for this task. ` +
 				`Consider using a more capable model.`
-			await this.task.say("error", errorMessage)
+			await this.ctx.say("error", errorMessage)
 			return { didEndLoop: true, userContent }
 		}
 
-		const autoApprovalSettings = this.task.stateManager.getGlobalSettingsKey("autoApprovalSettings")
+		const autoApprovalSettings = this.ctx.stateManager.getGlobalSettingsKey("autoApprovalSettings")
 		if (autoApprovalSettings.enableNotifications) {
 			showSystemNotification({
 				subtitle: "Error",
@@ -644,13 +614,13 @@ export class AgentLoopRunner {
 			})
 		}
 
-		const { response, text, images, files } = await this.task.ask(
+		const { response, text, images, files } = await this.ctx.ask(
 			"mistake_limit_reached",
 			`Tool use failure. Can potentially be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`,
 		)
 
 		if (response === "messageResponse") {
-			await this.task.say("user_feedback", text, images, files)
+			await this.ctx.say("user_feedback", text, images, files)
 
 			const feedbackUserContent: DiracUserContent[] = []
 			feedbackUserContent.push({
