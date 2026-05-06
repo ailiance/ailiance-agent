@@ -32,9 +32,7 @@ import { DiracDefaultTool } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import { isParallelToolCallingEnabled } from "@utils/model-utils"
-import fs from "fs/promises"
 import Mutex from "p-mutex"
-import * as path from "path"
 import { ulid } from "ulid"
 import { SkillMetadata } from "@/shared/skills"
 import { Controller } from "../controller"
@@ -604,88 +602,7 @@ export class Task {
 		fullHistory?: any[]
 		deletedRange?: [number, number]
 	}): Promise<void> {
-		const enabledSetting = this.stateManager.getGlobalSettingsKey("writePromptMetadataEnabled")
-		const enabledFlag = process.env.DIRAC_WRITE_PROMPT_ARTIFACTS?.toLowerCase()
-		const enabled =
-			enabledSetting ||
-			enabledFlag === "1" ||
-			enabledFlag === "true" ||
-			enabledFlag === "yes" ||
-			process.env.IS_DEV === "true"
-		if (!enabled) {
-			return
-		}
-
-		try {
-			const configuredDir =
-				process.env.DIRAC_PROMPT_ARTIFACT_DIR?.trim() ||
-				this.stateManager.getGlobalSettingsKey("writePromptMetadataDirectory")?.trim()
-			const artifactDir = configuredDir
-				? path.isAbsolute(configuredDir)
-					? configuredDir
-					: path.resolve(this.cwd, configuredDir)
-				: path.resolve(this.cwd, ".dirac-prompt-artifacts")
-
-			await fs.mkdir(artifactDir, { recursive: true })
-
-			const _ts = new Date().toISOString()
-			const debugPath = path.join(artifactDir, `task-${this.taskId}-debug.md`)
-
-			let markdown = `## System Prompt\n\n${params.systemPrompt}\n\n`
-
-			if (params.tools) {
-				markdown += `## Tools\n\n\`\`\`json\n${JSON.stringify(params.tools, null, 2)}\n\`\`\`\n\n`
-			}
-
-			if (params.fullHistory) {
-				markdown += `## Conversation History\n\n`
-				const [deletedStart, deletedEnd] = params.deletedRange || [-1, -1]
-
-				for (let i = 0; i < params.fullHistory.length; i++) {
-					const message = params.fullHistory[i]
-					const isTruncated = i >= deletedStart && i <= deletedEnd
-
-					markdown += `### [${message.role.toUpperCase()}]${isTruncated ? " [TRUNCATED]" : ""}\n`
-
-					if (typeof message.content === "string") {
-						markdown += `${message.content}\n\n`
-					} else if (Array.isArray(message.content)) {
-						for (const block of message.content) {
-							if (block.type === "text") {
-								markdown += `**Text:** ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n${block.text}\n\n`
-							} else if (block.type === "thinking") {
-								markdown += `**Thinking:** ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n${block.thinking}\n\n`
-							} else if (block.type === "redacted_thinking") {
-								markdown += `**Thinking:** [Redacted] ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n\n`
-							} else if (block.type === "tool_use") {
-								markdown += `**Tool Use:** \`${block.name}\` (\`id: ${block.id}\`, \`call_id: ${block.call_id}\`)\n`
-								markdown += `\`\`\`json\n${JSON.stringify(block.input, null, 2)}\n\`\`\`\n\n`
-							} else if (block.type === "tool_result") {
-								markdown += `**Tool Result:** (\`${block.tool_use_id}\`)\n`
-								if (typeof block.content === "string") {
-									markdown += `${block.content}\n\n`
-								} else if (Array.isArray(block.content)) {
-									for (const contentBlock of block.content) {
-										if (contentBlock.type === "text") {
-											markdown += `${contentBlock.text}\n\n`
-										} else if (contentBlock.type === "image") {
-											markdown += `[Image: ${contentBlock.source?.type}]\n\n`
-										}
-									}
-								}
-							} else if (block.type === "image") {
-								markdown += `[Image: ${block.source?.type}]\n\n`
-							}
-						}
-					}
-					markdown += "---\n\n"
-				}
-			}
-
-			await fs.writeFile(debugPath, markdown, "utf8")
-		} catch (error) {
-			Logger.error("Failed to write prompt metadata artifacts:", error)
-		}
+		return this.apiRequestHandler.writePromptMetadataArtifacts(params)
 	}
 
 	getApiRequestIdSafe(): string | undefined {
