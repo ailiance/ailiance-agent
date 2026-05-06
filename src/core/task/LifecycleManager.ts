@@ -13,6 +13,7 @@ import { DiracContent, DiracImageContentBlock, DiracUserContent } from "@shared/
 import { ShowMessageType } from "@shared/proto/index.host"
 import { Logger } from "@shared/services/Logger"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
+import { autoModeSelector } from "./AutoModeSelector"
 import { releaseTaskLock } from "./TaskLockUtils"
 import { LifecycleManagerDependencies } from "./types/lifecycle-manager"
 import { buildUserFeedbackContent } from "./utils/buildUserFeedbackContent"
@@ -93,6 +94,18 @@ export class LifecycleManager {
 		await this.dependencies.say("task", task, images, files)
 
 		this.dependencies.taskState.isInitialized = true
+
+		// Auto-switch plan/act mode based on prompt heuristics (opt-in setting)
+		if (task && this.dependencies.stateManager.getGlobalSettingsKey("autoModeFromPrompt")) {
+			const suggestedMode = autoModeSelector.classify(task)
+			if (suggestedMode !== null) {
+				const currentMode = this.dependencies.stateManager.getGlobalSettingsKey("mode")
+				if (suggestedMode !== currentMode) {
+					Logger.info(`[AutoMode] switching ${currentMode} → ${suggestedMode} based on prompt`)
+					this.dependencies.stateManager.setGlobalState("mode", suggestedMode)
+				}
+			}
+		}
 
 		const imageBlocks: DiracImageContentBlock[] = formatResponse.imageBlocks(images)
 
