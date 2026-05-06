@@ -240,8 +240,9 @@ export class LiteLlmHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: DiracTool[]): ApiStream {
-		// Try LocalRouter first (streaming, text-only path)
-		if (this.localRouter) {
+		// Try LocalRouter first (streaming, text-only path).
+		// Skip when tools are present — LocalRouter does not propagate tool_calls.
+		if (this.localRouter && (!tools || tools.length === 0)) {
 			const allTextOnly = messages.every(
 				(m) => typeof m.content === "string" || (Array.isArray(m.content) && m.content.every((b) => b.type === "text")),
 			)

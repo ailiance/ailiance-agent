@@ -68,7 +68,8 @@ export class OpenRouterHandler implements ApiHandler {
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: OpenAITool[]): ApiStream {
 		// Try LocalRouter first when enabled and messages are text-only.
-		if (this.localRouter) {
+		// Skip when tools are present — LocalRouter does not propagate tool_calls.
+		if (this.localRouter && (!tools || tools.length === 0)) {
 			try {
 				const textOnly = messages.every((m) => typeof m.content === "string")
 				if (textOnly) {

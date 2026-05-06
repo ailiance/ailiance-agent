@@ -113,8 +113,11 @@ export class OpenAiHandler implements ApiHandler {
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: ChatCompletionTool[]): ApiStream {
 		// Try LocalRouter first when enabled and messages are text-only.
+		// IMPORTANT: skip LocalRouter when tools are present — chatStream() does
+		// not propagate tool_calls deltas, so an agent loop using read_file etc.
+		// would silently lose its tool calls and fail with "Tool use failure".
 		// On any failure or unsupported content, fall through to HTTP path.
-		if (this.localRouter) {
+		if (this.localRouter && (!tools || tools.length === 0)) {
 			try {
 				const textOnly = messages.every((m) => typeof m.content === "string")
 				if (textOnly) {
