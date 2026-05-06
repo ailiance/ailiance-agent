@@ -1,4 +1,5 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
+import fs from "fs/promises"
 import { ApiStream } from "@core/api/transform/stream"
 import { checkContextWindowExceededError } from "@core/context/context-management/context-error-handling"
 import {
@@ -25,6 +26,7 @@ import { DiracClient } from "@shared/dirac"
 import { DiracApiReqInfo } from "@shared/ExtensionMessage"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
 import { DiracAskResponse } from "@shared/WebviewMessage"
+import { Logger } from "@shared/services/Logger"
 import * as path from "path"
 import { getAvailableCores } from "@/utils/os"
 import { detectBestShell } from "@/utils/shell-detection"
@@ -192,7 +194,7 @@ export class ApiRequestHandler {
 			this.task.stateManager.getGlobalSettingsKey("useAutoCondense"),
 		)
 
-		await this.task.writePromptMetadataArtifacts({
+		await this.writePromptMetadataArtifacts({
 			systemPrompt,
 			providerInfo,
 			tools,
@@ -415,5 +417,99 @@ ${notice}`
 		// (needs to be placed outside of try/catch since it we want caller to handle errors not with api_req_failed as that is reserved for first chunk failures only)
 		// this delegates to another generator or iterable object. In this case, it's saying "yield all remaining values from this iterator". This effectively passes along all subsequent chunks from the original stream.
 		yield* iterator
+	}
+
+	/**
+	 * Write prompt metadata artifacts for debugging.
+	 * Moved from Task to keep Task facade lean.
+	 */
+	async writePromptMetadataArtifacts(params: {
+		systemPrompt: string
+		providerInfo: ReturnType<Task["getCurrentProviderInfo"]>
+		tools?: any[]
+		fullHistory?: any[]
+		deletedRange?: [number, number]
+	}): Promise<void> {
+		const enabledSetting = this.task.stateManager.getGlobalSettingsKey("writePromptMetadataEnabled")
+		const enabledFlag = process.env.DIRAC_WRITE_PROMPT_ARTIFACTS?.toLowerCase()
+		const enabled =
+			enabledSetting ||
+			enabledFlag === "1" ||
+			enabledFlag === "true" ||
+			enabledFlag === "yes" ||
+			process.env.IS_DEV === "true"
+		if (!enabled) {
+			return
+		}
+
+		try {
+			const configuredDir =
+				process.env.DIRAC_PROMPT_ARTIFACT_DIR?.trim() ||
+				this.task.stateManager.getGlobalSettingsKey("writePromptMetadataDirectory")?.trim()
+			const artifactDir = configuredDir
+				? path.isAbsolute(configuredDir)
+					? configuredDir
+					: path.resolve(this.task.cwd, configuredDir)
+				: path.resolve(this.task.cwd, ".dirac-prompt-artifacts")
+
+			await fs.mkdir(artifactDir, { recursive: true })
+
+			const debugPath = path.join(artifactDir, `task-${this.task.taskId}-debug.md`)
+
+			let markdown = `## System Prompt\n\n${params.systemPrompt}\n\n`
+
+			if (params.tools) {
+				markdown += `## Tools\n\n\`\`\`json\n${JSON.stringify(params.tools, null, 2)}\n\`\`\`\n\n`
+			}
+
+			if (params.fullHistory) {
+				markdown += `## Conversation History\n\n`
+				const [deletedStart, deletedEnd] = params.deletedRange || [-1, -1]
+
+				for (let i = 0; i < params.fullHistory.length; i++) {
+					const message = params.fullHistory[i]
+					const isTruncated = i >= deletedStart && i <= deletedEnd
+
+					markdown += `### [${message.role.toUpperCase()}]${isTruncated ? " [TRUNCATED]" : ""}\n`
+
+					if (typeof message.content === "string") {
+						markdown += `${message.content}\n\n`
+					} else if (Array.isArray(message.content)) {
+						for (const block of message.content) {
+							if (block.type === "text") {
+								markdown += `**Text:** ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n${block.text}\n\n`
+							} else if (block.type === "thinking") {
+								markdown += `**Thinking:** ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n${block.thinking}\n\n`
+							} else if (block.type === "redacted_thinking") {
+								markdown += `**Thinking:** [Redacted] ${block.call_id ? `(\`call_id: ${block.call_id}\`)` : ""}\n\n`
+							} else if (block.type === "tool_use") {
+								markdown += `**Tool Use:** \`${block.name}\` (\`id: ${block.id}\`, \`call_id: ${block.call_id}\`)\n`
+								markdown += `\`\`\`json\n${JSON.stringify(block.input, null, 2)}\n\`\`\`\n\n`
+							} else if (block.type === "tool_result") {
+								markdown += `**Tool Result:** (\`${block.tool_use_id}\`)\n`
+								if (typeof block.content === "string") {
+									markdown += `${block.content}\n\n`
+								} else if (Array.isArray(block.content)) {
+									for (const contentBlock of block.content) {
+										if (contentBlock.type === "text") {
+											markdown += `${contentBlock.text}\n\n`
+										} else if (contentBlock.type === "image") {
+											markdown += `[Image: ${contentBlock.source?.type}]\n\n`
+										}
+									}
+								}
+							} else if (block.type === "image") {
+								markdown += `[Image: ${block.source?.type}]\n\n`
+							}
+						}
+					}
+					markdown += "---\n\n"
+				}
+			}
+
+			await fs.writeFile(debugPath, markdown, "utf8")
+		} catch (error) {
+			Logger.error("Failed to write prompt metadata artifacts:", error)
+		}
 	}
 }
