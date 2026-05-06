@@ -3,6 +3,9 @@ import { LiteLLMModelInfo, liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults }
 import OpenAI from "openai"
 import { StateManager } from "@/core/storage/StateManager"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
+import { getLocalRouter } from "@/services/local-router/instance"
+import type { LocalRouter } from "@/services/local-router/LocalRouter"
+import type { WorkerEndpoint } from "@/services/local-router/types"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
@@ -23,6 +26,8 @@ interface LiteLlmHandlerOptions extends CommonApiHandlerOptions {
 	liteLlmUsePromptCache?: boolean
 	ulid?: string
 	useLocalStack?: boolean
+	useLocalRouter?: boolean
+	localRouterWorkers?: WorkerEndpoint[]
 }
 
 /**
@@ -105,9 +110,13 @@ export class LiteLlmHandler implements ApiHandler {
 	private modelInfoCache: LiteLlmModelInfoResponse | undefined
 	private modelInfoCacheTimestamp = 0
 	private readonly modelInfoCacheTTL = 5 * 60 * 1000 // 5 minutes
+	private localRouter: LocalRouter | null = null
 
 	constructor(options: LiteLlmHandlerOptions) {
 		this.options = options
+		if (options.useLocalRouter) {
+			this.localRouter = getLocalRouter(options.localRouterWorkers)
+		}
 	}
 
 	private async resolveBaseUrl(): Promise<string> {
@@ -231,6 +240,45 @@ export class LiteLlmHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: DiracTool[]): ApiStream {
+		// Try LocalRouter first (non-streaming, text-only path)
+		if (this.localRouter) {
+			const allTextOnly = messages.every(
+				(m) => typeof m.content === "string" || (Array.isArray(m.content) && m.content.every((b) => b.type === "text")),
+			)
+			if (allTextOnly) {
+				try {
+					const routerMessages: Array<{ role: string; content: string }> = [
+						{ role: "system", content: systemPrompt },
+						...messages.map((m) => ({
+							role: m.role,
+							content:
+								typeof m.content === "string"
+									? m.content
+									: (m.content as Array<{ type: string; text: string }>).map((b) => b.text).join(""),
+						})),
+					]
+					const res = await this.localRouter.chat({
+						messages: routerMessages,
+						max_tokens: this.options.liteLlmModelInfo?.maxTokens,
+						temperature: 1,
+						stream: false,
+					})
+					const text = res.choices[0]?.message?.content ?? ""
+					yield { type: "text", text }
+					yield {
+						type: "usage",
+						inputTokens: res.usage?.prompt_tokens ?? 0,
+						outputTokens: res.usage?.completion_tokens ?? 0,
+						totalCost: 0,
+					}
+					return
+				} catch (err) {
+					Logger.warn("[LiteLlm] LocalRouter failed, falling back to HTTP proxy:", err)
+					// fall through to existing HTTP path
+				}
+			}
+		}
+
 		const client = await this.ensureClient()
 
 		const formattedMessages = convertToOpenAiMessages(messages, undefined, this.getModel().info.supportsImages !== false)

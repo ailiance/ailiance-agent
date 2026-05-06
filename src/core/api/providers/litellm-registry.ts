@@ -7,12 +7,7 @@ registerProvider("litellm", {
 			onRetryAttempt: options.onRetryAttempt,
 			liteLlmApiKey: options.liteLlmApiKey,
 			liteLlmBaseUrl: options.liteLlmBaseUrl,
-			liteLlmModelId: pickMode(
-				options as Record<string, unknown>,
-				mode,
-				"planModeLiteLlmModelId",
-				"actModeLiteLlmModelId",
-			),
+			liteLlmModelId: pickMode(options as Record<string, unknown>, mode, "planModeLiteLlmModelId", "actModeLiteLlmModelId"),
 			liteLlmModelInfo: pickMode(
 				options as Record<string, unknown>,
 				mode,
@@ -28,5 +23,7 @@ registerProvider("litellm", {
 			liteLlmUsePromptCache: options.liteLlmUsePromptCache,
 			ulid: options.ulid,
 			useLocalStack: options.useLocalStack,
+			useLocalRouter: options.useLocalRouter,
+			localRouterWorkers: options.localRouterWorkers,
 		}),
 })
