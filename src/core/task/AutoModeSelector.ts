@@ -27,13 +27,27 @@ export class AutoModeSelector {
 			return "plan"
 		}
 
-		// Strong act indicators (short conversational or simple commands)
+		// Conversational greetings — always act
+		if (/^(bonjour|salut|hello|hi|merci|thanks|ok|oui|non|yes|no)\b/.test(lower.trim())) {
+			return "act"
+		}
+
+		// Strong imperative verbs — always act regardless of length
 		if (
-			/^(bonjour|salut|hello|hi|merci|thanks|ok|oui|non|yes|no)\b/.test(lower.trim()) ||
-			/\b(liste|montre|affiche|lis|ouvre|crée|cree|lance|exécute|execute|run|read|list|show|open)\b/.test(lower)
+			/\b(fais|fait|écris|ecris|écrit|ecrit|ajoute|réalise|realise|génère|genere|construis|implémente|implemente|build)\b/.test(
+				lower,
+			)
 		) {
-			// Only switch to act if the prompt is short (≤ 80 chars suggests a quick action)
-			if (userPrompt.length <= 80) return "act"
+			return "act"
+		}
+
+		// Other action verbs (short prompts only)
+		if (
+			/\b(liste|montre|affiche|lis|ouvre|crée|cree|lance|exécute|execute|run|read|list|show|open|write|create|make)\b/.test(
+				lower,
+			)
+		) {
+			if (userPrompt.length <= 120) return "act"
 		}
 
 		// No strong signal — let caller keep current mode

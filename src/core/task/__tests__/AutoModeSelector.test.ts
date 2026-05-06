@@ -56,11 +56,17 @@ describe("AutoModeSelector", () => {
 			assert.strictEqual(autoModeSelector.classify("quelle est la météo aujourd'hui ?"), null)
 		})
 
-		it("does not switch to act for a long act-keyword prompt", () => {
-			// prompt > 80 chars with an act keyword — no strong enough signal
-			const longPrompt = "liste tous les éléments disponibles dans le projet et donne moi une description complète"
-			// This has "liste" keyword but length > 80, so returns null (no act switch)
+		it("does not switch to act for a very long act-keyword prompt", () => {
+			// prompt > 120 chars with an act keyword — no strong enough signal
+			const longPrompt =
+				"liste tous les éléments disponibles dans le projet et donne moi une description complète et détaillée pour chacun avec des exemples"
 			assert.strictEqual(autoModeSelector.classify(longPrompt), null)
+		})
+
+		it("switches to act for imperative verbs regardless of length", () => {
+			const longImperative =
+				"fais la structure de dossier complète pour ce projet en esp-idf et kicad avec une bonne organisation"
+			assert.strictEqual(autoModeSelector.classify(longImperative), "act")
 		})
 	})
 
