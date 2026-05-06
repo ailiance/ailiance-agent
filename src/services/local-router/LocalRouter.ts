@@ -6,6 +6,11 @@ import { ResponseCache } from "./ResponseCache"
 import { routingObserver } from "./RoutingObserver"
 import type { ChatRequest, ChatResponse, WorkerEndpoint } from "./types"
 
+export interface ChatStreamChunk {
+	type: "text"
+	text: string
+}
+
 export class LocalRouter {
 	private workers = new Map<string, WorkerEndpoint>()
 	private cache = new ResponseCache()
@@ -89,5 +94,82 @@ export class LocalRouter {
 		this.cache.set(cacheKey, data)
 		routingObserver.emit({ ts: Date.now(), category, workerId: worker.id, cacheHit: false, estTokens })
 		return data
+	}
+
+	/**
+	 * Streaming version of chat(). Yields incremental text chunks as they
+	 * arrive from the worker via SSE. Cache is bypassed (streaming responses
+	 * aren't cacheable). Routing event is emitted before the first chunk.
+	 *
+	 * @throws Error if no suitable worker is available
+	 */
+	async *chatStream(req: ChatRequest): AsyncGenerator<ChatStreamChunk> {
+		const worker = this.pickWorker(req)
+		if (!worker) throw new Error("LocalRouter: no worker available")
+
+		const cap = this.classifier.classify(req.messages)
+		const estTokens = estimateTokens(req)
+
+		routingObserver.emit({
+			ts: Date.now(),
+			category: cap,
+			workerId: worker.id,
+			cacheHit: false,
+			estTokens,
+		})
+
+		const url = worker.url.replace(/\/$/, "")
+		const body = { ...req, model: worker.modelId, stream: true }
+		const res = await fetch(`${url}/chat/completions`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "text/event-stream",
+			},
+			body: JSON.stringify(body),
+		})
+		if (!res.ok) {
+			const text = await res.text().catch(() => "")
+			throw new Error(`[LocalRouter] worker ${worker.id} returned ${res.status}: ${text.slice(0, 200)}`)
+		}
+		if (!res.body) {
+			throw new Error("[LocalRouter] worker did not return a body for streaming")
+		}
+
+		// Parse SSE: "data: {...}\n\n" lines
+		const reader = (res.body as ReadableStream<Uint8Array>).getReader()
+		const decoder = new TextDecoder("utf-8")
+		let buffer = ""
+		try {
+			while (true) {
+				const { value, done } = await reader.read()
+				if (done) break
+				buffer += decoder.decode(value, { stream: true })
+				let nl
+				// biome-ignore lint/suspicious/noAssignInExpressions: SSE parser idiom
+				while ((nl = buffer.indexOf("\n")) !== -1) {
+					const line = buffer.slice(0, nl).trim()
+					buffer = buffer.slice(nl + 1)
+					if (!line.startsWith("data:")) continue
+					const data = line.slice(5).trim()
+					if (data === "[DONE]") return
+					try {
+						const chunk = JSON.parse(data) as {
+							choices?: Array<{ delta?: { content?: string } }>
+						}
+						const delta = chunk.choices?.[0]?.delta?.content
+						if (delta) yield { type: "text", text: delta }
+					} catch {
+						// ignore malformed chunks
+					}
+				}
+			}
+		} finally {
+			try {
+				reader.releaseLock()
+			} catch {
+				// ignore
+			}
+		}
 	}
 }
