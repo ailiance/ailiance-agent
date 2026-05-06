@@ -92,7 +92,7 @@ export class OpenRouterHandler implements ApiHandler {
 								type: "tool_calls",
 								tool_call: {
 									call_id: chunk.id,
-									function: { name: chunk.name, arguments: chunk.argumentsRaw },
+									function: { id: chunk.id, name: chunk.name, arguments: chunk.argumentsRaw },
 								},
 							}
 						}
