@@ -32,5 +32,7 @@ registerProvider("openrouter", {
 				"actModeThinkingBudgetTokens",
 			),
 			enableParallelToolCalling: options.enableParallelToolCalling,
+			useLocalRouter: options.useLocalRouter,
+			localRouterWorkers: options.localRouterWorkers,
 		}),
 })
