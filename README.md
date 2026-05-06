@@ -85,6 +85,97 @@ aki -p "refactor le module bar/ en deux modules"
 
 L'extension VS Code s'installe via le `.vsix` du repo (paquet `agent-kiki-0.3.1.vsix`).
 
+## Extension VS Code
+
+[![Install in VS Code](https://img.shields.io/badge/Install-VS%20Code-007ACC?logo=visualstudiocode)](https://github.com/L-electron-Rare/agent-kiki/releases) [![VSIX](https://img.shields.io/badge/.vsix-agent--kiki--0.3.1-005a8b)](https://github.com/L-electron-Rare/agent-kiki/releases)
+
+```bash
+code --install-extension agent-kiki-0.3.1.vsix
+```
+
+Une fois installée, l'extension ajoute :
+
+- **Activity bar** — icône agent-kiki ouvrant le panneau chat (webview React).
+- **Walkthrough** — `agent-kiki, the EU-sovereign autonomous coding agent` (Hash-anchored edits, AST precision, minimal roundtrips, speed).
+- **Context menus** — clic droit sur sélection / terminal / commit / Jupyter cell.
+- **Commit messages** — génération automatique sur le bouton de SCM Git.
+
+### Surfaces UI
+
+```mermaid
+flowchart LR
+    user([👤 Utilisateur VS Code])
+
+    subgraph vscode["Extension VS Code"]
+        sidebar["Activity Bar<br/>panneau chat<br/>(webview React)"]
+        palette["Command Palette<br/>(Ctrl/Cmd + Shift + P)"]
+        context["Context menu<br/>éditeur · terminal · SCM"]
+        keys["Keybindings<br/>Cmd + ' · ?"]
+        walk["Walkthrough<br/>onboarding 4 cartes"]
+    end
+
+    subgraph core["Cœur agent (partagé)"]
+        loop["src/core/task/<br/>Task loop ReAct"]
+        tracer["JsonlTracer"]
+    end
+
+    user --> sidebar --> loop
+    user --> palette --> loop
+    user --> context --> loop
+    user --> keys --> loop
+    user --> walk
+    loop --> tracer
+
+    classDef ui fill:#dbeafe,stroke:#1e40af
+    classDef core fill:#ede9fe,stroke:#5b21b6
+    class vscode ui
+    class core core
+```
+
+### Commandes (palette)
+
+| Commande | Effet |
+|---|---|
+| `New Task` | nouveau dialogue agent |
+| `History` | historique des tâches |
+| `Settings` | panneau de configuration (provider, modèles, MCP, hooks) |
+| `Add to agent-kiki` | ajoute la sélection ou la sortie terminale au chat |
+| `Generate Commit Message with agent-kiki` | sur le SCM Git, génère un commit via le LLM |
+| `Explain with agent-kiki` | explique la sélection |
+| `Improve with agent-kiki` | propose une amélioration |
+| `Generate / Explain / Improve Jupyter Cell` | équivalents notebook |
+| `Open Walkthrough` | (re)lance le tutoriel d'accueil |
+| `Reconstruct Task History` | reconstruit l'historique depuis les traces JSONL |
+| `Accept` / `Reject` / `Save with My Changes` | actions sur les diffs proposés par l'agent |
+
+### Raccourcis
+
+| Touche | Action | Quand |
+|---|---|---|
+| **`⌘'` / `Ctrl+'`** | `Add to agent-kiki` | sélection active dans l'éditeur |
+| **`⌘'` / `Ctrl+'`** | `Jump to Chat Input` | sans sélection |
+| **`?`** | `Generate Commit Message with agent-kiki` | dans la vue SCM Git |
+| **`Enter`** | Reply (review comment) | dans un comment editor `dirac-ai-review` |
+
+### Configuration via le panneau Settings
+
+- Provider + modèle (par défaut `eu-kiki/auto`, ou `eu-kiki/devstral-24b` pour le code, etc.)
+- API key par provider (chiffrée en `~/.dirac/`)
+- Mode plan / act, auto-approve, double-check completion, auto-condense
+- `useLocalStack` (auto-detect Jina / LiteLLM)
+- `enabledMcpServers`, `mcpToolDenylist`, `mcpToolAllowlist`
+- Plugin hooks dirs (`PreToolUse` / `PostToolUse`)
+- Sub-agents
+
+### Ce qui sort de l'extension
+
+Aucune télémétrie. Aucune donnée n'atteint `dirac.run` ni PostHog. Les seules requêtes réseau sont :
+
+- Vers le provider LLM choisi (eu-kiki gateway par défaut, sinon le backend que tu as configuré).
+- Vers les serveurs MCP que tu autorises explicitement via `enabledMcpServers`.
+
+Toute l'activité de la tâche est tracée localement dans `<workspace>/.agent-kiki/runs/<task_id>/` avec scrubber secret-sensible.
+
 ## Statusline 2 lignes (v0.3)
 
 Inspirée de Claude Code. Visible en bas de la chat view :
