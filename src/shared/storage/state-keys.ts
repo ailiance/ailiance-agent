@@ -10,6 +10,7 @@ interface WorkerEndpoint {
 	capabilities: WorkerCapability[]
 	priority: number
 	ctxMax: number
+	supportsTools: boolean
 }
 
 import { BrowserSettings, DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"

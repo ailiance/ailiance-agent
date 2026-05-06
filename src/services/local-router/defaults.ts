@@ -16,6 +16,7 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 		capabilities: ["general", "code"],
 		priority: 10,
 		ctxMax: 32768, // llama-server -c 32768 (Gemma 3 native 128k)
+		supportsTools: false, // emulation needed
 	},
 	{
 		id: "studio-apertus",
@@ -24,6 +25,7 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 		capabilities: ["reason", "general"],
 		priority: 7,
 		ctxMax: 8192, // Apertus 70B native context
+		supportsTools: false, // emulation needed
 	},
 	{
 		id: "studio-eurollm",
@@ -32,5 +34,6 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 		capabilities: ["fr"], // dropped "general" — too small for aki system prompt
 		priority: 6,
 		ctxMax: 4096, // EuroLLM 22B native — TOO SMALL for aki system prompt typically
+		supportsTools: true, // native function calling
 	},
 ]
