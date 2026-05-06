@@ -242,7 +242,7 @@ describe("LocalRouter", () => {
 		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
 		assert.ok(sysMsg, "system message should be present")
 		assert.ok(sysMsg.content.includes("read_file"), "tool name should appear in system prompt")
-		assert.ok(sysMsg.content.includes("<tool_call>"), "tool_call tag instructions should be in system prompt")
+		assert.ok(sysMsg.content.includes("execute_command") || sysMsg.content.includes("json"), "tool call instructions should be in system prompt")
 		router.dispose()
 	})
 
@@ -280,6 +280,176 @@ describe("LocalRouter", () => {
 		const textChunks = chunks.filter((c) => c.type === "text")
 		const allText = textChunks.map((c) => (c as Extract<ChatStreamChunk, { type: "text" }>).text).join("")
 		assert.ok(allText.includes("Hello"), "text before tool_call should be yielded")
+		router.dispose()
+	})
+
+	// ── pickWorker tool routing ─────────────────────────────────────────────
+
+	it("pickWorker() force routes to tool-capable worker when tools present", () => {
+		const workers = [
+			makeEndpoint({ id: "gemma-emulated", capabilities: ["general"], priority: 10, supportsTools: false }),
+			makeEndpoint({ id: "eurollm-native", capabilities: ["general"], priority: 5, supportsTools: true }),
+		]
+		const router = new LocalRouter(workers)
+		const req: ChatRequest = {
+			messages: [{ role: "user", content: "hello" }],
+			tools: [{ type: "function", function: { name: "read_file", description: "", parameters: { type: "object", properties: {} } } }],
+		}
+		const picked = router.pickWorker(req)
+		// eurollm wins despite lower priority because supportsTools:true
+		assert.strictEqual(picked?.id, "eurollm-native")
+		router.dispose()
+	})
+
+	it("pickWorker() logs warning and falls back to emulated worker when no tool-capable worker", () => {
+		const workers = [makeEndpoint({ id: "gemma-emulated", capabilities: ["general"], priority: 10, supportsTools: false })]
+		const router = new LocalRouter(workers)
+		const req: ChatRequest = {
+			messages: [{ role: "user", content: "hello" }],
+			tools: [{ type: "function", function: { name: "read_file", description: "", parameters: { type: "object", properties: {} } } }],
+		}
+		const picked = router.pickWorker(req)
+		// Only emulated worker available — still returned
+		assert.strictEqual(picked?.id, "gemma-emulated")
+		router.dispose()
+	})
+
+	// ── json fence / bash fence emulation ───────────────────────────────────
+
+	it("chatStream() emulation: parses ```json fenced tool call", async () => {
+		const content = 'Sure!\n```json\n{"name":"read_file","arguments":{"path":"/tmp/x"}}\n```'
+		const sseBody = [`data: {"choices":[{"delta":{"content":${JSON.stringify(content)}}}]}`, "", "data: [DONE]", ""].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.ok(toolChunks.length >= 1, "should yield at least one tool_call chunk")
+		const tc = toolChunks[0] as Extract<ChatStreamChunk, { type: "tool_call" }>
+		assert.strictEqual(tc.name, "read_file")
+		assert.strictEqual(tc.argumentsRaw, JSON.stringify({ path: "/tmp/x" }))
+		router.dispose()
+	})
+
+	it("chatStream() emulation: parses ```bash fence as execute_command when tool listed", async () => {
+		const content = "```bash\nls -la /tmp\n```"
+		const sseBody = [`data: {"choices":[{"delta":{"content":${JSON.stringify(content)}}}]}`, "", "data: [DONE]", ""].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "execute_command", description: "Run a shell command", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.ok(toolChunks.length >= 1, "should yield at least one tool_call chunk")
+		const tc = toolChunks[0] as Extract<ChatStreamChunk, { type: "tool_call" }>
+		assert.strictEqual(tc.name, "execute_command")
+		const args = JSON.parse(tc.argumentsRaw) as { command: string; requires_approval: boolean }
+		assert.strictEqual(args.command, "ls -la /tmp")
+		assert.strictEqual(args.requires_approval, false)
+		router.dispose()
+	})
+
+	it("chatStream() emulation: ignores ```bash fence when execute_command not in tools", async () => {
+		const content = "```bash\nls -la /tmp\n```"
+		const sseBody = [`data: {"choices":[{"delta":{"content":${JSON.stringify(content)}}}]}`, "", "data: [DONE]", ""].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		// Only read_file in tools — no execute_command
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+
+		// bash fence should not produce a tool_call since execute_command is absent
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.strictEqual(toolChunks.length, 0, "no tool_call should be yielded")
+		// The content should come through as text
+		const textChunks = chunks.filter((c) => c.type === "text")
+		const allText = textChunks.map((c) => (c as Extract<ChatStreamChunk, { type: "text" }>).text).join("")
+		assert.ok(allText.includes("ls -la /tmp"), "bash content should be yielded as text")
+		router.dispose()
+	})
+
+	it("chatStream() emulation: holds buffer at partial marker and flushes on completion", async () => {
+		// Deliver content in two chunks — first ends mid-fence
+		const part1 = "Hello ```"
+		const part2 = "json\n{\"name\":\"foo\",\"arguments\":{}}\n```"
+		const sseBody = [
+			`data: {"choices":[{"delta":{"content":${JSON.stringify(part1)}}}]}`,
+			"",
+			`data: {"choices":[{"delta":{"content":${JSON.stringify(part2)}}}]}`,
+			"",
+			"data: [DONE]",
+			"",
+		].join("\n")
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "foo", description: "", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.ok(toolChunks.length >= 1, "should yield tool_call chunk once complete")
+		const tc = toolChunks[0] as Extract<ChatStreamChunk, { type: "tool_call" }>
+		assert.strictEqual(tc.name, "foo")
+		// Text before the fence should be yielded
+		const textChunks = chunks.filter((c) => c.type === "text")
+		const allText = textChunks.map((c) => (c as Extract<ChatStreamChunk, { type: "text" }>).text).join("")
+		assert.ok(allText.includes("Hello"), "text before partial marker should be yielded")
 		router.dispose()
 	})
 
