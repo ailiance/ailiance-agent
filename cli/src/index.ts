@@ -2,19 +2,10 @@
  * agent-kiki CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
  */
 
-// Pre-emptively switch stdin to raw mode so terminal probe replies
-// (CSI 14t / kitty Gi=31 / DA1) emitted by transitive imports don't echo to
-// stdout as visible garbage like "^[[4;704;920t ^[_Gi=31;OK^[\^[[?62c".
-// This must run BEFORE any heavy import that may trigger such probes.
-// Skipped for non-interactive flows (--help / --version handled by commander
-// before render, so raw mode here is safe — it's restored by Ink on render).
-if (process.stdin.isTTY) {
-	try {
-		process.stdin.setRawMode(true)
-	} catch {
-		// non-TTY or unsupported — ignore
-	}
-}
+// MUST be the first import — its top-level side effect (raw-mode stdin) runs
+// before any other import is evaluated, preventing terminal probe replies
+// from being echoed to stdout. ESM evaluates imports in source order.
+import "./early-bootstrap"
 
 import { exit } from "node:process"
 import { Command } from "commander"

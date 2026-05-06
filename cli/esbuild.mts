@@ -290,6 +290,17 @@ const cliConfig: esbuild.BuildOptions = {
 		js: `#!/usr/bin/env node
 // Suppress all Node.js warnings (deprecation, experimental, etc.)
 process.emitWarning = () => {};
+// Pre-empt terminal probe replies leaking to stdout: switch stdin to raw
+// mode BEFORE any module-level code executes. Probes (CSI 14t, kitty Gi=31,
+// DA1) sent by transitive imports during boot would otherwise be echoed by
+// the tty driver as visible garbage like "^[[4;704;920t ^[_Gi=31;OK^[\\^[[?62c"
+// before our banner renders. Raw mode causes those bytes to land in stdin
+// (where Ink ignores non-key sequences) instead of being echoed.
+if (process.stdin.isTTY) {
+	try {
+		process.stdin.setRawMode(true);
+	} catch {}
+}
 import { createRequire as _createRequire } from 'module';
 import { fileURLToPath as _fileURLToPath } from 'url';
 import { dirname as _dirname } from 'path';
