@@ -25,7 +25,7 @@ import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { DiracAsk, DiracSay, MultiCommandState } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
-import { DiracContent, DiracStorageMessage, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
+import { DiracContent, DiracToolResponseContent, DiracUserContent } from "@shared/messages/content"
 import { DiracMessageModelInfo } from "@shared/messages/metrics"
 import { Logger } from "@shared/services/Logger"
 import { DiracDefaultTool } from "@shared/tools"
@@ -530,14 +530,6 @@ export class Task {
 		return await this.controller.toggleActModeForYoloMode()
 	}
 
-	private async handleHookCancellation(hookName: string, wasCancelled: boolean): Promise<void> {
-		return this.hookManager.handleHookCancellation(hookName, wasCancelled)
-	}
-
-	private calculatePreCompactDeletedRange(apiConversationHistory: DiracStorageMessage[]): [number, number] {
-		return this.apiConversationManager.calculatePreCompactDeletedRange(apiConversationHistory)
-	}
-
 	private async runUserPromptSubmitHook(
 		userContent: DiracContent[],
 		context: "initial_task" | "resume" | "feedback",
@@ -559,10 +551,6 @@ export class Task {
 
 	private async initiateTaskLoop(userContent: DiracContent[]): Promise<void> {
 		return this.agentLoopRunner.initiateLoop(userContent)
-	}
-
-	private async shouldRunTaskCancelHook(): Promise<boolean> {
-		return this.hookManager.shouldRunTaskCancelHook()
 	}
 
 	async abortTask(reason = "aborted", exitCode = 130) {
@@ -598,10 +586,6 @@ export class Task {
 	 */
 	public async cancelBackgroundCommand(): Promise<boolean> {
 		return this.commandExecutor.cancelBackgroundCommand()
-	}
-
-	public async cancelHookExecution(): Promise<boolean> {
-		return this.hookManager.cancelHookExecution()
 	}
 
 	getCurrentProviderInfo(): ApiProviderInfo {
