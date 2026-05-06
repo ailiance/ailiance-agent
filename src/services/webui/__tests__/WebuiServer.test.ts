@@ -1,5 +1,7 @@
 import http from "node:http"
 import { expect } from "chai"
+import * as sinon from "sinon"
+import * as stackMonitorModule from "../../local-stack/StackMonitor"
 import { WebuiServer } from "../WebuiServer"
 
 describe("WebuiServer", () => {
@@ -54,18 +56,23 @@ describe("WebuiServer", () => {
 	describe("HTTP endpoints", () => {
 		let server: WebuiServer
 		let port: number
+		let sandbox: sinon.SinonSandbox
 
 		beforeEach(async () => {
+			sandbox = sinon.createSandbox()
 			server = new WebuiServer()
 			const status = await server.start()
 			port = status.port!
 		})
 
 		afterEach(async () => {
+			sandbox.restore()
 			await server.stop()
 		})
 
-		function get(path: string): Promise<{ status: number; body: string; contentType: string }> {
+		function get(
+			path: string,
+		): Promise<{ status: number; body: string; contentType: string; headers: http.IncomingHttpHeaders }> {
 			return new Promise((resolve, reject) => {
 				http.get(`http://127.0.0.1:${port}${path}`, (res) => {
 					let body = ""
@@ -77,9 +84,59 @@ describe("WebuiServer", () => {
 							status: res.statusCode ?? 0,
 							body,
 							contentType: (res.headers["content-type"] as string) ?? "",
+							headers: res.headers,
 						})
 					})
 				}).on("error", reject)
+			})
+		}
+
+		function post(
+			path: string,
+			data: unknown,
+		): Promise<{ status: number; body: string; contentType: string; headers: http.IncomingHttpHeaders }> {
+			return new Promise((resolve, reject) => {
+				const payload = JSON.stringify(data)
+				const options: http.RequestOptions = {
+					hostname: "127.0.0.1",
+					port,
+					path,
+					method: "POST",
+					headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) },
+				}
+				const req = http.request(options, (res) => {
+					let body = ""
+					res.on("data", (chunk: Buffer) => {
+						body += chunk.toString()
+					})
+					res.on("end", () => {
+						resolve({
+							status: res.statusCode ?? 0,
+							body,
+							contentType: (res.headers["content-type"] as string) ?? "",
+							headers: res.headers,
+						})
+					})
+				})
+				req.on("error", reject)
+				req.write(payload)
+				req.end()
+			})
+		}
+
+		function options(path: string): Promise<{ status: number; headers: http.IncomingHttpHeaders }> {
+			return new Promise((resolve, reject) => {
+				const opts: http.RequestOptions = {
+					hostname: "127.0.0.1",
+					port,
+					path,
+					method: "OPTIONS",
+				}
+				const req = http.request(opts, (res) => {
+					resolve({ status: res.statusCode ?? 0, headers: res.headers })
+				})
+				req.on("error", reject)
+				req.end()
 			})
 		}
 
@@ -105,6 +162,33 @@ describe("WebuiServer", () => {
 			if (status === 200) {
 				expect(contentType).to.include("text/html")
 			}
+		})
+
+		describe("gRPC HTTP endpoints", () => {
+			it("POST /grpc/StackService/getSnapshot returns 200 JSON", async () => {
+				const fakeSnapshot = { proxy: { running: false }, router: { running: false }, models: [] }
+				sandbox.stub(stackMonitorModule.stackMonitor, "snapshot").resolves(fakeSnapshot as any)
+
+				const { status, body, contentType } = await post("/grpc/StackService/getSnapshot", {})
+				expect(status).to.equal(200)
+				expect(contentType).to.include("application/json")
+				const parsed = JSON.parse(body)
+				expect(parsed).to.deep.equal(fakeSnapshot)
+			})
+
+			it("OPTIONS /grpc/StackService/getSnapshot returns 204 with CORS headers", async () => {
+				const { status, headers } = await options("/grpc/StackService/getSnapshot")
+				expect(status).to.equal(204)
+				expect(headers["access-control-allow-origin"]).to.equal("*")
+				expect(headers["access-control-allow-methods"]).to.include("POST")
+			})
+
+			it("POST /grpc/InvalidService/foo returns 404", async () => {
+				const { status, body } = await post("/grpc/InvalidService/foo", {})
+				expect(status).to.equal(404)
+				const parsed = JSON.parse(body)
+				expect(parsed.error).to.include("unknown method")
+			})
 		})
 	})
 })
