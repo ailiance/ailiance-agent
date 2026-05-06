@@ -2,7 +2,10 @@ import { expect } from "@playwright/test"
 import { addSelectedCodeToDiracWebview, openTab, toggleNotifications } from "./utils/common"
 import { E2E_WORKSPACE_TYPES, e2e } from "./utils/helpers"
 
-e2e.describe("Code Actions and Editor Panel", () => {
+// FIXME(eu-kiki): depends on signin → chat round-trip. The signin step
+// targets the removed onboarding screen. Re-enable once a fixture seeds
+// a provider so editor code-actions can be tested directly.
+e2e.describe.skip("Code Actions and Editor Panel", () => {
 	E2E_WORKSPACE_TYPES.forEach(({ title, workspaceType }) => {
 		e2e.extend({
 			workspaceType,

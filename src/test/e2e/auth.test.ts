@@ -1,8 +1,14 @@
 import { expect } from "@playwright/test"
 import { e2e } from "./utils/helpers"
 
-// Test for setting up API keys
-e2e("Views - can set up API keys and navigate to Settings from Chat", async ({ sidebar }) => {
+// FIXME(eu-kiki): rewrite against current UI.
+// The onboarding flow this test exercised ("Login to Dirac" button →
+// "Bring my own API key" → provider selector → "Sign Up with Dirac" →
+// OpenRouter API key input → "What's New" dismiss) was removed when the
+// webview was redesigned to be chat-first with no welcome view; the
+// current UX puts API-key setup inside Settings reached via the gear icon.
+// Skipping until tests are re-written for the current screens.
+e2e.skip("Views - can set up API keys and navigate to Settings from Chat", async ({ sidebar }) => {
 	// Use the page object to interact with editor outside the sidebar
 	// Verify initial state
 	await expect(sidebar.getByRole("button", { name: "Login to Dirac" })).toBeVisible()
