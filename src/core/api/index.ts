@@ -241,9 +241,8 @@ function createHandlerForProvider(
 				apiKey: options.aihubmixApiKey,
 				baseURL: options.aihubmixBaseUrl,
 				appCode: options.aihubmixAppCode,
-				modelId: mode === "plan" ? (options as any).planModeAihubmixModelId : (options as any).actModeAihubmixModelId,
-				modelInfo:
-					mode === "plan" ? (options as any).planModeAihubmixModelInfo : (options as any).actModeAihubmixModelInfo,
+				modelId: mode === "plan" ? options.planModeAihubmixModelId : options.actModeAihubmixModelId,
+				modelInfo: mode === "plan" ? options.planModeAihubmixModelInfo : options.actModeAihubmixModelInfo,
 			})
 		case "minimax":
 			return new MinimaxHandler({
