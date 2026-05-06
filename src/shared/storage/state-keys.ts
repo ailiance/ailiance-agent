@@ -1,5 +1,6 @@
 import { AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { ApiProvider, DEFAULT_API_PROVIDER, LiteLLMModelInfo, ModelInfo, OpenAiCompatibleModelInfo } from "@shared/api"
+import type { WorkerEndpoint } from "@services/local-router/types"
 import { BrowserSettings, DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
 import { DiracRulesToggles } from "@shared/dirac-rules"
 import { HistoryItem } from "@shared/HistoryItem"
@@ -104,6 +105,10 @@ const API_HANDLER_SETTINGS_FIELDS = {
 
 	// Local stack auto-detect: route LiteLLM via local stack when running
 	useLocalStack: { default: false as boolean },
+
+	// Local router: in-process Node.js LLM router (no Python, no sub-process)
+	useLocalRouter: { default: false as boolean },
+	localRouterWorkers: { default: undefined as WorkerEndpoint[] | undefined },
 
 	// Plan mode configurations
 	planModeApiModelId: { default: undefined as string | undefined },
