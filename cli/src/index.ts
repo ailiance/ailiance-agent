@@ -83,6 +83,17 @@ program
 	})
 
 program
+	.command("timeline")
+	.alias("tl")
+	.description("Show recent tasks grouped by day")
+	.option("-d, --days <n>", "Number of days back", "30")
+	.option("-l, --limit <n>", "Max entries", "200")
+	.action(async (options) => {
+		const { runTimeline } = await import("./commands/timeline")
+		return runTimeline(options)
+	})
+
+program
 	.command("config")
 	.description("Show current configuration")
 	.option("--config <path>", "Path to agent-kiki configuration directory")
