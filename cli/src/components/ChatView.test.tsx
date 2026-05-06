@@ -149,9 +149,13 @@ vi.mock("../utils/tools", () => ({
 	parseToolFromMessage: vi.fn(() => null),
 }))
 
-vi.mock("../utils/display", () => ({
-	setTerminalTitle: vi.fn(),
-}))
+vi.mock("../utils/display", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../utils/display")>()
+	return {
+		...actual,
+		setTerminalTitle: vi.fn(),
+	}
+})
 
 vi.mock("../utils/cursor", () => ({
 	moveCursorUp: vi.fn((_text: string, pos: number) => pos),
@@ -301,7 +305,7 @@ describe("ChatView UI State During Exit", () => {
 
 		// Footer contains auto-approve toggle
 		expect(lastFrame()).toContain("Auto-approve")
-		expect(lastFrame()).toContain(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)
+		expect(lastFrame()).toContain(`agent-kiki v${CLI_VERSION}`)
 		expect(lastFrame()).toContain("Input:")
 
 		// Fire shutdown event
@@ -311,7 +315,7 @@ describe("ChatView UI State During Exit", () => {
 		const frameAfter = lastFrame()
 
 		// Static content should still be present
-		expect(frameAfter).toContain(`Questions about Dirac? Query the code (v${CLI_VERSION}) directly using /askDirac`)
+		expect(frameAfter).toContain(`agent-kiki v${CLI_VERSION}`)
 		// Footer should still be present (only input is hidden)
 		expect(frameAfter).toContain("Auto-approve")
 		// Input should be hidden
