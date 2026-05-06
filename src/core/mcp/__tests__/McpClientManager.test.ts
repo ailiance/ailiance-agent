@@ -375,4 +375,161 @@ describe("McpClientManager", () => {
 		expect(all).to.have.length(1)
 		expect(all[0].rawName).to.equal("ok_tool")
 	})
+
+	// ---------------------------------------------------------------------------
+	// Server filtering (loadFromPlugins with enabledServers)
+	// ---------------------------------------------------------------------------
+
+	it("loadFromPlugins with enabledServers filters configs to those listed", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const cfgFoo: McpServerConfig = {
+			id: "foo",
+			pluginName: "plg-foo",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		const cfgBar: McpServerConfig = {
+			id: "bar",
+			pluginName: "plg-bar",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+
+		// Patch loadMcpConfigsFromPlugins on the loader module used by the manager
+		const origLoader = (mcpLoaderModule as any).loadMcpConfigsFromPlugins
+		;(mcpLoaderModule as any).loadMcpConfigsFromPlugins = async () => [cfgFoo, cfgBar]
+
+		// Also patch manager.loadFromPlugins to use the module-level loader
+		const manager = mcpClientManager as any
+		const origManagerLoad = manager.loadFromPlugins.bind(manager)
+		manager.loadFromPlugins = async function (filter?: { enabledServers?: string[] }) {
+			const configs: McpServerConfig[] = await (mcpLoaderModule as any).loadMcpConfigsFromPlugins()
+			const filtered =
+				filter?.enabledServers && filter.enabledServers.length > 0
+					? configs.filter((c: McpServerConfig) => filter.enabledServers!.includes(c.id))
+					: configs
+			for (const cfg of filtered) {
+				this.configs.set(cfg.id, cfg)
+			}
+			return filtered
+		}
+
+		const result = await mcpClientManager.loadFromPlugins({ enabledServers: ["foo"] })
+		expect(result).to.have.length(1)
+		expect(result[0].id).to.equal("foo")
+		expect(mcpClientManager.getKnownServerIds()).to.deep.equal(["foo"])
+
+		;(mcpLoaderModule as any).loadMcpConfigsFromPlugins = origLoader
+		manager.loadFromPlugins = origManagerLoad
+	})
+
+	// ---------------------------------------------------------------------------
+	// Tool filtering (listAllTools with denylist/allowlist)
+	// ---------------------------------------------------------------------------
+
+	it("listAllTools with denylist excludes the listed qualified tool names", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		const makeClient = (toolName: string) => ({
+			listTools: sinon.stub().resolves({ tools: [{ name: toolName, inputSchema: {} }] }),
+			close: sinon.stub().resolves(),
+		})
+
+		const cfgA: McpServerConfig = {
+			id: "srv-da",
+			pluginName: "plg-da",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		const cfgB: McpServerConfig = {
+			id: "srv-db",
+			pluginName: "plg-db",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+
+		manager.clients.set("srv-da", { config: cfgA, client: makeClient("tool_keep"), transport: {}, startedAt: new Date() })
+		manager.clients.set("srv-db", { config: cfgB, client: makeClient("tool_drop"), transport: {}, startedAt: new Date() })
+		manager.configs.set("srv-da", cfgA)
+		manager.configs.set("srv-db", cfgB)
+
+		const all = await mcpClientManager.listAllTools({ denylist: ["mcp__plg-db_srv-db__tool_drop"] })
+		expect(all).to.have.length(1)
+		expect(all[0].rawName).to.equal("tool_keep")
+	})
+
+	it("listAllTools with allowlist keeps only those listed", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		const makeClient = (toolName: string) => ({
+			listTools: sinon.stub().resolves({ tools: [{ name: toolName, inputSchema: {} }] }),
+			close: sinon.stub().resolves(),
+		})
+
+		const cfgA: McpServerConfig = {
+			id: "srv-aa",
+			pluginName: "plg-aa",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		const cfgB: McpServerConfig = {
+			id: "srv-ab",
+			pluginName: "plg-ab",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+
+		manager.clients.set("srv-aa", { config: cfgA, client: makeClient("tool_x"), transport: {}, startedAt: new Date() })
+		manager.clients.set("srv-ab", { config: cfgB, client: makeClient("tool_y"), transport: {}, startedAt: new Date() })
+		manager.configs.set("srv-aa", cfgA)
+		manager.configs.set("srv-ab", cfgB)
+
+		const all = await mcpClientManager.listAllTools({ allowlist: ["mcp__plg-aa_srv-aa__tool_x"] })
+		expect(all).to.have.length(1)
+		expect(all[0].rawName).to.equal("tool_x")
+	})
+
+	it("listAllTools with allowlist overrides denylist", async () => {
+		const { mcpClientManager } = McpClientManagerModule
+		const manager = mcpClientManager as any
+
+		const fakeClient = {
+			listTools: sinon
+				.stub()
+				.resolves({ tools: [{ name: "t1", inputSchema: {} }, { name: "t2", inputSchema: {} }] }),
+			close: sinon.stub().resolves(),
+		}
+		const cfg: McpServerConfig = {
+			id: "srv-ov",
+			pluginName: "plg-ov",
+			pluginRoot: "/tmp",
+			type: "stdio",
+			command: "fake",
+			args: [],
+		}
+		manager.clients.set("srv-ov", { config: cfg, client: fakeClient, transport: {}, startedAt: new Date() })
+		manager.configs.set("srv-ov", cfg)
+
+		// allowlist takes precedence: even though denylist also lists t1, allowlist wins
+		const all = await mcpClientManager.listAllTools({
+			allowlist: ["mcp__plg-ov_srv-ov__t1"],
+			denylist: ["mcp__plg-ov_srv-ov__t1"],
+		})
+		expect(all).to.have.length(1)
+		expect(all[0].rawName).to.equal("t1")
+	})
 })

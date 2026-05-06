@@ -6,17 +6,30 @@ import { loadMcpConfigsFromPlugins } from "./McpServerConfigLoader"
 import type { ConnectedClient, McpServerConfig, McpToolMetadata, McpToolResult } from "./types"
 import { makeQualifiedToolName } from "./types"
 
+export interface McpLoadFilter {
+	enabledServers?: string[]
+}
+
+export interface McpToolFilter {
+	denylist?: string[]
+	allowlist?: string[]
+}
+
 class McpClientManager {
 	private clients = new Map<string, ConnectedClient>()
 	private configs = new Map<string, McpServerConfig>()
 	private tools = new Map<string, McpToolMetadata[]>()
 
-	async loadFromPlugins(): Promise<McpServerConfig[]> {
+	async loadFromPlugins(filter?: McpLoadFilter): Promise<McpServerConfig[]> {
 		const configs = await loadMcpConfigsFromPlugins()
-		for (const cfg of configs) {
+		const filtered =
+			filter?.enabledServers && filter.enabledServers.length > 0
+				? configs.filter((cfg) => filter.enabledServers!.includes(cfg.id))
+				: configs
+		for (const cfg of filtered) {
 			this.configs.set(cfg.id, cfg)
 		}
-		return configs
+		return filtered
 	}
 
 	async connect(serverId: string): Promise<Client> {
@@ -90,7 +103,7 @@ class McpClientManager {
 		return metadata
 	}
 
-	async listAllTools(): Promise<McpToolMetadata[]> {
+	async listAllTools(filter?: McpToolFilter): Promise<McpToolMetadata[]> {
 		const all: McpToolMetadata[] = []
 		for (const serverId of this.configs.keys()) {
 			try {
@@ -99,6 +112,15 @@ class McpClientManager {
 			} catch (err) {
 				Logger.warn(`Failed to list tools for MCP server "${serverId}":`, err)
 			}
+		}
+
+		if (!filter) return all
+
+		if (filter.allowlist && filter.allowlist.length > 0) {
+			return all.filter((t) => filter.allowlist!.includes(t.qualifiedName))
+		}
+		if (filter.denylist && filter.denylist.length > 0) {
+			return all.filter((t) => !filter.denylist!.includes(t.qualifiedName))
 		}
 		return all
 	}

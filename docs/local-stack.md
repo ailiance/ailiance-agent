@@ -78,6 +78,23 @@ aki proxy start                    # only the LiteLLM proxy
 # liteLlmBaseUrl: "http://127.0.0.1:4000"
 ```
 
+## Filtering MCP servers and tools
+
+Edit your aki `settings.json` (workspace or global):
+
+```json
+{
+  "enabledMcpServers": ["claude-mem", "context7"],
+  "mcpToolDenylist": ["mcp__some_plugin__dangerous_tool"]
+}
+```
+
+- `enabledMcpServers`: only these MCP servers from plugins will be loaded. Omit or set `null` to load all (default).
+- `mcpToolDenylist`: qualified tool names (`mcp__plugin_server__tool`) to exclude even if the server is enabled.
+- `mcpToolAllowlist`: if set, only these tools are exposed — overrides `mcpToolDenylist`.
+
+All three settings are optional. Without them, all plugin MCP servers and all their tools are available.
+
 ## Troubleshooting
 
 - **`aki stack install` fails on Python**: install via `brew install uv` (recommended) or `brew install python@3.11`

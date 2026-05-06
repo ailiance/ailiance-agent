@@ -1,6 +1,7 @@
 import { expect } from "chai"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import sinon from "sinon"
+import { StateManager } from "@/core/storage/StateManager"
 import { convertJsonSchemaToParams, initializeMcpForTask, mcpToolToSpec } from "../bootstrap"
 import { mcpClientManager } from "../McpClientManager"
 import type { McpToolMetadata } from "../types"
@@ -215,5 +216,68 @@ describe("initializeMcpForTask", () => {
 		// Both tools attempted; second one succeeds
 		expect(result).to.have.length(2)
 		expect((executor.registerMcpTool as sinon.SinonStub).calledTwice).to.be.true
+	})
+
+	it("passes enabledServers filter to loadFromPlugins when settings are configured", async () => {
+		const stateManagerStub = sinon.stub(StateManager, "get").returns({
+			getGlobalSettingsKey: (key: string) => {
+				if (key === "enabledMcpServers") return ["foo", "bar"]
+				return undefined
+			},
+		} as any)
+
+		const executor = makeToolExecutorStub()
+		await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
+
+		expect(loadFromPluginsStub.calledOnce).to.be.true
+		const loadArg = loadFromPluginsStub.firstCall.args[0]
+		expect(loadArg).to.deep.equal({ enabledServers: ["foo", "bar"] })
+
+		stateManagerStub.restore()
+	})
+
+	it("passes no filter to loadFromPlugins when enabledMcpServers is not set", async () => {
+		const stateManagerStub = sinon.stub(StateManager, "get").returns({
+			getGlobalSettingsKey: (_key: string) => undefined,
+		} as any)
+
+		const executor = makeToolExecutorStub()
+		await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
+
+		expect(loadFromPluginsStub.calledOnce).to.be.true
+		const loadArg = loadFromPluginsStub.firstCall.args[0]
+		expect(loadArg).to.be.undefined
+
+		stateManagerStub.restore()
+	})
+
+	it("passes denylist filter to listAllTools when mcpToolDenylist is configured", async () => {
+		const stateManagerStub = sinon.stub(StateManager, "get").returns({
+			getGlobalSettingsKey: (key: string) => {
+				if (key === "mcpToolDenylist") return ["mcp__plugin_server__bad_tool"]
+				return undefined
+			},
+		} as any)
+
+		const executor = makeToolExecutorStub()
+		await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
+
+		expect(listAllToolsStub.calledOnce).to.be.true
+		const filterArg = listAllToolsStub.firstCall.args[0]
+		expect(filterArg).to.deep.equal({ allowlist: undefined, denylist: ["mcp__plugin_server__bad_tool"] })
+
+		stateManagerStub.restore()
+	})
+
+	it("gracefully falls back when StateManager is not initialized", async () => {
+		sinon.stub(StateManager, "get").throws(new Error("StateManager not initialized"))
+
+		const executor = makeToolExecutorStub()
+		const result = await initializeMcpForTask(executor as Parameters<typeof initializeMcpForTask>[0], noopRegisterSpec)
+
+		// loadFromPlugins called without filter (undefined)
+		expect(loadFromPluginsStub.calledOnce).to.be.true
+		expect(loadFromPluginsStub.firstCall.args[0]).to.be.undefined
+		expect(result).to.deep.equal([])
 	})
 })
