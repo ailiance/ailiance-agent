@@ -8,19 +8,18 @@ import { DiracStorageMessage } from "@/shared/messages/content"
 import { mockFetchForTesting } from "@/shared/net"
 
 // Minimal fake LocalRouter
-function makeFakeRouter(chatResult?: object, chatError?: Error): LocalRouter {
+function makeFakeRouter(streamChunks?: string[], streamError?: Error): LocalRouter {
+	async function* fakeStream() {
+		if (streamError) throw streamError
+		for (const text of streamChunks ?? ["local response"]) {
+			yield { type: "text" as const, text }
+		}
+	}
 	const router: Partial<LocalRouter> = {
 		start: sinon.stub(),
 		dispose: sinon.stub(),
-		chat: chatError
-			? sinon.stub().rejects(chatError)
-			: sinon.stub().resolves(
-					chatResult ?? {
-						id: "local-1",
-						choices: [{ message: { role: "assistant", content: "local response" }, finish_reason: "stop" }],
-						usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-					},
-				),
+		chat: sinon.stub().rejects(new Error("chat() should not be called — use chatStream()")),
+		chatStream: sinon.stub().callsFake(fakeStream),
 		pickWorker: sinon.stub().returns(null),
 	}
 	return router as LocalRouter
@@ -97,7 +96,7 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 	})
 
 	describe("useLocalRouter: true", () => {
-		it("calls localRouter.chat() instead of HTTP proxy for text-only messages", async () => {
+		it("calls localRouter.chatStream() instead of HTTP proxy for text-only messages", async () => {
 			const fakeRouter = makeFakeRouter()
 			getLocalRouterStub = sinon.stub(instanceModule, "getLocalRouter").returns(fakeRouter)
 
@@ -114,7 +113,7 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 				chunks.push(chunk)
 			}
 
-			sinon.assert.calledOnce(fakeRouter.chat as sinon.SinonStub)
+			sinon.assert.calledOnce(fakeRouter.chatStream as sinon.SinonStub)
 			sinon.assert.notCalled(fakeOpenAIClient.chat.completions.create)
 
 			const textChunks = chunks.filter((c) => c.type === "text")
@@ -123,11 +122,11 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 
 			const usageChunks = chunks.filter((c) => c.type === "usage")
 			expect(usageChunks).to.have.length(1)
-			expect((usageChunks[0] as any).inputTokens).to.equal(10)
-			expect((usageChunks[0] as any).outputTokens).to.equal(20)
+			expect((usageChunks[0] as any).inputTokens).to.equal(0)
+			expect((usageChunks[0] as any).outputTokens).to.equal(0)
 		})
 
-		it("passes systemPrompt and messages to localRouter.chat()", async () => {
+		it("passes systemPrompt and messages to localRouter.chatStream()", async () => {
 			const fakeRouter = makeFakeRouter()
 			sinon.stub(instanceModule, "getLocalRouter").returns(fakeRouter)
 
@@ -146,14 +145,14 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 			for await (const _ of handler.createMessage("be helpful", messages)) {
 			}
 
-			const callArg = (fakeRouter.chat as sinon.SinonStub).getCall(0).args[0]
+			const callArg = (fakeRouter.chatStream as sinon.SinonStub).getCall(0).args[0]
 			expect(callArg.messages[0]).to.deep.equal({ role: "system", content: "be helpful" })
 			expect(callArg.messages[1]).to.deep.equal({ role: "user", content: "what is 2+2?" })
 			expect(callArg.messages[2]).to.deep.equal({ role: "assistant", content: "4" })
-			expect(callArg.stream).to.equal(false)
+			expect(callArg.stream).to.equal(true)
 		})
 
-		it("falls back to HTTP proxy when localRouter.chat() throws", async () => {
+		it("falls back to HTTP proxy when localRouter.chatStream() throws", async () => {
 			const fakeRouter = makeFakeRouter(undefined, new Error("no worker available"))
 			sinon.stub(instanceModule, "getLocalRouter").returns(fakeRouter)
 
@@ -171,7 +170,7 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 				chunks.push(chunk)
 			}
 
-			sinon.assert.calledOnce(fakeRouter.chat as sinon.SinonStub)
+			sinon.assert.calledOnce(fakeRouter.chatStream as sinon.SinonStub)
 			sinon.assert.calledOnce(fakeOpenAIClient.chat.completions.create)
 
 			const textChunks = chunks.filter((c) => c.type === "text")
@@ -200,7 +199,7 @@ describe("LiteLlmHandler — LocalRouter integration", () => {
 			for await (const _ of handler.createMessage("system", messages)) {
 			}
 
-			sinon.assert.notCalled(fakeRouter.chat as sinon.SinonStub)
+			sinon.assert.notCalled(fakeRouter.chatStream as sinon.SinonStub)
 			sinon.assert.calledOnce(fakeOpenAIClient.chat.completions.create)
 		})
 	})
