@@ -72,6 +72,8 @@ registerProvider("openai", {
 				"planModeReasoningEffort",
 				"actModeReasoningEffort",
 			),
+			useLocalRouter: options.useLocalRouter,
+			localRouterWorkers: options.localRouterWorkers,
 		})
 	},
 })

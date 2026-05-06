@@ -4,13 +4,16 @@ import { normalizeOpenaiReasoningEffort } from "@shared/storage/types"
 import OpenAI, { AzureOpenAI } from "openai"
 import type { ChatCompletionReasoningEffort, ChatCompletionTool } from "openai/resources/chat/completions"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
+import { getLocalRouter } from "@/services/local-router/instance"
+import type { LocalRouter } from "@/services/local-router/LocalRouter"
+import type { WorkerEndpoint } from "@/services/local-router/types"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
+import { Logger } from "@/shared/services/Logger"
 import { ApiHandler, CommonApiHandlerOptions } from "../index"
 import { withRetry } from "../retry"
 import { convertToOpenAiMessages } from "../transform/openai-format"
-import { addReasoningContent } from "../transform/r1-format"
-import { convertToR1Format } from "../transform/r1-format"
+import { addReasoningContent, convertToR1Format } from "../transform/r1-format"
 import { ApiStream } from "../transform/stream"
 import { getOpenAIToolParams, ToolCallProcessor } from "../transform/tool-call-processor"
 
@@ -23,14 +26,20 @@ interface OpenAiHandlerOptions extends CommonApiHandlerOptions {
 	openAiModelId?: string
 	openAiModelInfo?: OpenAiCompatibleModelInfo
 	reasoningEffort?: string
+	useLocalRouter?: boolean
+	localRouterWorkers?: WorkerEndpoint[]
 }
 
 export class OpenAiHandler implements ApiHandler {
 	private options: OpenAiHandlerOptions
 	private client: OpenAI | undefined
+	private localRouter: LocalRouter | null = null
 
 	constructor(options: OpenAiHandlerOptions) {
 		this.options = options
+		if (options.useLocalRouter) {
+			this.localRouter = getLocalRouter(options.localRouterWorkers)
+		}
 	}
 
 	private getAzureAudienceScope(baseUrl?: string): string {
@@ -103,6 +112,36 @@ export class OpenAiHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: ChatCompletionTool[]): ApiStream {
+		// Try LocalRouter first when enabled and messages are text-only.
+		// On any failure or unsupported content, fall through to HTTP path.
+		if (this.localRouter) {
+			try {
+				const textOnly = messages.every((m) => typeof m.content === "string")
+				if (textOnly) {
+					const res = await this.localRouter.chat({
+						messages: [
+							{ role: "system", content: systemPrompt },
+							...messages.map((m) => ({ role: m.role, content: m.content as string })),
+						],
+						max_tokens: this.options.openAiModelInfo?.maxTokens ?? undefined,
+						temperature: 1,
+						stream: false,
+					})
+					const text = res.choices[0]?.message?.content ?? ""
+					yield { type: "text", text }
+					yield {
+						type: "usage",
+						inputTokens: res.usage?.prompt_tokens ?? 0,
+						outputTokens: res.usage?.completion_tokens ?? 0,
+						totalCost: 0,
+					}
+					return
+				}
+			} catch (err) {
+				Logger.warn("[OpenAi] LocalRouter failed, falling back to HTTP:", err)
+			}
+		}
+
 		const client = this.ensureClient()
 
 		// Add web_search tool for OpenAI
@@ -114,8 +153,7 @@ export class OpenAiHandler implements ApiHandler {
 			finalTools.push({ type: "web_search" } as any)
 		}
 		const modelId = this.options.openAiModelId ?? ""
-		const isDeepseek =
-			modelId.toLowerCase().includes("deepseek")
+		const isDeepseek = modelId.toLowerCase().includes("deepseek")
 		const isR1FormatRequired = this.options.openAiModelInfo?.isR1FormatRequired ?? false
 		const isReasoningModelFamily =
 			["o1", "o3", "o4", "gpt-5"].some((prefix) => modelId.includes(prefix)) && !modelId.includes("chat")
@@ -165,7 +203,6 @@ export class OpenAiHandler implements ApiHandler {
 		if (requestedEffort !== "none") {
 			reasoningEffort = requestedEffort as ChatCompletionReasoningEffort
 		}
-
 
 		if (isReasoningModelFamily) {
 			openAiMessages = [
