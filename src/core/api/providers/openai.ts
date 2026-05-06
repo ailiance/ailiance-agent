@@ -6,7 +6,7 @@ import type { ChatCompletionReasoningEffort, ChatCompletionTool } from "openai/r
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { getLocalRouter } from "@/services/local-router/instance"
 import type { LocalRouter } from "@/services/local-router/LocalRouter"
-import type { WorkerEndpoint } from "@/services/local-router/types"
+import type { ChatTool, WorkerEndpoint } from "@/services/local-router/types"
 import { DiracStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
@@ -113,11 +113,10 @@ export class OpenAiHandler implements ApiHandler {
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: ChatCompletionTool[]): ApiStream {
 		// Try LocalRouter first when enabled and messages are text-only.
-		// IMPORTANT: skip LocalRouter when tools are present — chatStream() does
-		// not propagate tool_calls deltas, so an agent loop using read_file etc.
-		// would silently lose its tool calls and fail with "Tool use failure".
+		// LocalRouter supports tools natively (supportsTools:true) or via
+		// emulation (supportsTools:false — injects into system prompt).
 		// On any failure or unsupported content, fall through to HTTP path.
-		if (this.localRouter && (!tools || tools.length === 0)) {
+		if (this.localRouter) {
 			try {
 				const textOnly = messages.every((m) => typeof m.content === "string")
 				if (textOnly) {
@@ -129,8 +128,19 @@ export class OpenAiHandler implements ApiHandler {
 						max_tokens: this.options.openAiModelInfo?.maxTokens ?? undefined,
 						temperature: 1,
 						stream: true,
+						tools: tools as ChatTool[] | undefined,
 					})) {
-						yield chunk
+						if (chunk.type === "text") {
+							yield { type: "text", text: chunk.text }
+						} else if (chunk.type === "tool_call") {
+							yield {
+								type: "tool_calls",
+								tool_call: {
+									call_id: chunk.id,
+									function: { name: chunk.name, arguments: chunk.argumentsRaw },
+								},
+							}
+						}
 					}
 					yield {
 						type: "usage",
