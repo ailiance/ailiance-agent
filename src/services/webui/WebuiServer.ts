@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs"
 import http, { type Server } from "node:http"
 import { createServer as createNetServer } from "node:net"
 import path from "node:path"
+import { LANDING_HTML } from "./landing-html"
 
 function getAkiVersion(): string {
 	const moduleDir = resolveModuleDir()
@@ -199,22 +200,10 @@ export class WebuiServer {
 	}
 
 	private async serveLanding(res: http.ServerResponse): Promise<void> {
-		const moduleDir = resolveModuleDir()
-		const candidates = [
-			path.resolve(moduleDir, "landing.html"),
-			path.resolve(moduleDir, "..", "..", "..", "src", "services", "webui", "landing.html"),
-			path.resolve(process.cwd(), "src", "services", "webui", "landing.html"),
-		]
-		for (const c of candidates) {
-			try {
-				const data = await fs.readFile(c)
-				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" })
-				res.end(data)
-				return
-			} catch {}
-		}
-		res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
-		res.end("<h1>agent-kiki</h1><p>Landing page not found.</p>")
+		// Embedded inline (LANDING_HTML is auto-generated from landing.html
+		// at dev time and bundled into cli/dist/cli.mjs). No filesystem I/O.
+		res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" })
+		res.end(LANDING_HTML)
 	}
 
 	private async serveStaticFile(filePath: string, res: http.ServerResponse): Promise<void> {
