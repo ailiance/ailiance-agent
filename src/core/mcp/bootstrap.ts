@@ -1,6 +1,7 @@
 import { DiracToolSet } from "@core/prompts/system-prompt"
 import type { DiracToolSpec } from "@core/prompts/system-prompt/spec"
 import type { ToolExecutor } from "@core/task/ToolExecutor"
+import { StateManager } from "@core/storage/StateManager"
 import { Logger } from "@/shared/services/Logger"
 import { DiracDefaultTool } from "@/shared/tools"
 import { mcpClientManager } from "./McpClientManager"
@@ -87,13 +88,42 @@ export function mcpToolToSpec(tool: McpToolMetadata): DiracToolSpec {
  * @param registerSpec - Optional override for tool spec registration (default: DiracToolSet.register).
  *                       Useful in tests to prevent polluting the shared DiracToolSet singleton.
  */
+/**
+ * Read MCP filter settings from StateManager if available.
+ * Returns undefined for each field if StateManager is not initialized or throws.
+ */
+function readMcpSettings(): {
+	enabledServers: string[] | undefined
+	toolDenylist: string[] | undefined
+	toolAllowlist: string[] | undefined
+} {
+	try {
+		const mgr = StateManager.get()
+		return {
+			enabledServers: mgr.getGlobalSettingsKey("enabledMcpServers"),
+			toolDenylist: mgr.getGlobalSettingsKey("mcpToolDenylist"),
+			toolAllowlist: mgr.getGlobalSettingsKey("mcpToolAllowlist"),
+		}
+	} catch {
+		// StateManager not initialized yet (e.g. in some tests) — skip filtering
+		return { enabledServers: undefined, toolDenylist: undefined, toolAllowlist: undefined }
+	}
+}
+
 export async function initializeMcpForTask(
 	toolExecutor: ToolExecutor,
 	registerSpec: (spec: ReturnType<typeof mcpToolToSpec>) => void = (spec) => DiracToolSet.register(spec),
 ): Promise<McpToolMetadata[]> {
 	try {
-		await mcpClientManager.loadFromPlugins()
-		const tools = await mcpClientManager.listAllTools()
+		const { enabledServers, toolDenylist, toolAllowlist } = readMcpSettings()
+
+		await mcpClientManager.loadFromPlugins(enabledServers ? { enabledServers } : undefined)
+
+		const toolFilter =
+			toolAllowlist || toolDenylist
+				? { allowlist: toolAllowlist, denylist: toolDenylist }
+				: undefined
+		const tools = await mcpClientManager.listAllTools(toolFilter)
 
 		for (const tool of tools) {
 			try {

@@ -1,8 +1,8 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
 import { formatResponse } from "@core/prompts/responses"
-import { showSystemNotification } from "@integrations/notifications"
 import { processFilesIntoText } from "@integrations/misc/extract-text"
+import { showSystemNotification } from "@integrations/notifications"
 import { ErrorService } from "@services/error"
 import { telemetryService } from "@services/telemetry"
 import { findLastIndex } from "@shared/array"
@@ -620,13 +620,8 @@ export class AgentLoopRunner {
 		}
 	}
 
-	async handleMistakeLimitReached(
-		userContent: DiracContent[],
-	): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
-		if (
-			this.taskState.consecutiveMistakeCount <
-			this.task.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")
-		) {
+	async handleMistakeLimitReached(userContent: DiracContent[]): Promise<{ didEndLoop: boolean; userContent: DiracContent[] }> {
+		if (this.taskState.consecutiveMistakeCount < this.task.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")) {
 			return { didEndLoop: false, userContent }
 		}
 

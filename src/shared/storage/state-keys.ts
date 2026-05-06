@@ -238,6 +238,11 @@ const USER_SETTINGS_FIELDS = {
 
 	writePromptMetadataEnabled: { default: false as boolean },
 	writePromptMetadataDirectory: { default: undefined as string | undefined },
+
+	// MCP server and tool filtering
+	enabledMcpServers: { default: undefined as string[] | undefined },
+	mcpToolDenylist: { default: undefined as string[] | undefined },
+	mcpToolAllowlist: { default: undefined as string[] | undefined },
 } satisfies FieldDefinitions
 
 const SETTINGS_FIELDS = { ...API_HANDLER_SETTINGS_FIELDS, ...USER_SETTINGS_FIELDS }
