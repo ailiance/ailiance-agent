@@ -45,12 +45,42 @@ const DEFAULT_CONFIG_YAML = `model_list:
       model: ollama/llama3.1:8b
       api_base: http://localhost:11434
 
-  # Workers eu-kiki (placeholders, l'utilisateur ajuste)
-  # - model_name: eu-kiki-apertus-70b
-  #   litellm_params:
-  #     model: openai/eu-kiki/apertus-70b
-  #     api_base: http://100.116.92.12:9301
-  #     api_key: not-used
+  # Ollama on macM1 (Tailscale 100.112.121.126)
+  - model_name: gemma3-1b
+    litellm_params:
+      model: ollama/gemma3:1b
+      api_base: http://100.112.121.126:11434
+  - model_name: gemma3-4b
+    litellm_params:
+      model: ollama/gemma3:4b
+      api_base: http://100.112.121.126:11434
+
+  # EU sovereign workers (MLX / llama.cpp on Tailscale — always-on not guaranteed)
+  - model_name: eu-kiki-apertus-70b
+    litellm_params:
+      model: openai/apertus-70b
+      api_base: http://100.116.92.12:9301/v1
+      api_key: not-used
+  - model_name: eu-kiki-eurollm-22b
+    litellm_params:
+      model: openai/eurollm-22b
+      api_base: http://100.116.92.12:9303/v1
+      api_key: not-used
+  - model_name: eu-kiki-devstral-24b
+    litellm_params:
+      model: openai/devstral
+      api_base: http://100.112.121.126:9302/v1
+      api_key: not-used
+  - model_name: eu-kiki-gemma3-4b
+    litellm_params:
+      model: openai/gemma3-4b
+      api_base: http://100.78.6.122:9304/v1
+      api_key: not-used
+  - model_name: eu-kiki-gateway
+    litellm_params:
+      model: openai/auto
+      api_base: http://100.78.191.52:9300/v1
+      api_key: not-used
 
 litellm_settings:
   drop_params: true

@@ -64,6 +64,27 @@ describe("LiteLLMProxyManager", () => {
 				assert.ok(!src.includes(`  ${term}:`), `Source must not contain ${term}: in config YAML`)
 			}
 		})
+
+		it("contains all 5 eu-kiki worker entries", () => {
+			const src = fs.readFileSync(path.resolve(__dirname, "../LiteLLMProxyManager.ts"), "utf8")
+			const expected = [
+				"eu-kiki-apertus-70b",
+				"eu-kiki-eurollm-22b",
+				"eu-kiki-devstral-24b",
+				"eu-kiki-gemma3-4b",
+				"eu-kiki-gateway",
+			]
+			for (const entry of expected) {
+				assert.ok(src.includes(entry), `DEFAULT_CONFIG_YAML must contain model_name: ${entry}`)
+			}
+		})
+
+		it("contains gemma3 Ollama entries for macM1", () => {
+			const src = fs.readFileSync(path.resolve(__dirname, "../LiteLLMProxyManager.ts"), "utf8")
+			assert.ok(src.includes("gemma3-1b"), "DEFAULT_CONFIG_YAML must contain gemma3-1b")
+			assert.ok(src.includes("gemma3-4b"), "DEFAULT_CONFIG_YAML must contain gemma3-4b")
+			assert.ok(src.includes("100.112.121.126:11434"), "DEFAULT_CONFIG_YAML must reference macM1 Ollama endpoint")
+		})
 	})
 
 	describe("start()", () => {

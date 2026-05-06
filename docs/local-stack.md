@@ -50,6 +50,26 @@ aki stack stop
 
 Total local RAM: **~450 MB**.
 
+## Available models (post-install)
+
+After `aki proxy install`, your `~/.aki/litellm/config.yaml` exposes:
+
+### Cloud (require API keys)
+- `claude-opus-4-5`, `claude-sonnet-4-5`, `claude-haiku-4-5` — requires `ANTHROPIC_API_KEY`
+- `gpt-4o`, `gpt-5-mini` — requires `OPENAI_API_KEY`
+
+### Local Mac (Ollama on macM1 via Tailscale)
+- `gemma3-1b`, `gemma3-4b`
+
+### EU sovereign (MLX / llama.cpp on Tailscale workers)
+- `eu-kiki-apertus-70b` — MacStudio M3 Ultra `:9301`
+- `eu-kiki-eurollm-22b` — MacStudio `:9303`
+- `eu-kiki-devstral-24b` — macM1 `:9302`
+- `eu-kiki-gemma3-4b` — Tower P2000 `:9304`
+- `eu-kiki-gateway` — electron-server `:9300`
+
+> EU workers are always-on when Tailscale is up but are not guaranteed available in CI or offline contexts.
+
 ## Custom routes
 
 Edit `~/.aki/jina-router/routes.json`:
@@ -63,6 +83,17 @@ Edit `~/.aki/jina-router/routes.json`:
   "embedded": {
     "examples": ["esp32 code", "kicad schematic"],
     "preferred_model": "qwen-coder-32b"
+  }
+}
+```
+
+To use EU/MLX workers for code routing:
+
+```json
+{
+  "code": {
+    "examples": ["refactor this function", "fix the bug"],
+    "preferred_model": "eu-kiki-devstral-24b"
   }
 }
 ```
