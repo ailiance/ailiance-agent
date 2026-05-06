@@ -1,7 +1,7 @@
 import { DiracToolSet } from "@core/prompts/system-prompt"
 import type { DiracToolSpec } from "@core/prompts/system-prompt/spec"
-import type { ToolExecutor } from "@core/task/ToolExecutor"
 import { StateManager } from "@core/storage/StateManager"
+import type { ToolExecutor } from "@core/task/ToolExecutor"
 import { Logger } from "@/shared/services/Logger"
 import { DiracDefaultTool } from "@/shared/tools"
 import { mcpClientManager } from "./McpClientManager"
@@ -119,10 +119,7 @@ export async function initializeMcpForTask(
 
 		await mcpClientManager.loadFromPlugins(enabledServers ? { enabledServers } : undefined)
 
-		const toolFilter =
-			toolAllowlist || toolDenylist
-				? { allowlist: toolAllowlist, denylist: toolDenylist }
-				: undefined
+		const toolFilter = toolAllowlist || toolDenylist ? { allowlist: toolAllowlist, denylist: toolDenylist } : undefined
 		const tools = await mcpClientManager.listAllTools(toolFilter)
 
 		for (const tool of tools) {

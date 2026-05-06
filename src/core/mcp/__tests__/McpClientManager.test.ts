@@ -508,9 +508,12 @@ describe("McpClientManager", () => {
 		const manager = mcpClientManager as any
 
 		const fakeClient = {
-			listTools: sinon
-				.stub()
-				.resolves({ tools: [{ name: "t1", inputSchema: {} }, { name: "t2", inputSchema: {} }] }),
+			listTools: sinon.stub().resolves({
+				tools: [
+					{ name: "t1", inputSchema: {} },
+					{ name: "t2", inputSchema: {} },
+				],
+			}),
 			close: sinon.stub().resolves(),
 		}
 		const cfg: McpServerConfig = {

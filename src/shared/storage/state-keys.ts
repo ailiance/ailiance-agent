@@ -239,6 +239,9 @@ const USER_SETTINGS_FIELDS = {
 	writePromptMetadataEnabled: { default: false as boolean },
 	writePromptMetadataDirectory: { default: undefined as string | undefined },
 
+	// Local stack auto-detect
+	useLocalStack: { default: false as boolean },
+
 	// MCP server and tool filtering
 	enabledMcpServers: { default: undefined as string[] | undefined },
 	mcpToolDenylist: { default: undefined as string[] | undefined },
