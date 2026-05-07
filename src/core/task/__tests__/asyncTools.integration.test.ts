@@ -1,9 +1,9 @@
 import { strict as assert } from "node:assert"
 import { spawn } from "node:child_process"
+import type { DiracSayTool } from "@shared/ExtensionMessage"
 import { describe, it } from "mocha"
 import sinon from "sinon"
 import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracSayTool } from "@shared/ExtensionMessage"
 import { TaskState } from "../TaskState"
 import { ExecuteCommandToolHandler } from "../tools/handlers/ExecuteCommandToolHandler"
 import { GetToolResultToolHandler } from "../tools/handlers/GetToolResultToolHandler"
@@ -93,12 +93,10 @@ function makeRealisticConfig(): {
 	}
 
 	const callbacks = {
-		say: sinon
-			.stub()
-			.callsFake(async (type: string, text?: string, _i?: any, _f?: any, partial?: boolean) => {
-				sayCalls.push({ type, text, partial })
-				return Date.now()
-			}),
+		say: sinon.stub().callsFake(async (type: string, text?: string, _i?: any, _f?: any, partial?: boolean) => {
+			sayCalls.push({ type, text, partial })
+			return Date.now()
+		}),
 		ask: sinon.stub().resolves({ response: "yesButtonClicked", text: "ok" }),
 		sayAndCreateMissingParamError: sinon.stub().resolves("missing"),
 		removeLastPartialMessageIfExistsWithType: sinon.stub().resolves(),
@@ -253,10 +251,7 @@ DESCRIBE("asyncTools integration (execute_command + registry + notifier + get_to
 
 		const getResult = new GetToolResultToolHandler()
 		const startedAt = Date.now()
-		const fetched = await getResult.execute(
-			config,
-			makeGetResultBlock({ task_id: taskId, wait: true, timeout_ms: 3000 }),
-		)
+		const fetched = await getResult.execute(config, makeGetResultBlock({ task_id: taskId, wait: true, timeout_ms: 3000 }))
 		const elapsed = Date.now() - startedAt
 		assert.ok(elapsed >= 100, `expected wait to actually block, only waited ${elapsed}ms`)
 		assert.match(String(fetched), /waited/)

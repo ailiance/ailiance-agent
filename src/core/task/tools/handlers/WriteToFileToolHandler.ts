@@ -8,6 +8,7 @@ import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { DiracSayTool } from "@shared/ExtensionMessage"
 import { getLastApiReqTotalTokens } from "@shared/getApiMetrics"
 import { computeDiffFromContents, type DiffStructure } from "@shared/utils/diff"
+import { ensureParentDirectory } from "@utils/fs"
 import { stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { applyPatch } from "diff"
@@ -22,6 +23,43 @@ import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { captureAccepted, captureRejected, getModelInfo } from "../utils/AiOutputTelemetry"
 import { applyModelContentFixes } from "../utils/ModelContentProcessor"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
+
+/** Default cap on the size (in bytes) of a single write_to_file payload. */
+export const WRITE_TO_FILE_DEFAULT_MAX_SIZE = 1_000_000
+/** Hard ceiling regardless of user setting — prevents catastrophic writes. */
+export const WRITE_TO_FILE_ABSOLUTE_MAX = 50_000_000
+
+/**
+ * Resolves the configured `writeToFileMaxSize` setting, clamped to
+ * [1, WRITE_TO_FILE_ABSOLUTE_MAX]. Falls back to the default if unset/invalid.
+ */
+export function resolveWriteToFileMaxSize(config: TaskConfig): number {
+	let configured: number | undefined
+	try {
+		configured = config.services.stateManager.getGlobalSettingsKey("writeToFileMaxSize" as any) as
+			| number
+			| undefined
+	} catch {
+		configured = undefined
+	}
+	const value =
+		typeof configured === "number" && Number.isFinite(configured) && configured > 0
+			? configured
+			: WRITE_TO_FILE_DEFAULT_MAX_SIZE
+	return Math.min(value, WRITE_TO_FILE_ABSOLUTE_MAX)
+}
+
+/**
+ * Builds the user-facing error returned when a write_to_file payload exceeds the
+ * configured limit. Exposed for tests and to keep the message consistent.
+ */
+export function formatWriteToFileSizeError(relPath: string, size: number, limit: number): string {
+	return (
+		`Refusing to write ${relPath}: content is ${size} bytes, ` +
+		`exceeds writeToFileMaxSize (${limit} bytes).\n` +
+		`Increase writeToFileMaxSize setting if a larger write is intended, or split the file into smaller chunks.`
+	)
+}
 
 export class WriteToFileToolHandler implements IFullyManagedTool {
 	readonly name = DiracDefaultTool.FILE_NEW // This handler supports write_to_file and new_rule
@@ -503,6 +541,29 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 		} else {
 			// can't happen, since we already checked for content/diff above. but need to do this for type error
 			return { error: "Missing content for file operation" }
+		}
+
+		// Sprint 3-B: enforce configurable size limit before any disk activity / UI churn.
+		const maxSize = resolveWriteToFileMaxSize(config)
+		const byteSize = Buffer.byteLength(newContent, "utf8")
+		if (byteSize > maxSize) {
+			const message = formatWriteToFileSizeError(resolvedPath, byteSize, maxSize)
+			config.taskState.consecutiveMistakeCount++
+			await config.callbacks.say("error", message)
+			return { error: formatResponse.toolError(message) }
+		}
+
+		// Sprint 3-B: proactively create parent directory (recursive, depth-capped) so
+		// downstream writes — including paths that bypass the diff view — never fail
+		// with ENOENT/ENOTDIR mid-save. Ignored when file already exists.
+		if (!fileExists) {
+			try {
+				await ensureParentDirectory(absolutePath)
+			} catch (mkdirError: any) {
+				const message = mkdirError?.message ?? String(mkdirError)
+				await config.callbacks.say("error", message)
+				return { error: formatResponse.toolError(message) }
+			}
 		}
 
 		return { relPath, absolutePath, fileExists, content, newContent, workspaceContext }

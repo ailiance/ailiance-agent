@@ -65,6 +65,8 @@ export const toolParamNames = [
 	"prompt_5",
 	"start_line",
 	"end_line",
+	"offset",
+	"limit",
 	"symbol",
 	"type",
 	"file_hash",
