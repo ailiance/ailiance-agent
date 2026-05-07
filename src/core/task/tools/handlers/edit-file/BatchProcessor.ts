@@ -223,82 +223,87 @@ export class BatchProcessor {
 		let anyFailed = false
 		let anySucceeded = false
 
-		for (const batch of preparedBatches) {
-			const shouldAutoApprove = forceAutoApproveRemaining || (await this.checkAutoApproval(config, [batch]))
+		try {
+			for (const batch of preparedBatches) {
+				const shouldAutoApprove = forceAutoApproveRemaining || (await this.checkAutoApproval(config, [batch]))
 
-			if (!shouldAutoApprove) {
-				await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
-				await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
+				if (!shouldAutoApprove) {
+					await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
+					await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
 
-				// Show the diff for this specific file
-				await config.services.diffViewProvider.showReview([
-					{
-						absolutePath: batch.absolutePath,
-						displayPath: batch.displayPath,
-						content: batch.prepared!.finalContent,
-					},
-				])
+					// Show the diff for this specific file
+					await config.services.diffViewProvider.showReview([
+						{
+							absolutePath: batch.absolutePath,
+							displayPath: batch.displayPath,
+							content: batch.prepared!.finalContent,
+						},
+					])
 
-				const intermediateMessage = await this.buildEditMessage(config, [batch])
-				await config.callbacks.say("tool", JSON.stringify(intermediateMessage), undefined, undefined, true)
+					const intermediateMessage = await this.buildEditMessage(config, [batch])
+					await config.callbacks.say("tool", JSON.stringify(intermediateMessage), undefined, undefined, true)
 
-				const approvalResult = await this.requestCombinedApproval(config, [batch])
-				const { didApprove, response, text, userEdits } = approvalResult
+					const approvalResult = await this.requestCombinedApproval(config, [batch])
+					const { didApprove, response, text, userEdits } = approvalResult
 
-				if (!didApprove && response !== "messageResponse") {
-					await config.services.diffViewProvider.hideReview()
-				}
-
-				if (response === "yesButtonClicked" && config.services.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
-					forceAutoApproveRemaining = true
-				}
-
-				if (response === "messageResponse") {
-					results.set(batch.absolutePath, formatResponse.toolDeniedWithFeedback(text || ""))
-					continue
-				}
-
-				if (!didApprove) {
-					results.set(batch.absolutePath, formatResponse.toolDenied())
-
-					// Fill remaining files with skipped message
-					const currentIndex = preparedBatches.indexOf(batch)
-					for (let i = currentIndex + 1; i < preparedBatches.length; i++) {
-						const rb = preparedBatches[i]
-						results.set(rb.absolutePath, "Skipped due to rejection of a previous file in the same batch.")
+					if (!didApprove && response !== "messageResponse") {
+						await config.services.diffViewProvider.hideReview()
 					}
-					break
+
+					if (response === "yesButtonClicked" && config.services.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
+						forceAutoApproveRemaining = true
+					}
+
+					if (response === "messageResponse") {
+						results.set(batch.absolutePath, formatResponse.toolDeniedWithFeedback(text || ""))
+						continue
+					}
+
+					if (!didApprove) {
+						results.set(batch.absolutePath, formatResponse.toolDenied())
+
+						// Fill remaining files with skipped message
+						const currentIndex = preparedBatches.indexOf(batch)
+						for (let i = currentIndex + 1; i < preparedBatches.length; i++) {
+							const rb = preparedBatches[i]
+							results.set(rb.absolutePath, "Skipped due to rejection of a previous file in the same batch.")
+						}
+						break
+					}
+
+					if (userEdits && userEdits[batch.displayPath] !== undefined) {
+						batch.prepared!.finalContent = userEdits[batch.displayPath]
+						batch.prepared!.finalLines = batch.prepared!.finalContent.split(/\r?\n/)
+					}
+
+					if (didApprove) {
+						// Don't call hideReview here if we are about to apply and save,
+						// as it clears the CodeLenses and closes the editor we need.
+						// hideReview() will be called implicitly by reset() in the finally block or after the loop.
+					}
 				}
 
-				if (userEdits && userEdits[batch.displayPath] !== undefined) {
-					batch.prepared!.finalContent = userEdits[batch.displayPath]
-					batch.prepared!.finalLines = batch.prepared!.finalContent.split(/\r?\n/)
-				}
-
-				if (didApprove) {
-					// Don't call hideReview here if we are about to apply and save,
-					// as it clears the CodeLenses and closes the editor we need.
-					// hideReview() will be called implicitly by reset() in the finally block or after the loop.
+				// Apply and save this file
+				try {
+					const applied = await this.applyAndSave(config, batch, {
+						silent: shouldAutoApprove && config.backgroundEditEnabled,
+					})
+					appliedResults.set(batch.absolutePath, applied)
+					anySucceeded = true
+				} catch (error) {
+					anyFailed = true
+					const errorMessage = error instanceof Error ? error.message : String(error)
+					results.set(
+						batch.absolutePath,
+						formatResponse.toolError(`Error applying edits to ${batch.displayPath}: ${errorMessage}`),
+					)
+				} finally {
+					await config.services.diffViewProvider.reset().catch(() => {})
 				}
 			}
-
-			// Apply and save this file
-			try {
-				const applied = await this.applyAndSave(config, batch, {
-					silent: shouldAutoApprove && config.backgroundEditEnabled,
-				})
-				appliedResults.set(batch.absolutePath, applied)
-				anySucceeded = true
-			} catch (error) {
-				anyFailed = true
-				const errorMessage = error instanceof Error ? error.message : String(error)
-				results.set(
-					batch.absolutePath,
-					formatResponse.toolError(`Error applying edits to ${batch.displayPath}: ${errorMessage}`),
-				)
-			} finally {
-				await config.services.diffViewProvider.reset().catch(() => {})
-			}
+		} finally {
+			await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
+			await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
 		}
 
 		if (anyFailed) {
@@ -310,8 +315,6 @@ export class BatchProcessor {
 		// Run diagnostics and format results for all successfully applied files
 		await this.processDiagnosticsAndFormatResults(config, preparedBatches, appliedResults, providers, preDiagnostics, results)
 
-		await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
-		await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool", false)
 		const successfulBatches = preparedBatches.filter((b) => appliedResults.has(b.absolutePath))
 		const finalMessage = await this.buildEditMessage(config, successfulBatches)
 		await config.callbacks.say("tool", JSON.stringify(finalMessage), undefined, undefined, false)
