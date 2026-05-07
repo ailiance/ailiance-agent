@@ -83,10 +83,7 @@ describe("GetToolResultToolHandler", () => {
 		const config = createConfig()
 		const entry = config.taskState.pendingTools.register({ toolName: "list_files" })
 		const handler = new GetToolResultToolHandler()
-		const result = await handler.execute(
-			config,
-			makeBlock({ task_id: entry.taskId, wait: "false" }),
-		)
+		const result = await handler.execute(config, makeBlock({ task_id: entry.taskId, wait: "false" }))
 		const text = String(result)
 		assert.match(text, /status: running/)
 		assert.match(text, /elapsed_ms/)
@@ -101,10 +98,7 @@ describe("GetToolResultToolHandler", () => {
 			config.taskState.pendingTools.complete(entry.taskId, "delayed payload")
 		}, 50)
 
-		const result = await handler.execute(
-			config,
-			makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 5000 }),
-		)
+		const result = await handler.execute(config, makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 5000 }))
 		assert.match(String(result), /delayed payload/)
 	})
 
@@ -112,10 +106,7 @@ describe("GetToolResultToolHandler", () => {
 		const config = createConfig()
 		const entry = config.taskState.pendingTools.register({ toolName: "search_files" })
 		const handler = new GetToolResultToolHandler()
-		const result = await handler.execute(
-			config,
-			makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 50 }),
-		)
+		const result = await handler.execute(config, makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 50 }))
 		const text = String(result)
 		assert.match(text, /still running after 50ms/)
 		assert.match(text, /retry get_tool_result later/)
@@ -134,10 +125,7 @@ describe("GetToolResultToolHandler", () => {
 		// Pre-complete so we don't actually wait.
 		config.taskState.pendingTools.complete(entry.taskId, "ok")
 		const handler = new GetToolResultToolHandler()
-		const result = await handler.execute(
-			config,
-			makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 999_999_999 }),
-		)
+		const result = await handler.execute(config, makeBlock({ task_id: entry.taskId, wait: true, timeout_ms: 999_999_999 }))
 		assert.match(String(result), /ok/)
 	})
 })

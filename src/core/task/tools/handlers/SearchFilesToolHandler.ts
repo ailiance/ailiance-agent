@@ -271,7 +271,12 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		// These can throw if the workspace configuration is invalid or the
 		// path cannot be resolved, so catch and return a graceful tool error.
 		let anyUsedWorkspaceHint = false
-		const allSearchPaths: Array<{ absolutePath: string; workspaceName?: string; workspaceRoot?: string; originalPath: string }> = []
+		const allSearchPaths: Array<{
+			absolutePath: string
+			workspaceName?: string
+			workspaceRoot?: string
+			originalPath: string
+		}> = []
 
 		try {
 			for (const relPath of relPaths) {

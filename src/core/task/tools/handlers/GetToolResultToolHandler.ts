@@ -1,8 +1,8 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
 import { DiracDefaultTool } from "@/shared/tools"
-import type { PendingToolEntry } from "../../PendingToolRegistry"
 import type { ToolResponse } from "../../index"
+import type { PendingToolEntry } from "../../PendingToolRegistry"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
@@ -82,7 +82,8 @@ export class GetToolResultToolHandler implements IFullyManagedTool {
 
 		// Parse optional params (booleans/numbers may arrive as strings).
 		const waitRaw = block.params.wait
-		const wait = waitRaw === undefined || waitRaw === null || waitRaw === "" ? true : String(waitRaw).toLowerCase() !== "false"
+		const wait =
+			waitRaw === undefined || waitRaw === null || waitRaw === "" ? true : String(waitRaw).toLowerCase() !== "false"
 
 		const timeoutRaw = block.params.timeout_ms
 		let timeoutMs = DEFAULT_TIMEOUT_MS

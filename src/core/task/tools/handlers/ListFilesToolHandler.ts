@@ -122,9 +122,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 			try {
 				const pathResult = resolveWorkspacePath(config, relDirPath, "ListFilesToolHandler.execute")
 				const { absolutePath, displayPath } =
-					typeof pathResult === "string"
-						? { absolutePath: pathResult, displayPath: relDirPath }
-						: pathResult
+					typeof pathResult === "string" ? { absolutePath: pathResult, displayPath: relDirPath } : pathResult
 				const usedWorkspaceHint = typeof pathResult !== "string"
 
 				const [fileInfos, didHitLimit] = await listFiles(
@@ -202,13 +200,9 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 			config.taskState.consecutiveMistakeCount++
 			if (validation.paramName) {
 				return await config.callbacks.sayAndCreateMissingParamError(this.name, validation.paramName as any)
-			} else {
-				await config.callbacks.say(
-					"error",
-					`Dirac tried to use ${this.name} without providing any paths. Retrying...`,
-				)
-				return formatResponse.toolError(validation.error!)
 			}
+			await config.callbacks.say("error", `Dirac tried to use ${this.name} without providing any paths. Retrying...`)
+			return formatResponse.toolError(validation.error!)
 		}
 
 		// Sprint 2-E: async-by-default ONLY when recursive=true. Non-recursive
@@ -240,9 +234,9 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 						paths: relPaths.map((p) => getReadablePath(config.cwd, p)),
 						path: getReadablePath(config.cwd, relPaths[0] || ""),
 						content: "",
-						operationIsLocatedInWorkspace: (
-							await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))
-						).every(Boolean),
+						operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(
+							Boolean,
+						),
 					},
 				})
 				asyncHandleDispose = handle.dispose
@@ -328,9 +322,9 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 
 			const shouldAutoApproveAsync =
 				config.isSubagentExecution ||
-				(
-					await Promise.all(relPaths.map((p) => config.callbacks.shouldAutoApproveToolWithPath(block.name, p)))
-				).every(Boolean)
+				(await Promise.all(relPaths.map((p) => config.callbacks.shouldAutoApproveToolWithPath(block.name, p)))).every(
+					Boolean,
+				)
 
 			if (shouldAutoApproveAsync) {
 				if (!config.isSubagentExecution) {
@@ -458,9 +452,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 
 		const shouldAutoApprove =
 			config.isSubagentExecution ||
-			(await Promise.all(relPaths.map((p) => config.callbacks.shouldAutoApproveToolWithPath(block.name, p)))).every(
-				Boolean,
-			)
+			(await Promise.all(relPaths.map((p) => config.callbacks.shouldAutoApproveToolWithPath(block.name, p)))).every(Boolean)
 
 		if (shouldAutoApprove) {
 			if (!config.isSubagentExecution) {

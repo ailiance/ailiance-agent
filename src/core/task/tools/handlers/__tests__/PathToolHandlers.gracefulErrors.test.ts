@@ -286,9 +286,8 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		sandbox.stub(validator, "checkDiracIgnorePath").callsFake((p: string) => {
 			if (!p.includes("blocked")) {
 				return { ok: true }
-			} else {
-				return { ok: false, error: "diracignore" }
 			}
+			return { ok: false, error: "diracignore" }
 		})
 
 		// Accumulate failures first
@@ -306,7 +305,6 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		assert.ok((result as string).includes("file.txt"))
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
-
 })
 
 // ─── SearchFilesToolHandler ─────────────────────────────────────────────────
@@ -491,7 +489,6 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		await handler.execute(config, makeBlock("dir-3", "pat"))
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
-
 
 	it("resets consecutiveMistakeCount if at least one path succeeds in a multi-path call", async () => {
 		const { config, taskState, validator } = createConfig()

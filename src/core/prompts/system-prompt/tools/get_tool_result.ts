@@ -28,8 +28,7 @@ export const get_tool_result: DiracToolSpec = {
 			name: "timeout_ms",
 			required: false,
 			type: "integer",
-			instruction:
-				"How long to wait for completion when wait=true. Default 60000ms, hard-capped at 300000ms (5 minutes).",
+			instruction: "How long to wait for completion when wait=true. Default 60000ms, hard-capped at 300000ms (5 minutes).",
 			usage: "60000 (optional)",
 		},
 	],
