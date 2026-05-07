@@ -198,7 +198,9 @@ describe("LocalRouter", () => {
 			type: "function",
 			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
 		}
-		const router = new LocalRouter([makeEndpoint({ supportsTools: true })])
+		// Use a model id whose registry profile is native (eurollm) so the
+		// native path is taken alongside supportsTools:true.
+		const router = new LocalRouter([makeEndpoint({ modelId: "eurollm-22b", supportsTools: true })])
 		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
 			// consume
 		}
@@ -431,6 +433,37 @@ describe("LocalRouter", () => {
 		const textChunks = chunks.filter((c) => c.type === "text")
 		const allText = textChunks.map((c) => (c as Extract<ChatStreamChunk, { type: "text" }>).text).join("")
 		assert.ok(allText.includes("ls -la /tmp"), "bash content should be yielded as text")
+		router.dispose()
+	})
+
+	it("chatStream() emulation: rejects hallucinated tool names with forbidden chars", async () => {
+		// Model emits a fictional `digikey:search` — parser must NOT yield
+		// a tool_call. The colon trips the validator's forbidden-char rule
+		// even before whitelist lookup.
+		const content = '```tool\n{"name":"digikey:search","arguments":{"q":"opamp"}}\n```'
+		const sseBody = [`data: {"choices":[{"delta":{"content":${JSON.stringify(content)}}}]}`, "", "data: [DONE]", ""].join(
+			"\n",
+		)
+		const encoder = new TextEncoder()
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+		fetchStub.resolves(new Response(stream, { status: 200 }))
+
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([makeEndpoint({ supportsTools: false })])
+		const chunks: ChatStreamChunk[] = []
+		for await (const chunk of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			chunks.push(chunk)
+		}
+		const toolChunks = chunks.filter((c) => c.type === "tool_call")
+		assert.strictEqual(toolChunks.length, 0, "must not yield a tool_call for hallucinated name")
 		router.dispose()
 	})
 
@@ -789,6 +822,132 @@ describe("LocalRouter", () => {
 		assert.ok(content.includes('"write_to_file"'), "prompt should include write_to_file example")
 		assert.ok(content.includes('"execute_command"'), "prompt should include execute_command example")
 		assert.ok(content.includes("```tool"), "prompt should use ```tool fence format")
+		router.dispose()
+	})
+
+	// ── registry-driven emulation templates ─────────────────────────────────
+
+	const drainSse = (content: string) => {
+		const sseBody = ['data: {"choices":[{"delta":{"content":"done"}}]}', "", "data: [DONE]", ""].join("\n")
+		void content
+		const encoder = new TextEncoder()
+		return new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseBody))
+				controller.close()
+			},
+		})
+	}
+
+	it("Gemma worker (supportsTools:false) emits markdown_fence template", async () => {
+		fetchStub.resolves(new Response(drainSse(""), { status: 200 }))
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([
+			makeEndpoint({ id: "gemma", modelId: "eu-kiki-gemma-3-4b-it", supportsTools: false }),
+		])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		assert.ok(sysMsg, "system message should be injected")
+		assert.ok(sysMsg.content.includes("```tool"), "Gemma should get markdown_fence template")
+		assert.ok(!sysMsg.content.includes("<tool_call>"), "no XML markers")
+		router.dispose()
+	})
+
+	it("Devstral worker (supportsTools:false) emits XML template", async () => {
+		fetchStub.resolves(new Response(drainSse(""), { status: 200 }))
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([
+			makeEndpoint({ id: "devstral", modelId: "Devstral-Small-2505", supportsTools: false }),
+		])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		assert.ok(sysMsg, "system message should be injected")
+		assert.ok(
+			sysMsg.content.includes("Wrap each tool call in `<tool_call>"),
+			"Devstral prompt should mention <tool_call> tags",
+		)
+		assert.ok(!sysMsg.content.includes("```tool\n"), "no markdown fence example")
+		router.dispose()
+	})
+
+	it("Mistral worker (supportsTools:false) emits json_inline template", async () => {
+		fetchStub.resolves(new Response(drainSse(""), { status: 200 }))
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([
+			makeEndpoint({ id: "mistral", modelId: "mistral-7b-instruct", supportsTools: false }),
+		])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		assert.ok(sysMsg, "system message should be injected")
+		assert.ok(
+			sysMsg.content.includes("single JSON object on a line of its own"),
+			"Mistral prompt should describe inline JSON format",
+		)
+		router.dispose()
+	})
+
+	it("EuroLLM worker (supportsTools:true, native profile) keeps native path", async () => {
+		fetchStub.resolves(new Response(drainSse(""), { status: 200 }))
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([
+			makeEndpoint({ id: "eurollm", modelId: "eurollm-22b", supportsTools: true }),
+		])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		assert.ok(Array.isArray(callBody.tools), "tools[] should be passed natively for EuroLLM")
+		assert.strictEqual(callBody.tools[0].function.name, "read_file")
+		assert.strictEqual(callBody.tool_choice, "auto")
+		// Should NOT have an injected emulation system prompt with example fences
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		if (sysMsg) {
+			assert.ok(!sysMsg.content.includes("```tool"), "no emulation preamble in native path")
+		}
+		router.dispose()
+	})
+
+	it("Backward compat: unknown model + supportsTools:true → native path", async () => {
+		fetchStub.resolves(new Response(drainSse(""), { status: 200 }))
+		const tool: ChatTool = {
+			type: "function",
+			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
+		}
+		const router = new LocalRouter([
+			// Unknown model id falls back to markdown_fence (non-native) profile.
+			// With supportsTools:true the worker still emulates because profile says non-native.
+			// This test documents that behavior change vs v0.5: be explicit about it.
+			makeEndpoint({ id: "x", modelId: "unknown-model-xyz", supportsTools: true }),
+		])
+		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
+			// consume
+		}
+		const callBody = JSON.parse(fetchStub.firstCall.args[1].body)
+		// Profile is non-native ⇒ emulation path even with supportsTools:true
+		assert.strictEqual(callBody.tools, undefined, "non-native profile forces emulation")
+		const sysMsg = callBody.messages.find((m: { role: string }) => m.role === "system")
+		assert.ok(sysMsg && sysMsg.content.includes("```tool"), "fallback markdown_fence template applied")
 		router.dispose()
 	})
 

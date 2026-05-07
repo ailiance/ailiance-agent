@@ -29,6 +29,7 @@ import { TaskState } from "./TaskState"
 import { AutoApprove } from "./tools/autoApprove"
 import { IPartialBlockHandler, ToolExecutorCoordinator } from "./tools/ToolExecutorCoordinator"
 import { ToolValidator } from "./tools/ToolValidator"
+import { reportInvalidToolName, validateToolName } from "./tools/validateToolName"
 import { TaskConfig, validateTaskConfig } from "./tools/types/TaskConfig"
 import { createUIHelpers } from "./tools/types/UIHelpers"
 import { ToolDisplayUtils } from "./tools/utils/ToolDisplayUtils"
@@ -417,6 +418,29 @@ export class ToolExecutor {
 		// The toolUseIdMap is updated at the point of transformation in index.ts
 
 		if (!this.coordinator.has(block.name)) {
+			// Belt-and-suspenders: the model proposed a name that no handler
+			// claims. Validate the shape so we can distinguish a fictional
+			// name (`digikey:search`, `kicad.new_project`) from a transient
+			// registration race. Surface a corrective hint to the model and
+			// count it as a mistake so the loop budget catches infinite
+			// hallucination.
+			const validation = validateToolName(block.name, this.coordinator.getKnownToolNames())
+			if (!validation.valid) {
+				reportInvalidToolName(typeof block.name === "string" ? block.name : "<non-string>", validation.reason)
+				this.taskState.consecutiveMistakeCount++
+				const errorMessage = `${validation.reason} ${validation.hint}`
+				try {
+					await this.removeLastPartialMessageIfExistsWithType("say", "tool")
+					await this.removeLastPartialMessageIfExistsWithType("ask", "tool")
+					await this.say("error", errorMessage)
+				} catch {
+					// say errors must not abort the loop
+				}
+				if (!block.partial) {
+					this.pushToolResult(formatResponse.toolError(errorMessage), block)
+				}
+				return true
+			}
 			return false // Tool not handled by coordinator
 		}
 		canonicalizeAttemptCompletionParams(block)

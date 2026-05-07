@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert"
-import { describe, it } from "mocha"
 import { ANCHOR_DELIMITER } from "@utils/line-hashing"
+import { describe, it } from "mocha"
 import { EditExecutor } from "../EditExecutor"
 
 const D = ANCHOR_DELIMITER

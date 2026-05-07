@@ -1,5 +1,5 @@
-import path from "node:path"
 import fs from "node:fs/promises"
+import path from "node:path"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
 import { resolveWorkspacePath } from "@core/workspace"
@@ -31,9 +31,8 @@ function resolveMaxFileReadSize(config: TaskConfig): number {
 	} catch {
 		configured = undefined
 	}
-	const value = typeof configured === "number" && Number.isFinite(configured) && configured > 0
-		? configured
-		: DEFAULT_MAX_FILE_READ_SIZE
+	const value =
+		typeof configured === "number" && Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_FILE_READ_SIZE
 	return Math.min(value, ABSOLUTE_MAX_FILE_READ_SIZE)
 }
 
@@ -43,7 +42,11 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
+		const relPaths = Array.isArray(block.params.paths)
+			? block.params.paths
+			: block.params.paths
+				? [block.params.paths as string]
+				: []
 		const range =
 			block.params.start_line || block.params.end_line
 				? ` lines ${block.params.start_line || 1}-${block.params.end_line || "?"}`
@@ -52,7 +55,11 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
+		const relPaths = Array.isArray(block.params.paths)
+			? block.params.paths
+			: block.params.paths
+				? [block.params.paths as string]
+				: []
 		const config = uiHelpers.getConfig()
 		if (config.isSubagentExecution) {
 			return
@@ -90,7 +97,11 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const relPaths = Array.isArray(block.params.paths) ? block.params.paths : (block.params.paths ? [block.params.paths as string] : [])
+		const relPaths = Array.isArray(block.params.paths)
+			? block.params.paths
+			: block.params.paths
+				? [block.params.paths as string]
+				: []
 		const startLineNum = block.params.start_line ? Number.parseInt(String(block.params.start_line)) : undefined
 		const endLineNum = block.params.end_line ? Number.parseInt(String(block.params.end_line)) : undefined
 		const rawOffset = (block.params as any).offset

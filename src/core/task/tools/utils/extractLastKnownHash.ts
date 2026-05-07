@@ -1,7 +1,7 @@
 import path from "node:path"
 import { arePathsEqual } from "@utils/path"
-import { DiracDefaultTool } from "@/shared/tools"
 import type { DiracAssistantToolUseBlock, DiracStorageMessage, DiracUserToolResultContentBlock } from "@/shared/messages"
+import { DiracDefaultTool } from "@/shared/tools"
 
 /**
  * Walks the API conversation history backwards looking for the most recent
@@ -62,9 +62,7 @@ export function extractLastKnownHashFromHistory(
 				continue
 			}
 			const resultBlock = nextMessage.content.find(
-				(c) =>
-					c.type === "tool_result" &&
-					(c as unknown as DiracUserToolResultContentBlock).tool_use_id === toolUseId,
+				(c) => c.type === "tool_result" && (c as unknown as DiracUserToolResultContentBlock).tool_use_id === toolUseId,
 			)
 			if (!resultBlock || resultBlock.type !== "tool_result") {
 				continue

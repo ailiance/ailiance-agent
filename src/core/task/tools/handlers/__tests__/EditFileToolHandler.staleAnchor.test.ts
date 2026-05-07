@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { DiracDefaultTool } from "@shared/tools"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
-import { contentHash, ANCHOR_DELIMITER } from "@utils/line-hashing"
+import { ANCHOR_DELIMITER, contentHash } from "@utils/line-hashing"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import sinon from "sinon"
 import { HostProvider } from "@/hosts/host-provider"
@@ -171,7 +171,9 @@ describe("EditFileToolHandler – stale anchor detection (Sprint 3 task E)", () 
 			{
 				capturePreSaveState: sandbox.stub().resolves([]),
 				getDiagnosticsFeedback: sandbox.stub().resolves({ newProblemsMessage: "", fixedCount: 0 }),
-				getDiagnosticsFeedbackForFiles: sandbox.stub().callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
+				getDiagnosticsFeedbackForFiles: sandbox
+					.stub()
+					.callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
 			} as any,
 		])
 

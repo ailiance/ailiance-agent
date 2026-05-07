@@ -1,6 +1,6 @@
 import { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
-import * as fs from "fs/promises"
 import { atomicWriteFile, ensureParentDirectory } from "@utils/fs"
+import * as fs from "fs/promises"
 import { Logger } from "@/shared/services/Logger"
 
 /**
@@ -40,7 +40,9 @@ export class FileEditProvider extends DiffViewProvider {
 		_currentLine: number | undefined,
 	): Promise<void> {
 		if (this.documentContent === undefined) {
-			throw new Error(`Document not initialized for ${this.relPath || "unknown file"}. This can happen if the file failed to open or was already reset.`)
+			throw new Error(
+				`Document not initialized for ${this.relPath || "unknown file"}. This can happen if the file failed to open or was already reset.`,
+			)
 		}
 
 		// Split the document into lines
@@ -155,6 +157,4 @@ export class FileEditProvider extends DiffViewProvider {
 			userEdits: undefined,
 		}
 	}
-
-
 }

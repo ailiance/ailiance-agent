@@ -1,6 +1,6 @@
-import { ToolUse } from "@core/assistant-message";
-import { splitAnchor, stripHashes, getDelimiter } from "@utils/line-hashing";
-import { AppliedEdit, Edit, FailedEdit, FuzzyCandidate, ResolvedEdit } from "./types";
+import { ToolUse } from "@core/assistant-message"
+import { getDelimiter, splitAnchor, stripHashes } from "@utils/line-hashing"
+import { AppliedEdit, Edit, FailedEdit, FuzzyCandidate, ResolvedEdit } from "./types"
 
 /**
  * Threshold for the fuzzy fallback: only candidates with normalized

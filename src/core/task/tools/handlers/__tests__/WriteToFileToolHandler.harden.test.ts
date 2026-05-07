@@ -158,13 +158,7 @@ describe("WriteToFileToolHandler – hardening (Sprint 3-B)", () => {
 
 			// Use validateAndPrepareFileOperation directly to avoid the full execute() pipeline
 			// (hooks, telemetry, …) which is out of scope for this hardening test.
-			const result = await handler.validateAndPrepareFileOperation(
-				config,
-				block,
-				"ok.txt",
-				undefined,
-				payload,
-			)
+			const result = await handler.validateAndPrepareFileOperation(config, block, "ok.txt", undefined, payload)
 			// Should NOT short-circuit with a size-limit error.
 			assert.ok(!("error" in result), `unexpected error: ${(result as any).error}`)
 		})
@@ -265,13 +259,7 @@ describe("WriteToFileToolHandler – hardening (Sprint 3-B)", () => {
 				call_id: "mkdir-1",
 			}
 
-			const result = await handler.validateAndPrepareFileOperation(
-				config,
-				block,
-				relPath,
-				undefined,
-				"ok",
-			)
+			const result = await handler.validateAndPrepareFileOperation(config, block, relPath, undefined, "ok")
 			assert.ok(!("error" in result), `unexpected error: ${(result as any).error}`)
 
 			const parent = path.join(tmpDir, "nested-a", "nested-b")

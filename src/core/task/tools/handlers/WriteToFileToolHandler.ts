@@ -36,9 +36,7 @@ export const WRITE_TO_FILE_ABSOLUTE_MAX = 50_000_000
 export function resolveWriteToFileMaxSize(config: TaskConfig): number {
 	let configured: number | undefined
 	try {
-		configured = config.services.stateManager.getGlobalSettingsKey("writeToFileMaxSize" as any) as
-			| number
-			| undefined
+		configured = config.services.stateManager.getGlobalSettingsKey("writeToFileMaxSize" as any) as number | undefined
 	} catch {
 		configured = undefined
 	}

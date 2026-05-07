@@ -139,6 +139,21 @@ export class ToolExecutorCoordinator {
 	}
 
 	/**
+	 * Snapshot of currently-registered tool names. Used by runtime
+	 * validation to compose helpful hints for the model when it
+	 * proposes an unknown / hallucinated tool name.
+	 *
+	 * Excludes dynamic subagent handlers (they are matched by a
+	 * separate registry-driven predicate, not enumerated here).
+	 */
+	getKnownToolNames(): ReadonlySet<string> {
+		const out = new Set<string>()
+		for (const k of this.handlers.keys()) out.add(k)
+		for (const k of this.mcpHandlers.keys()) out.add(k)
+		return out
+	}
+
+	/**
 	 * Get a handler for the given tool name
 	 */
 	getHandler(toolName: string): IToolHandler | undefined {

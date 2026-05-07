@@ -258,11 +258,25 @@ export class LiteLlmHandler implements ApiHandler {
 									: (m.content as Array<{ type: string; text: string }>).map((b) => b.text).join(""),
 						})),
 					]
+					// Read SSE timeouts from user settings; tolerate uninitialized
+					// StateManager (CLI bootstrap, tests) by falling back to undefined
+					// — LocalRouter applies its own built-in defaults in that case.
+					let timeoutMs: number | undefined
+					let idleTimeoutMs: number | undefined
+					try {
+						const sm = StateManager.get()
+						timeoutMs = sm.getGlobalSettingsKey("localRouterTimeoutMs")
+						idleTimeoutMs = sm.getGlobalSettingsKey("localRouterIdleTimeoutMs")
+					} catch {
+						// StateManager not initialized — defaults will apply downstream
+					}
 					for await (const chunk of this.localRouter.chatStream({
 						messages: routerMessages,
 						max_tokens: this.options.liteLlmModelInfo?.maxTokens,
 						temperature: 1,
 						stream: true,
+						timeoutMs,
+						idleTimeoutMs,
 					})) {
 						// tools are never passed here (guard above), so only text chunks expected
 						if (chunk.type === "text") {

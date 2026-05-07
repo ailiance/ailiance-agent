@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert"
-import { describe, it } from "mocha"
 import { ANCHOR_DELIMITER } from "@utils/line-hashing"
+import { describe, it } from "mocha"
 import { EditExecutor, FUZZY_MATCH_THRESHOLD } from "../EditExecutor"
 import type { FuzzyCandidate } from "../types"
 
@@ -83,12 +83,7 @@ describe("EditExecutor — fuzzy fallback (Sprint 3 task D)", () => {
 		})
 
 		it("collects candidates for both anchor and end_anchor on a replace edit", () => {
-			const lines = [
-				"function f() {",
-				"  return banana()",
-				"  console.log('done')",
-				"}",
-			]
+			const lines = ["function f() {", "  return banana()", "  console.log('done')", "}"]
 			const hashes = ["A", "B", "C", "D"]
 			const block: any = {
 				params: {
@@ -106,10 +101,7 @@ describe("EditExecutor — fuzzy fallback (Sprint 3 task D)", () => {
 			assert.equal(failedEdits.length, 1)
 			const cands = failedEdits[0].fuzzyCandidates
 			assert.equal(cands?.length, 2)
-			assert.deepEqual(
-				cands?.map((c: FuzzyCandidate) => c.type).sort(),
-				["anchor", "end_anchor"],
-			)
+			assert.deepEqual(cands?.map((c: FuzzyCandidate) => c.type).sort(), ["anchor", "end_anchor"])
 		})
 
 		it("leaves sibling edits unaffected when one anchor fuzzy-fails", () => {
@@ -146,28 +138,19 @@ describe("EditExecutor — fuzzy fallback (Sprint 3 task D)", () => {
 			const normHashes = hashes.map((h) => h.trim())
 			const block: any = {
 				params: {
-					edits: [
-						{ anchor: `B${D}  return banana();`, edit_type: "insert_after", text: "  // hi" },
-					],
+					edits: [{ anchor: `B${D}  return banana();`, edit_type: "insert_after", text: "  // hi" }],
 				},
 			}
 			const { failedEdits } = exec.resolveEdits([block], lines, hashes)
 			const failed = failedEdits[0]
-			const approved = new Map<"anchor" | "end_anchor", FuzzyCandidate>([
-				["anchor", failed.fuzzyCandidates![0]],
-			])
+			const approved = new Map<"anchor" | "end_anchor", FuzzyCandidate>([["anchor", failed.fuzzyCandidates![0]]])
 			const promoted = exec.resolveFuzzyEdit(failed, approved, normHashes, lines)
 			assert.ok(promoted)
 			assert.equal(promoted?.lineIdx, 1)
 		})
 
 		it("returns null when end_anchor of a replace is not approved", () => {
-			const lines = [
-				"function start() {",
-				"  return banana()",
-				"  console.log('done')",
-				"}",
-			]
+			const lines = ["function start() {", "  return banana()", "  console.log('done')", "}"]
 			const hashes = ["A", "B", "C", "D"]
 			const normHashes = hashes.map((h) => h.trim())
 			const block: any = {

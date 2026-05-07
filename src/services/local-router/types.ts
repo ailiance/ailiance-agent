@@ -39,6 +39,23 @@ export interface ChatRequest {
 	temperature?: number
 	stream?: boolean
 	tools?: ChatTool[]
+	/**
+	 * Optional caller-provided AbortSignal. Composed with the internal
+	 * timeout controller — aborting either side aborts the underlying fetch.
+	 */
+	signal?: AbortSignal
+	/**
+	 * Total timeout for an SSE chatStream (ms). When exceeded the stream
+	 * is aborted and a LocalRouterTimeoutError(kind:"total") is thrown.
+	 * Falls back to the localRouterTimeoutMs setting default (60_000).
+	 */
+	timeoutMs?: number
+	/**
+	 * Idle / heartbeat timeout (ms). When no chunk is received for this many
+	 * ms, the stream is aborted with LocalRouterTimeoutError(kind:"idle").
+	 * Falls back to the localRouterIdleTimeoutMs setting default (20_000).
+	 */
+	idleTimeoutMs?: number
 }
 
 export interface ChatResponse {

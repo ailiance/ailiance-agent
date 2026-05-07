@@ -149,10 +149,7 @@ describe("ReadFileToolHandler – pagination & sizing", () => {
 		const handler = new ReadFileToolHandler(validator)
 		await writeLines("a.txt", 50)
 
-		const result = (await handler.execute(
-			config,
-			makeBlock({ paths: ["a.txt"], offset: 5, limit: 3 }),
-		)) as string
+		const result = (await handler.execute(config, makeBlock({ paths: ["a.txt"], offset: 5, limit: 3 }))) as string
 
 		// content should include line6, line7, line8 and not line5 or line9
 		assert.match(result, /line6/)
@@ -167,10 +164,7 @@ describe("ReadFileToolHandler – pagination & sizing", () => {
 		const handler = new ReadFileToolHandler(validator)
 		await writeLines("b.txt", 50)
 
-		const result = (await handler.execute(
-			config,
-			makeBlock({ paths: ["b.txt"], start_line: 3, end_line: 5 }),
-		)) as string
+		const result = (await handler.execute(config, makeBlock({ paths: ["b.txt"], start_line: 3, end_line: 5 }))) as string
 
 		assert.match(result, /line3/)
 		assert.match(result, /line4/)
@@ -198,16 +192,10 @@ describe("ReadFileToolHandler – pagination & sizing", () => {
 		const handler = new ReadFileToolHandler(validator)
 		await writeLines("d.txt", 10)
 
-		const r1 = (await handler.execute(
-			config,
-			makeBlock({ paths: ["d.txt"], offset: -1, limit: 1 }),
-		)) as string
+		const r1 = (await handler.execute(config, makeBlock({ paths: ["d.txt"], offset: -1, limit: 1 }))) as string
 		assert.match(r1, /Invalid offset/)
 
-		const r2 = (await handler.execute(
-			config,
-			makeBlock({ paths: ["d.txt"], offset: 0, limit: 0 }),
-		)) as string
+		const r2 = (await handler.execute(config, makeBlock({ paths: ["d.txt"], offset: 0, limit: 0 }))) as string
 		assert.match(r2, /Invalid limit/)
 	})
 

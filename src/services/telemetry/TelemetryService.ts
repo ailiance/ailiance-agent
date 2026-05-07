@@ -293,6 +293,8 @@ export class TelemetryService {
 			SUBAGENT_COMPLETED: "task.subagent_completed",
 			// Skills telemetry events
 			SKILL_USED: "task.skill_used",
+			// Tracks when a tool name parsed from the model is rejected (hallucinated / forbidden)
+			INVALID_TOOL_NAME: "task.invalid_tool_name",
 		},
 		// UI interaction events for tracking user engagement
 		UI: {
@@ -981,6 +983,21 @@ export class TelemetryService {
 		const toolCallCount = this.incrementTaskCounter(this.taskToolCallCounts, ulid)
 		this.recordCounter(TelemetryService.METRICS.TOOLS.CALLS_TOTAL, 1, toolAttributes)
 		this.recordHistogram(TelemetryService.METRICS.TOOLS.CALLS_PER_TASK, toolCallCount, toolAttributes)
+	}
+
+	/**
+	 * Capture a runtime rejection of a tool name proposed by the model
+	 * (e.g. fictional `digikey:search` or `kicad.new_project`).
+	 * Best-effort; safe to call from validators that must not throw.
+	 */
+	public captureInvalidToolName(name: string, reason: string): void {
+		this.capture({
+			event: TelemetryService.EVENTS.TASK.INVALID_TOOL_NAME,
+			properties: {
+				toolName: name,
+				reason,
+			},
+		})
 	}
 
 	public captureSkillUsed(args: {
