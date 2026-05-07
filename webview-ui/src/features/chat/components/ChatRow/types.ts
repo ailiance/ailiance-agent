@@ -28,7 +28,7 @@ export interface QuoteButtonState {
 export interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> {}
 
 
-export type DisplayUnitStatus = "pending" | "active" | "success" | "error"
+export type DisplayUnitStatus = "pending" | "active" | "running" | "success" | "error" | "cancelled"
 
 export interface DisplayUnit {
 	id: string // Unique ID for the row
@@ -45,4 +45,6 @@ export interface DisplayUnit {
 	hasComponent?: boolean // Whether a specialized component is handling the expansion
 	toolName?: string // The raw tool name for tooltip
 	hunks?: DiffStructure // v0.6 Sprint 1-D: structured diff from host (per-file)
+	// v0.6 Sprint 2-G: async tool execution metadata.
+	asyncDurationMs?: number
 }

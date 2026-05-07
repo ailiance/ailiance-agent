@@ -28,6 +28,18 @@ describe("listFiles", () => {
 		didHitLimit.should.equal(false)
 	})
 
+	it("throws AbortError when abortSignal is already aborted (recursive)", async () => {
+		await fs.mkdir(tmpDir, { recursive: true })
+		const ctrl = new AbortController()
+		ctrl.abort()
+		try {
+			await listFiles(tmpDir, true, 200, ctrl.signal)
+			throw new Error("expected AbortError")
+		} catch (err: any) {
+			err.name.should.equal("AbortError")
+		}
+	})
+
 	it("still lists files when cwd points to a directory", async () => {
 		await fs.mkdir(tmpDir, { recursive: true })
 		const nestedFile = path.join(tmpDir, "index.ts")

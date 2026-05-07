@@ -1,8 +1,9 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { AssistantMessageContent } from "@core/assistant-message"
 import { DiracAskResponse } from "@shared/WebviewMessage"
-import type { HookExecution } from "./types/HookExecution"
 import { SkillMetadata } from "@/shared/skills"
+import { PendingToolRegistry } from "./PendingToolRegistry"
+import type { HookExecution } from "./types/HookExecution"
 
 export class TaskState {
 	// Task-level timing
@@ -60,7 +61,6 @@ export class TaskState {
 	// Task Initialization
 	isInitialized = false
 
-
 	// Task Abort / Cancellation
 	abort = false
 	didFinishAbortingStream = false
@@ -79,4 +79,7 @@ export class TaskState {
 	availableSkills: SkillMetadata[] = []
 	discoveredSkillsCache?: SkillMetadata[]
 
+	// Async tool execution registry (Sprint 2 — S2-A foundation).
+	// One registry per Task; cancelled wholesale on task abort to avoid orphans.
+	readonly pendingTools = new PendingToolRegistry()
 }

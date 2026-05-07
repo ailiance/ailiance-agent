@@ -75,6 +75,9 @@ export const toolParamNames = [
 	"existing_symbol",
 	"new_symbol",
 	"required_files",
+	"task_id",
+	"wait",
+	"timeout_ms",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]

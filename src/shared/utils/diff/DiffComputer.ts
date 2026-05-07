@@ -53,7 +53,7 @@ function parseSearchReplacePairs(content: string): Array<{ search: string; repla
 	const searchPositions: Array<{ index: number; startLine?: number }> = []
 	let match: RegExpExecArray | null
 	while ((match = searchRegex.exec(content)) !== null) {
-		searchPositions.push({ index: match.index, startLine: match[1] ? parseInt(match[1], 10) : undefined })
+		searchPositions.push({ index: match.index, startLine: match[1] ? Number.parseInt(match[1], 10) : undefined })
 	}
 
 	for (let i = 0; i < searchPositions.length; i++) {

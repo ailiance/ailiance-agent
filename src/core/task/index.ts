@@ -539,6 +539,13 @@ export class Task {
 		} catch (_err) {
 			// non-fatal — tracing must never break abort
 		}
+		// Cancel any pending async tool invocations so they do not survive
+		// the parent task. Best-effort: cancellation must never block abort.
+		try {
+			this.taskState.pendingTools.cancelAll()
+		} catch (_err) {
+			// non-fatal
+		}
 		// Disconnect MCP servers; no-op if none were connected.
 		mcpClientManager.disconnectAll().catch((_err) => {
 			// non-fatal — MCP cleanup must never block abort

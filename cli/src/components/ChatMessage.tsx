@@ -236,6 +236,20 @@ const ResultRow: React.FC<{ children: React.ReactNode; isFirst?: boolean }> = ({
 /**
  * Render a tool call in webview style: "agent-kiki wants to read this file:" / "agent-kiki read this file:"
  */
+/**
+ * Format a duration in milliseconds for CLI display.
+ * v0.6 Sprint 2-G — mirrors the webview formatter.
+ */
+function formatAsyncDuration(ms: number): string {
+	if (!Number.isFinite(ms) || ms < 0) return ""
+	if (ms < 1000) return `${Math.round(ms)}ms`
+	const totalSec = ms / 1000
+	if (totalSec < 60) return `${totalSec.toFixed(1)}s`
+	const m = Math.floor(totalSec / 60)
+	const s = Math.floor(totalSec - m * 60)
+	return `${m}m ${s}s`
+}
+
 const ToolCallText: React.FC<{
 	toolName: string
 	args: Record<string, unknown>
@@ -247,6 +261,20 @@ const ToolCallText: React.FC<{
 	const mainArg = getToolMainArg(toolName, args)
 	const toolColor = mode === "plan" ? "yellow" : COLORS.primaryBlue
 
+	// v0.6 Sprint 2-G: surface async tool status & duration if present.
+	const asyncStatus = args.asyncStatus as string | undefined
+	const asyncDurationMs = args.asyncDurationMs as number | undefined
+	let asyncSuffix = ""
+	if (asyncStatus === "running") {
+		asyncSuffix = " (running…)"
+	} else if (asyncStatus === "cancelled") {
+		asyncSuffix = " (cancelled)"
+	} else if (asyncStatus === "failed") {
+		asyncSuffix = asyncDurationMs !== undefined ? ` (failed · ${formatAsyncDuration(asyncDurationMs)})` : " (failed)"
+	} else if (asyncStatus === "completed" && asyncDurationMs !== undefined) {
+		asyncSuffix = ` (${formatAsyncDuration(asyncDurationMs)})`
+	}
+
 	return (
 		<Text>
 			<Text color={toolColor}>agent-kiki {actionText}</Text>
@@ -256,6 +284,7 @@ const ToolCallText: React.FC<{
 					<Text>{mainArg}</Text>
 				</Text>
 			)}
+			{asyncSuffix && <Text color="gray">{asyncSuffix}</Text>}
 		</Text>
 	)
 }

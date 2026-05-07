@@ -32,6 +32,8 @@ export enum DiracDefaultTool {
 	DIAGNOSTICS_SCAN = "diagnostics_scan",
 	REPLACE_SYMBOL = "replace_symbol",
 	RENAME_SYMBOL = "rename_symbol",
+
+	GET_TOOL_RESULT = "get_tool_result",
 }
 
 // Array of all tool names for compatibility
@@ -66,4 +68,5 @@ export const READ_ONLY_TOOLS = [
 	DiracDefaultTool.USE_SKILL,
 	DiracDefaultTool.LIST_SKILLS,
 	DiracDefaultTool.USE_SUBAGENTS,
+	DiracDefaultTool.GET_TOOL_RESULT,
 ] as const

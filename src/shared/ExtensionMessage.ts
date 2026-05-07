@@ -288,6 +288,25 @@ export interface DiracSayTool {
 	url?: string
 	query?: string
 	diagnostics?: { fixedCount: number; newProblemsMessage?: string }
+
+	// v0.6 Sprint 2-G: async tool execution notification fields.
+	// All optional / additive — older messages without these fields render exactly
+	// as before. When present, the UI renders a "running" status row that flips
+	// to "completed" / "failed" / "cancelled" once the background tool resolves.
+	/** Stable id of the pending tool invocation (matches PendingToolEntry.taskId). */
+	asyncTaskId?: string
+	/** Lifecycle phase mirrored from PendingToolRegistry. */
+	asyncStatus?: "running" | "completed" | "failed" | "cancelled"
+	/** Wall-clock start, ms since epoch. */
+	asyncStartedAt?: number
+	/** Wall-clock finish, ms since epoch. Only set on terminal status. */
+	asyncFinishedAt?: number
+	/** Convenience: asyncFinishedAt - asyncStartedAt, ms. */
+	asyncDurationMs?: number
+	/** Final tool result text/JSON (set on completed). UI may render in expand panel. */
+	asyncResult?: string
+	/** Human-readable error (set on failed). */
+	asyncError?: string
 }
 
 export interface DiracSayHook {

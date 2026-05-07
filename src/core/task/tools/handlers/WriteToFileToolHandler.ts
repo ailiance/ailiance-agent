@@ -1,5 +1,5 @@
-import path from "node:path"
 import fs from "node:fs/promises"
+import path from "node:path"
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
@@ -7,10 +7,10 @@ import { getWorkspaceBasename, resolveWorkspacePath } from "@core/workspace"
 import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { DiracSayTool } from "@shared/ExtensionMessage"
 import { getLastApiReqTotalTokens } from "@shared/getApiMetrics"
+import { computeDiffFromContents, type DiffStructure } from "@shared/utils/diff"
 import { stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { applyPatch } from "diff"
-import { computeDiffFromContents, type DiffStructure } from "@shared/utils/diff"
 import { telemetryService } from "@/services/telemetry"
 import { DiracDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
@@ -56,10 +56,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			// Create and show partial UI message
 			const sharedMessageProps: DiracSayTool = {
 				tool: fileExists ? "editedExistingFile" : "newFileCreated",
-				path: getReadablePath(
-					config.cwd,
-					uiHelpers.removeClosingTag(block, "path", relPath),
-				),
+				path: getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, "path", relPath)),
 				content: content,
 				operationIsLocatedInWorkspace: await isLocatedInWorkspace(relPath),
 				startLineNumbers: undefined,
@@ -103,10 +100,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 		if (!rawRelPath) {
 			config.taskState.consecutiveMistakeCount++
 			await config.services.diffViewProvider.reset()
-			return await config.callbacks.sayAndCreateMissingParamError(
-				block.name,
-				"path",
-			)
+			return await config.callbacks.sayAndCreateMissingParamError(block.name, "path")
 		}
 
 		if (block.name === DiracDefaultTool.FILE_NEW && !rawContent) {
@@ -341,7 +335,12 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			config.services.fileContextTracker.markFileAsEditedByDirac(relPath)
 
 			// Save the changes and get the result
-			let saveResult: { newProblemsMessage?: string; userEdits?: string; autoFormattingEdits?: string; finalContent?: string }
+			let saveResult: {
+				newProblemsMessage?: string
+				userEdits?: string
+				autoFormattingEdits?: string
+				finalContent?: string
+			}
 			if (shouldAutoApprove && config.backgroundEditEnabled) {
 				saveResult = await config.services.diffViewProvider.applyAndSaveSilently(absolutePath, newContent)
 			} else {
@@ -531,7 +530,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 					await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but permission was denied.`)
 					return { fileExists: true, ok: false, errorResponse }
 				}
- else if (error.code === "EROFS") {
+				if (error.code === "EROFS") {
 					const errorResponse = formatResponse.toolError(formatResponse.readOnlyError(relPath))
 					await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but the file system is read-only.`)
 					return { fileExists: true, ok: false, errorResponse }
@@ -545,22 +544,26 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			if (error.code === "ENOENT") {
 				config.services.diffViewProvider.editType = "create"
 				return { fileExists: false, ok: true }
-			} else if (error.code === "ENOTDIR") {
+			}
+			if (error.code === "ENOTDIR") {
 				const errorResponse = formatResponse.toolError(formatResponse.pathConflictError(relPath))
-				await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but a parent component is not a directory.`)
+				await config.callbacks.say(
+					"error",
+					`Dirac tried to write to '${relPath}', but a parent component is not a directory.`,
+				)
 				return { fileExists: false, ok: false, errorResponse }
-			} else if (error.code === "EACCES") {
+			}
+			if (error.code === "EACCES") {
 				const errorResponse = formatResponse.toolError(formatResponse.filePermissionError(relPath, "access"))
 				await config.callbacks.say("error", `Dirac tried to access '${relPath}', but permission was denied.`)
 				return { fileExists: false, ok: false, errorResponse }
-			} else if (error.code === "EROFS") {
+			}
+			if (error.code === "EROFS") {
 				const errorResponse = formatResponse.toolError(formatResponse.readOnlyError(relPath))
 				await config.callbacks.say("error", `Dirac tried to write to '${relPath}', but the file system is read-only.`)
 				return { fileExists: false, ok: false, errorResponse }
-			} else {
-				throw error
 			}
+			throw error
 		}
 	}
-
 }

@@ -537,4 +537,40 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		assert.equal(typeof result, "string")
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
+
+	it("returns a task_id placeholder when ripgrep exceeds the fast-path budget (S2-D)", async () => {
+		const { config, taskState, validator } = createConfig()
+		const handler = new SearchFilesToolHandler(validator)
+
+		const ripgrepModule = await import("@services/ripgrep")
+		// Simulate a slow search (>500ms fast-path budget). Resolve eventually
+		// so the background settlement path also fires.
+		let resolveSearch: (v: string) => void
+		const slowPromise = new Promise<string>((resolve) => {
+			resolveSearch = resolve
+		})
+		sandbox.stub(ripgrepModule, "regexSearchFiles").returns(slowPromise as any)
+
+		const start = Date.now()
+		const result = await handler.execute(config, makeBlock(".", "slow-pattern"))
+		const elapsed = Date.now() - start
+
+		// Should return after roughly the fast-path budget, not after the
+		// underlying ripgrep promise settles.
+		assert.equal(typeof result, "string")
+		assert.ok((result as string).includes("task_id:"), `expected task_id placeholder, got: ${result}`)
+		assert.ok((result as string).includes("status: running"))
+		assert.ok((result as string).includes("get_tool_result"))
+		assert.ok(elapsed < 1500, `expected fast return (<1500ms), got ${elapsed}ms`)
+
+		// Registry should hold a running entry for search_files.
+		const running = taskState.pendingTools.list({ status: "running", toolName: "search_files" })
+		assert.equal(running.length, 1)
+
+		// Settle the background promise and let the registry observe it.
+		resolveSearch!("Found 0 results.\n\n")
+		await new Promise((r) => setTimeout(r, 50))
+		const completed = taskState.pendingTools.list({ status: "completed", toolName: "search_files" })
+		assert.equal(completed.length, 1)
+	})
 })
