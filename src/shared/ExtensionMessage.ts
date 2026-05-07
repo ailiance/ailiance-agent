@@ -282,6 +282,9 @@ export interface DiracSayTool {
 		diff?: string
 		edits: Array<{ additions: number; deletions: number }>
 		diagnostics?: { fixedCount: number; newProblemsMessage?: string }
+		// v0.6 Sprint 1-C: structured diff (hunks + counts) computed host-side
+		// so CLI and webview render unified +/- views from a single source.
+		hunks?: import("./utils/diff/DiffStructure").DiffStructure
 	}>
 	command?: string
 	action?: BrowserAction

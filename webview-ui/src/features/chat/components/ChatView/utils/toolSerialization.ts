@@ -169,6 +169,7 @@ export function serializeToolToDisplayUnits(
 						isExpandable: true,
 						content: fileDiff,
 						path: path,
+						hunks: summary.hunks,
 					})
 				})
 			} else if (tool.path || (tool as any).path) {
@@ -294,6 +295,7 @@ export function serializeToolToDisplayUnits(
 						isExpandable: true,
 						content: fileDiff,
 						path: path,
+						hunks: summary.hunks,
 					})
 				})
 			} else {

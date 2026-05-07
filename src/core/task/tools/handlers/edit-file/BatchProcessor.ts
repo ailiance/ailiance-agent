@@ -10,6 +10,8 @@ import { HostProvider } from "@/hosts/host-provider"
 import { getDiagnosticsProviders } from "@/integrations/diagnostics/getDiagnosticsProviders"
 
 import { DiracSayTool } from "@/shared/ExtensionMessage"
+import { computeDiff } from "@shared/utils/diff"
+import type { DiffStructure } from "@shared/utils/diff"
 import { DiracAskResponse } from "@/shared/WebviewMessage"
 import { DiracDefaultTool } from "@/shared/tools"
 import { ToolResponse } from "../../../index"
@@ -481,17 +483,31 @@ export class BatchProcessor {
         const diffs = batches.map((b) => b.prepared?.diff).join("\n\n")
 
         const editSummaries = await Promise.all(
-            batches.map(async (b) => ({
-                path: b.displayPath,
-                edits:
-                    b.prepared?.appliedEdits.map((ae) => ({
-                        additions: ae.linesAdded,
-                        deletions: ae.linesDeleted,
-                    })) || [],
-                diagnostics: b.diagnostics,
-                diff: b.prepared?.diff,
-                finalContent: b.prepared?.finalContent,
-            })),
+            batches.map(async (b) => {
+                const diffText = b.prepared?.diff
+                let hunks: DiffStructure | undefined
+                if (diffText && diffText.length <= 500_000) {
+                    const computed = computeDiff(diffText)
+                    hunks = {
+                        path: b.displayPath,
+                        totalAdditions: computed.totalAdditions,
+                        totalDeletions: computed.totalDeletions,
+                        blocks: computed.blocks,
+                    }
+                }
+                return {
+                    path: b.displayPath,
+                    edits:
+                        b.prepared?.appliedEdits.map((ae) => ({
+                            additions: ae.linesAdded,
+                            deletions: ae.linesDeleted,
+                        })) || [],
+                    diagnostics: b.diagnostics,
+                    diff: diffText,
+                    finalContent: b.prepared?.finalContent,
+                    hunks,
+                }
+            }),
         )
 
         const operationIsLocatedInWorkspace =

@@ -11,6 +11,8 @@ import { getDiagnosticsProviders } from "@/integrations/diagnostics/getDiagnosti
 import { SymbolIndexService, SymbolLocation } from "@/services/symbol-index/SymbolIndexService"
 import { telemetryService } from "@/services/telemetry"
 import { DiracDefaultTool } from "@/shared/tools"
+import { computeDiff } from "@shared/utils/diff"
+import type { DiffStructure } from "@shared/utils/diff"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -229,10 +231,24 @@ export class RenameSymbolToolHandler implements IFullyManagedTool {
 				new_symbol: newSymbol,
 				total_replacements: totalReplacements,
 				files_affected: fileResults.length,
-				editSummaries: fileResults.map((fr) => ({
-					path: fr.displayPath,
-					edits: [{ additions: fr.replacementCount, deletions: fr.replacementCount }],
-				})),
+				editSummaries: fileResults.map((fr) => {
+					let hunks: DiffStructure | undefined
+					if (fr.diff && fr.diff.length <= 500_000) {
+						const computed = computeDiff(fr.diff)
+						hunks = {
+							path: fr.displayPath,
+							totalAdditions: computed.totalAdditions,
+							totalDeletions: computed.totalDeletions,
+							blocks: computed.blocks,
+						}
+					}
+					return {
+						path: fr.displayPath,
+						edits: [{ additions: fr.replacementCount, deletions: fr.replacementCount }],
+						diff: fr.diff,
+						hunks,
+					}
+				}),
 				diff: allDiffs,
 			})
 
