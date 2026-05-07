@@ -303,6 +303,50 @@ export function computeDiff(content: string): ComputedDiff {
 }
 
 /**
+ * Compute a structured diff directly from two full-file contents.
+ * Used by tools that operate on full content (write_to_file, replace_symbol)
+ * rather than SEARCH/REPLACE or ApplyPatch markers.
+ *
+ * Returns a single-block ComputedDiff where line numbers refer to the
+ * original (oldLineNumber) and modified (newLineNumber) buffers.
+ */
+export function computeDiffFromContents(original: string, modified: string): ComputedDiff {
+	const lines: DiffLine[] = []
+	let additions = 0
+	let deletions = 0
+
+	const changes = Diff.diffLines(original ?? "", modified ?? "", { newlineIsToken: false })
+
+	let oldLineNum = 1
+	let newLineNum = 1
+
+	for (const change of changes) {
+		const changeLines = change.value.replace(/\n$/, "").split("\n")
+		for (const line of changeLines) {
+			if (change.added) {
+				lines.push({ type: "add", content: line, newLineNumber: newLineNum })
+				newLineNum++
+				additions++
+			} else if (change.removed) {
+				lines.push({ type: "remove", content: line, oldLineNumber: oldLineNum })
+				oldLineNum++
+				deletions++
+			} else {
+				lines.push({ type: "context", content: line, oldLineNumber: oldLineNum, newLineNumber: newLineNum })
+				oldLineNum++
+				newLineNum++
+			}
+		}
+	}
+
+	return {
+		blocks: [{ lines, additions, deletions }],
+		totalAdditions: additions,
+		totalDeletions: deletions,
+	}
+}
+
+/**
  * Get the maximum line number width for gutter sizing
  */
 export function getGutterWidth(diff: ComputedDiff): number {
