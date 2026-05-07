@@ -420,7 +420,7 @@ export class TelemetryService {
 		this.capture({ event: TelemetryService.EVENTS.USER.OPT_IN })
 	}
 
-		/**
+	/**
 	 * Captures a telemetry event if telemetry is enabled
 	 * @param event The event to capture with its properties
 	 */
@@ -429,7 +429,7 @@ export class TelemetryService {
 		this.captureToProviders(event.event, propertiesWithMetadata, false)
 	}
 
-		/**
+	/**
 	 * Captures a required telemetry event that bypasses user opt-out settings
 	 * @param event The event name to capture
 	 * @param properties Optional properties to attach to the event
@@ -609,7 +609,7 @@ export class TelemetryService {
 		})
 	}
 
-		/**
+	/**
 	 * Identifies the user and their organization for telemetry tracking.
 	 * This should be called after successful authentication.
 	 * @param userInfo User information including ID and organization details

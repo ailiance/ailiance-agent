@@ -28,7 +28,8 @@ const TOOL_KIND_MAP: Record<string, acp.ToolKind> = {
 	listFilesTopLevel: "read",
 	listFilesRecursive: "read",
 	listCodeDefinitionNames: "read",
-	searchFiles: "read",
+	searchFiles: "search",
+	fileDeleted: "delete",
 	// Other
 	summarizeTask: "think",
 	useSkill: "other",

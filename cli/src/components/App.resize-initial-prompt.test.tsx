@@ -24,6 +24,19 @@ function hasClearSequenceCall(calls: unknown[][]): boolean {
 	return calls.some((call) => call[0] === CLEAR_SEQUENCE)
 }
 
+// ink-picture's TerminalInfoProvider blocks rendering in headless tests; stub.
+vi.mock("ink-picture", () => ({
+	TerminalInfoProvider: ({ children }: any) => children,
+}))
+
+vi.mock("./AiActDisclosure", () => ({
+	AiActDisclosure: ({ onAcknowledge }: any) => {
+		// Auto-acknowledge in tests so routing logic is exercised directly
+		React.useEffect(() => { onAcknowledge() }, [])
+		return null
+	},
+}))
+
 vi.mock("./ChatView", () => ({
 	ChatView: ({ controller, initialPrompt, initialImages }: any) => {
 		React.useEffect(() => {

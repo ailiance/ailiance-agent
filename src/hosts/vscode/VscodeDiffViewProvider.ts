@@ -5,8 +5,8 @@ import * as vscode from "vscode"
 import { DecorationController } from "@/hosts/vscode/DecorationController"
 import { NotebookDiffView } from "@/hosts/vscode/NotebookDiffView"
 import { Logger } from "@/shared/services/Logger"
-import { arePathsEqual } from "@/utils/path"
 import { createDirectoriesForFile } from "@/utils/fs"
+import { arePathsEqual } from "@/utils/path"
 
 export const DIFF_VIEW_URI_SCHEME = "dirac-diff"
 

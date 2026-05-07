@@ -17,6 +17,9 @@ vi.mock("ink", async (importOriginal) => {
 vi.mock("child_process", () => ({
 	execSync: vi.fn().mockReturnValue(""),
 	exec: vi.fn(),
+	execFile: vi.fn(),
+	spawn: vi.fn(),
+	spawnSync: vi.fn().mockReturnValue({ status: 0, stdout: "", stderr: "" }),
 }))
 
 // Mock dependencies

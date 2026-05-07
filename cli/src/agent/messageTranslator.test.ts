@@ -373,7 +373,7 @@ describe("translateMessage - say messages", () => {
 
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
 			expect(call.kind).toBe("execute")
-			expect(call.title).toContain("npm install")
+			expect(call.title).toBe("Execute")
 			expect(call.rawInput).toEqual({ command: "npm install" })
 
 			// Should set currentToolCallId
@@ -393,9 +393,9 @@ describe("translateMessage - say messages", () => {
 			const toolCall = result.updates.find((u) => u.sessionUpdate === "tool_call") as acp.ToolCall & {
 				sessionUpdate: "tool_call"
 			}
-			// Title format is "Execute: {command up to 50 chars}..." so max ~63 chars
-			expect(toolCall.title.length).toBeLessThanOrEqual(65)
-			expect(toolCall.title).toContain("...")
+			// Title is now a fixed label "Execute"; the command lives in rawInput
+			expect(toolCall.title).toBe("Execute")
+			expect((toolCall.rawInput as { command: string }).command).toBe(longCommand)
 		})
 	})
 
@@ -478,7 +478,7 @@ describe("translateMessage - say messages", () => {
 
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
 			expect(call.kind).toBe("read")
-			expect(call.title).toContain("/src/index.ts")
+			expect(call.title).toBe("Read")
 			expect(call.locations).toContainEqual({ path: "/src/index.ts" })
 		})
 
@@ -506,7 +506,8 @@ describe("translateMessage - say messages", () => {
 
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
 			expect(call.kind).toBe("edit")
-			expect(call.title).toContain("/src/app.ts")
+			expect(call.title).toBe("Edit")
+			expect(call.locations).toContainEqual({ path: "/src/app.ts" })
 
 			// Should have diff content
 			const diffContent = call.content?.find((c) => c.type === "diff")
@@ -531,7 +532,7 @@ describe("translateMessage - say messages", () => {
 				sessionUpdate: "tool_call"
 			}
 			expect(toolCall.kind).toBe("edit")
-			expect(toolCall.title).toContain("Create file")
+			expect(toolCall.title).toBe("Create")
 		})
 
 		it("should translate say:tool for file deletion", () => {
@@ -572,7 +573,7 @@ describe("translateMessage - say messages", () => {
 				sessionUpdate: "tool_call"
 			}
 			expect(toolCall.kind).toBe("search")
-			expect(toolCall.title).toContain("TODO|FIXME")
+			expect(toolCall.title).toBe("Search")
 		})
 
 		it("should handle partial tool messages (streaming)", () => {
@@ -652,7 +653,7 @@ describe("translateMessage - say messages", () => {
 
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
 			expect(call.kind).toBe("execute")
-			expect(call.title).toContain("launch")
+			expect(call.title).toBe("Browser")
 		})
 
 		it("should translate say:browser_action to tool_call", () => {
@@ -672,7 +673,7 @@ describe("translateMessage - say messages", () => {
 			expect(toolCall).toBeDefined()
 
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
-			expect(call.title).toContain("click")
+			expect(call.title).toBe("Browser")
 		})
 
 		it("should translate say:browser_action_result to tool_call_update", () => {
@@ -886,7 +887,8 @@ describe("translateMessage - ask messages", () => {
 			const call = toolCall as acp.ToolCall & { sessionUpdate: "tool_call" }
 			expect(call.kind).toBe("execute")
 			expect(call.status).toBe("pending")
-			expect(call.title).toContain("rm -rf node_modules")
+			expect(call.title).toBe("Execute")
+			expect((call.rawInput as { command: string }).command).toBe("rm -rf node_modules")
 
 			// Should require permission
 			expect(result.requiresPermission).toBe(true)
@@ -1296,18 +1298,20 @@ describe("tool title building", () => {
 		sessionState = createTestSessionState()
 	})
 
-	const titleCases: Array<{ tool: string; path?: string; regex?: string; expectedContains: string }> = [
-		{ tool: "readFile", path: "/src/index.ts", expectedContains: "/src/index.ts" },
-		{ tool: "editedExistingFile", path: "/src/app.ts", expectedContains: "/src/app.ts" },
-		{ tool: "newFileCreated", path: "/src/new.ts", expectedContains: "/src/new.ts" },
-		{ tool: "fileDeleted", path: "/old.ts", expectedContains: "/old.ts" },
-		{ tool: "listFilesTopLevel", path: "/src", expectedContains: "/src" },
-		{ tool: "listFilesRecursive", path: "/src", expectedContains: "/src" },
-		{ tool: "searchFiles", regex: "TODO", expectedContains: "TODO" },
+	// NOTE: titles are static labels in current prod (Read, Edit, Create, List, Search, Tool).
+	// Path/regex info lives in `locations` and `rawInput` rather than the title.
+	const titleCases: Array<{ tool: string; path?: string; regex?: string; expectedTitle: string }> = [
+		{ tool: "readFile", path: "/src/index.ts", expectedTitle: "Read" },
+		{ tool: "editedExistingFile", path: "/src/app.ts", expectedTitle: "Edit" },
+		{ tool: "newFileCreated", path: "/src/new.ts", expectedTitle: "Create" },
+		{ tool: "fileDeleted", path: "/old.ts", expectedTitle: "Tool" },
+		{ tool: "listFilesTopLevel", path: "/src", expectedTitle: "List" },
+		{ tool: "listFilesRecursive", path: "/src", expectedTitle: "List" },
+		{ tool: "searchFiles", regex: "TODO", expectedTitle: "Search" },
 	]
 
-	titleCases.forEach(({ tool, path, regex, expectedContains }) => {
-		it(`should build title for ${tool} containing "${expectedContains}"`, () => {
+	titleCases.forEach(({ tool, path, regex, expectedTitle }) => {
+		it(`should build title "${expectedTitle}" for ${tool}`, () => {
 			const toolInfo = { tool, path, regex }
 			const message = createDiracMessage({
 				type: "say",
@@ -1320,7 +1324,7 @@ describe("tool title building", () => {
 				sessionUpdate: "tool_call"
 			}
 
-			expect(toolCall.title.toLowerCase()).toContain(expectedContains.toLowerCase())
+			expect(toolCall.title).toBe(expectedTitle)
 		})
 	})
 })
