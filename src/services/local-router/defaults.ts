@@ -16,16 +16,34 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 		capabilities: ["general", "code"],
 		priority: 10,
 		ctxMax: 32768, // llama-server -c 32768 (Gemma 3 native 128k)
-		supportsTools: false, // emulation needed
+		supportsTools: false, // emulation needed (markdown_fence)
 	},
 	{
-		id: "studio-apertus",
+		id: "macm1-devstral",
+		url: "http://100.112.121.126:9302/v1",
+		modelId: "devstral-24b",
+		capabilities: ["code", "general"],
+		priority: 9,
+		ctxMax: 32768, // Devstral 24B 4-bit MLX
+		supportsTools: false, // emulation needed (xml format)
+	},
+	{
+		id: "kxkm-qwen3-next",
+		url: "http://100.78.191.52:8002/v1", // autossh tunnel electron-server:8002 → kxkm-ai:18888
+		modelId: "qwen3-next-80b",
+		capabilities: ["reason", "code", "general"],
+		priority: 8,
+		ctxMax: 196608, // Qwen3-Next supports 192k context
+		supportsTools: false, // emulation needed (xml format)
+	},
+	{
+		id: "studio-mistral-medium",
 		url: "http://100.116.92.12:9301/v1",
-		modelId: "apertus-70b",
-		capabilities: ["reason", "general"],
+		modelId: "mistral-medium-3.5-128b",
+		capabilities: ["reason", "general", "fr"],
 		priority: 7,
-		ctxMax: 8192, // Apertus 70B native context
-		supportsTools: false, // emulation needed
+		ctxMax: 262144, // Mistral Medium 3.5 native 262k
+		supportsTools: true, // native function calling (mistral-medium variant)
 	},
 	{
 		id: "studio-eurollm",
