@@ -7,9 +7,7 @@ import { telemetryService } from "@/services/telemetry"
  * `kicad.new_project` — runtime validation rejects them so we don't
  * dispatch to an absent handler and we surface a corrective hint.
  */
-export type ToolNameValidation =
-	| { valid: true }
-	| { valid: false; reason: string; hint: string }
+export type ToolNameValidation = { valid: true } | { valid: false; reason: string; hint: string }
 
 /** Characters explicitly banned by the system prompt's TOOL CONSTRAINTS section. */
 const FORBIDDEN_CHARS = /[:.]/
@@ -26,10 +24,7 @@ function summarizeKnownTools(knownTools: ReadonlySet<string>): string {
  * Centralised so both the emulation parser (LocalRouter) and the
  * native dispatcher (ToolExecutor) reject the same shapes.
  */
-export function validateToolName(
-	name: unknown,
-	knownTools: ReadonlySet<string>,
-): ToolNameValidation {
+export function validateToolName(name: unknown, knownTools: ReadonlySet<string>): ToolNameValidation {
 	if (typeof name !== "string" || name.length === 0) {
 		return {
 			valid: false,

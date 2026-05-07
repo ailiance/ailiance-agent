@@ -29,11 +29,11 @@ import { TaskState } from "./TaskState"
 import { AutoApprove } from "./tools/autoApprove"
 import { IPartialBlockHandler, ToolExecutorCoordinator } from "./tools/ToolExecutorCoordinator"
 import { ToolValidator } from "./tools/ToolValidator"
-import { reportInvalidToolName, validateToolName } from "./tools/validateToolName"
 import { TaskConfig, validateTaskConfig } from "./tools/types/TaskConfig"
 import { createUIHelpers } from "./tools/types/UIHelpers"
 import { ToolDisplayUtils } from "./tools/utils/ToolDisplayUtils"
 import { ToolResultUtils } from "./tools/utils/ToolResultUtils"
+import { reportInvalidToolName, validateToolName } from "./tools/validateToolName"
 
 export function canonicalizeAttemptCompletionParams(block: ToolUse): boolean {
 	if (block.name === DiracDefaultTool.ATTEMPT && !block.params?.result && typeof block.params?.response === "string") {

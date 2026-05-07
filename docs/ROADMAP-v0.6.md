@@ -64,5 +64,5 @@ Each sprint lands behind a flag, with:
 ## Tracking
 - Sprint 1 status: not started
 - Sprint 2 status: not started
-- Sprint 3 status: not started
+- Sprint 3 status: E3.3 partial — `mkdir -p` + `atomicWriteFile` (tmp+rename) wired on the CLI/standalone path (`integrations/editor/FileEditProvider.ts`, `utils/fs.ts:atomicWriteFile`). VS Code path (`hosts/vscode/VscodeDiffViewProvider.applyAndSaveSilently`) intentionally keeps the editor save pipeline (`WorkspaceEdit` + `document.save()`) so format-on-save, file watchers, and dirty-buffer tracking stay coherent — see comment block on that method.
 - Sprint 4 status: not started

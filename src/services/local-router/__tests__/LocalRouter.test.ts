@@ -845,9 +845,7 @@ describe("LocalRouter", () => {
 			type: "function",
 			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
 		}
-		const router = new LocalRouter([
-			makeEndpoint({ id: "gemma", modelId: "eu-kiki-gemma-3-4b-it", supportsTools: false }),
-		])
+		const router = new LocalRouter([makeEndpoint({ id: "gemma", modelId: "eu-kiki-gemma-3-4b-it", supportsTools: false })])
 		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
 			// consume
 		}
@@ -865,9 +863,7 @@ describe("LocalRouter", () => {
 			type: "function",
 			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
 		}
-		const router = new LocalRouter([
-			makeEndpoint({ id: "devstral", modelId: "Devstral-Small-2505", supportsTools: false }),
-		])
+		const router = new LocalRouter([makeEndpoint({ id: "devstral", modelId: "Devstral-Small-2505", supportsTools: false })])
 		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
 			// consume
 		}
@@ -888,9 +884,7 @@ describe("LocalRouter", () => {
 			type: "function",
 			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
 		}
-		const router = new LocalRouter([
-			makeEndpoint({ id: "mistral", modelId: "mistral-7b-instruct", supportsTools: false }),
-		])
+		const router = new LocalRouter([makeEndpoint({ id: "mistral", modelId: "mistral-7b-instruct", supportsTools: false })])
 		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
 			// consume
 		}
@@ -910,9 +904,7 @@ describe("LocalRouter", () => {
 			type: "function",
 			function: { name: "read_file", description: "Read a file", parameters: { type: "object", properties: {} } },
 		}
-		const router = new LocalRouter([
-			makeEndpoint({ id: "eurollm", modelId: "eurollm-22b", supportsTools: true }),
-		])
+		const router = new LocalRouter([makeEndpoint({ id: "eurollm", modelId: "eurollm-22b", supportsTools: true })])
 		for await (const _ of router.chatStream({ ...makeRequest(), tools: [tool] })) {
 			// consume
 		}

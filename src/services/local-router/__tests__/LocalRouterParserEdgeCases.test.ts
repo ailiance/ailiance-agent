@@ -54,8 +54,7 @@ function makeSseResponse(chunks: string[]): Response {
 }
 
 /** Wrap arbitrary content as one SSE delta line. */
-const sseContent = (content: string): string =>
-	`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
+const sseContent = (content: string): string => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
 
 /** Wrap a native tool_calls delta as one SSE line. */
 const sseToolCallDelta = (delta: { index?: number; id?: string; function?: { name?: string; arguments?: string } }): string =>
@@ -276,9 +275,7 @@ describe("LocalRouter parser edge cases (Sprint 4 task D)", () => {
 			// a synthetic random id from LocalRouter — aggregation by id is
 			// the consumer's job and out of scope here. We just check that
 			// the raw fragments line up to a parseable object.
-			const concatenatedArgs = tcs
-				.map((tc) => (tc.argumentsRaw === "{}" ? "" : tc.argumentsRaw))
-				.join("")
+			const concatenatedArgs = tcs.map((tc) => (tc.argumentsRaw === "{}" ? "" : tc.argumentsRaw)).join("")
 			assert.doesNotThrow(() => JSON.parse(concatenatedArgs), "concatenated args must parse")
 			const parsed = JSON.parse(concatenatedArgs) as { path: string }
 			assert.strictEqual(parsed.path, "a.txt")

@@ -16,6 +16,7 @@ import { withRetry } from "../retry"
 import { convertToOpenAiMessages } from "../transform/openai-format"
 import { ApiStream } from "../transform/stream"
 import { getOpenAIToolParams, ToolCallProcessor } from "../transform/tool-call-processor"
+import { readLocalRouterTimeouts } from "./utils/localRouterTimeouts"
 
 interface LiteLlmHandlerOptions extends CommonApiHandlerOptions {
 	liteLlmApiKey?: string
@@ -258,18 +259,10 @@ export class LiteLlmHandler implements ApiHandler {
 									: (m.content as Array<{ type: string; text: string }>).map((b) => b.text).join(""),
 						})),
 					]
-					// Read SSE timeouts from user settings; tolerate uninitialized
-					// StateManager (CLI bootstrap, tests) by falling back to undefined
-					// — LocalRouter applies its own built-in defaults in that case.
-					let timeoutMs: number | undefined
-					let idleTimeoutMs: number | undefined
-					try {
-						const sm = StateManager.get()
-						timeoutMs = sm.getGlobalSettingsKey("localRouterTimeoutMs")
-						idleTimeoutMs = sm.getGlobalSettingsKey("localRouterIdleTimeoutMs")
-					} catch {
-						// StateManager not initialized — defaults will apply downstream
-					}
+					// Read SSE timeouts from user settings; tolerates uninitialized
+					// StateManager (CLI bootstrap, tests) — LocalRouter then applies
+					// its built-in defaults (60s / 20s).
+					const { timeoutMs, idleTimeoutMs } = readLocalRouterTimeouts()
 					for await (const chunk of this.localRouter.chatStream({
 						messages: routerMessages,
 						max_tokens: this.options.liteLlmModelInfo?.maxTokens,

@@ -4,8 +4,8 @@
  * tool descriptions but instructs the model to use a different wire format.
  */
 
-import type { ChatTool } from "./types"
 import type { ToolCallFormat } from "./ModelRegistry"
+import type { ChatTool } from "./types"
 
 export function formatToolsAsPromptText(tools: ChatTool[]): string {
 	let out = "## Available tools\n\n"
