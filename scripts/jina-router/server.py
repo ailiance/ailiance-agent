@@ -1,5 +1,5 @@
 """
-Jina semantic router for agent-kiki.
+Jina semantic router for ailiance-agent.
 Embeds incoming queries, classifies intent, forwards to LiteLLM proxy.
 """
 import os

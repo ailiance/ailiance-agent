@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test"
 import { e2e } from "./utils/helpers"
 
-// FIXME(eu-kiki): rewrite against current UI.
+// FIXME(ailiance): rewrite against current UI.
 // The onboarding flow this test exercised ("Login to Dirac" button →
 // "Bring my own API key" → provider selector → "Sign Up with Dirac" →
 // OpenRouter API key input → "What's New" dismiss) was removed when the

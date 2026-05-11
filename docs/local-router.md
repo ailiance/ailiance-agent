@@ -29,7 +29,7 @@ directly when text-only messages are detected.
 
 ```ts
 [
-  { id: "tower-gemma",     url: "http://100.78.6.122:9304/v1",   modelId: "eu-kiki-gemma",  capabilities: ["general", "code"], priority: 10, ctxMax: 32768 },
+  { id: "tower-gemma",     url: "http://100.78.6.122:9304/v1",   modelId: "ailiance-gemma",  capabilities: ["general", "code"], priority: 10, ctxMax: 32768 },
   { id: "studio-apertus",  url: "http://100.116.92.12:9301/v1",  modelId: "apertus-70b",    capabilities: ["reason", "general"], priority: 7,  ctxMax: 8192  },
   { id: "studio-eurollm",  url: "http://100.116.92.12:9303/v1",  modelId: "eurollm-22b",    capabilities: ["fr"],                priority: 6,  ctxMax: 4096  },
 ]
@@ -115,13 +115,13 @@ Worker config example:
   priority: 9, ctxMax: 196608 }
 ```
 
-### Server-side force-route (eu-kiki gateway)
+### Server-side force-route (ailiance gateway)
 
-The eu-kiki gateway performs an additional server-side force-route: any request
+The ailiance gateway performs an additional server-side force-route: any request
 with a non-empty `tools[]` array is redirected to Qwen 32B AWQ (vLLM, kxkm-ai)
 regardless of the worker selected by LocalRouter. This ensures agentic tasks
 always hit the most reliable native FC worker. This patch lives in the gateway
-repo (`eu-kiki`), not in this repo.
+repo (`ailiance`), not in this repo.
 
 > Qwen3-Next 80B-A3B (kxkm-ai, llama-server `:18888` → gateway `:8002`) is
 > configured with a **192k context window** (`--ctx-size 196608`, ~8 GB VRAM,

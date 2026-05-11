@@ -1,6 +1,6 @@
-// agent-kiki fork: telemetry DISABLED.
+// ailiance-agent fork: telemetry DISABLED.
 // Upstream Dirac sends PostHog events to dirac.run / us.posthog.com.
-// The agent-kiki fork is EU-sovereign by design and MUST NOT phone home.
+// The ailiance-agent fork is EU-sovereign by design and MUST NOT phone home.
 // To re-enable for testing only, restore the upstream apiKey and host
 // values from `git show upstream/master:src/shared/services/config/dirac-telemetry-config.ts`.
 import { BUILD_CONSTANTS } from "../../constants"
@@ -37,7 +37,7 @@ const _useDevEnv = process.env.IS_DEV === "true" || process.env.DIRAC_ENVIRONMEN
 
 /**
  * Dirac telemetry configuration.
- * agent-kiki fork: all phone-home values are intentionally null/undefined so
+ * ailiance-agent fork: all phone-home values are intentionally null/undefined so
  * `isDiracTelemetryConfigValid` always returns false and consumers (telemetry,
  * error tracking, feature flags) skip remote writes / fetches.
  */

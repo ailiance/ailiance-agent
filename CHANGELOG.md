@@ -10,10 +10,10 @@
 
 ### Fixed
 - Tool calls now propagate `function.id` so the toolUseIdMap maps call_id correctly across multi-turn conversations (was breaking tool_result → fell back to plain text → broke OpenAI tool protocol)
-- Worker max_tokens default bumped 2048→8192 to avoid truncation mid-tool-call (server-side eu-kiki)
+- Worker max_tokens default bumped 2048→8192 to avoid truncation mid-tool-call (server-side ailiance)
 - Auto-mode soft-action verb cap raised 80→120 chars
 
-### Server-side (eu-kiki gateway, not in this repo)
+### Server-side (ailiance gateway, not in this repo)
 - Gateway forces Qwen 32B (vLLM native FC) for any request with `tools[]` — most reliable agentic worker
 - Gemma `:9304` (llama.cpp pure) gets full tool emulation via gateway
 - Anti-hallucination guard in `_INJECT_TEMPLATE`

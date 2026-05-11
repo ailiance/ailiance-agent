@@ -1,11 +1,11 @@
-// agent-kiki fork: tracing hook (EU AI Act-compliant per-task JSONL traces)
+// ailiance-agent fork: tracing hook (EU AI Act-compliant per-task JSONL traces)
 //
-// Mirrors the Python schema in agent-kiki-py-archive/src/agent_kiki/tracing/
+// Mirrors the Python schema in ailiance-agent-py-archive/src/ailiance_agent/tracing/
 // at version 1.0.0. Field names are aligned (snake_case JSON, camelCase TS
 // inputs serialised to snake_case on disk so a Python reader can ingest the
 // directory directly).
 //
-// Layout written under <taskCwd>/.agent-kiki/runs/<task-id>/:
+// Layout written under <taskCwd>/.ailiance-agent/runs/<task-id>/:
 //   - meta.json     : RunMeta (rewritten on close())
 //   - trace.jsonl   : one TraceLine per agent turn, append-only
 
@@ -13,7 +13,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 
 export const TRACING_SCHEMA_VERSION = "1.0.0"
-export const TRACING_DIR_NAME = ".agent-kiki/runs"
+export const TRACING_DIR_NAME = ".ailiance-agent/runs"
 
 // "key: value" / "key=value" / "Authorization: Bearer <token>" shapes.
 // The optional [A-Za-z0-9_-]* between the keyword and the separator catches
@@ -51,7 +51,7 @@ export interface RunMeta {
 	mode: string
 	hint_domain?: string | null
 	approval_mode: string
-	agent_kiki_version: string
+	ailiance_agent_version: string
 	gateway_url: string
 	workers: Record<string, WorkerInfo>
 	stats: Record<string, unknown>
@@ -85,7 +85,7 @@ export interface RunMetaSeed {
 	task: string
 	mode: string
 	approval_mode: string
-	agent_kiki_version: string
+	ailiance_agent_version: string
 	gateway_url: string
 	workers?: Record<string, WorkerInfo>
 	hint_domain?: string | null
@@ -146,7 +146,7 @@ export class JsonlTracer {
 	private turn = 0
 	private closed = false
 	private readonly enabled: boolean
-	// agent-kiki fork: serialise concurrent appendTurn calls.
+	// ailiance-agent fork: serialise concurrent appendTurn calls.
 	// When the planner dispatches parallel tool calls (`enableParallelToolCalls`),
 	// multiple appendTurn invocations race on both the `turn` counter AND the
 	// JSONL file write. We chain every write onto a single Promise so that
@@ -175,7 +175,7 @@ export class JsonlTracer {
 			} catch (_err) {
 				// Best-effort: tracing must never break a task.
 			}
-			// agent-kiki fork: best-effort trace rotation. Never blocks task
+			// ailiance-agent fork: best-effort trace rotation. Never blocks task
 			// start — failures are swallowed.
 			void this.maybePruneAsync()
 		}
@@ -210,7 +210,7 @@ export class JsonlTracer {
 			mode: seed.mode,
 			hint_domain: seed.hint_domain ?? null,
 			approval_mode: seed.approval_mode,
-			agent_kiki_version: seed.agent_kiki_version,
+			ailiance_agent_version: seed.ailiance_agent_version,
 			gateway_url: seed.gateway_url,
 			workers: seed.workers ?? {},
 			stats: {},
@@ -221,7 +221,7 @@ export class JsonlTracer {
 
 	appendTurn(input: Partial<TraceLine> & { phase: TracePhase }): TraceLine | null {
 		if (!this.enabled || this.closed) return null
-		// agent-kiki fork: increment + serialise. The turn counter is bumped
+		// ailiance-agent fork: increment + serialise. The turn counter is bumped
 		// synchronously so callers see a stable line.turn, but the actual
 		// file append is queued onto writeChain to prevent interleaved bytes
 		// when parallel tool calls race here.
@@ -261,9 +261,9 @@ export class JsonlTracer {
 		await this.writeChain
 	}
 
-	// agent-kiki fork: record an LLM API roundtrip ("planner" turn) so that
+	// ailiance-agent fork: record an LLM API roundtrip ("planner" turn) so that
 	// every API call shows up in trace.jsonl — even the ones that fail before
-	// any tool executes. The Python agent-kiki captured raw text + latency_ms
+	// any tool executes. The Python ailiance-agent captured raw text + latency_ms
 	// per planner response; we mirror that shape here.
 	recordPlannerTurn(rawResponse: string, latencyMs: number, errors: string[] = []): TraceLine | null {
 		return this.appendTurn({
@@ -308,10 +308,10 @@ export class JsonlTracer {
 
 	private persistMeta(): void {
 		if (!this.meta) return
-		// agent-kiki fork: atomic meta.json write — write to a sibling .tmp
+		// ailiance-agent fork: atomic meta.json write — write to a sibling .tmp
 		// file then rename. rename(2) is atomic on POSIX, so a crash
 		// mid-write leaves either the previous valid meta.json or a stray
-		// .tmp (never a half-written meta.json). The Python agent-kiki tracer
+		// .tmp (never a half-written meta.json). The Python ailiance-agent tracer
 		// uses the same pattern.
 		const tmpPath = `${this.metaPath}.tmp`
 		try {
@@ -335,7 +335,7 @@ export class JsonlTracer {
 		}
 	}
 
-	// agent-kiki fork: queue an append. We use the synchronous
+	// ailiance-agent fork: queue an append. We use the synchronous
 	// fs.appendFileSync so that callers get read-after-write semantics
 	// (existing tests + downstream readers rely on this), while ALSO
 	// chaining a resolved Promise onto writeChain so flush() can be

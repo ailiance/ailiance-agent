@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
-	EU_KIKI_DEFAULT_API_KEY,
-	EU_KIKI_DEFAULT_GATEWAY,
-	EU_KIKI_DEFAULT_MODEL,
+	AILIANCE_DEFAULT_API_KEY,
+	AILIANCE_DEFAULT_GATEWAY,
+	AILIANCE_DEFAULT_MODEL,
 	applyEuKikiDefault,
 	hasNonEuKikiProviderEnv,
 	resolveEuKikiGatewayUrl,
-} from "../eu-kiki-default"
+} from "../ailiance-default"
 
 /**
  * Lightweight in-memory StateManager double matching the methods used by
@@ -44,9 +44,9 @@ function makeFakeStateManager() {
 	}
 }
 
-describe("eu-kiki default fallback", () => {
+describe("ailiance default fallback", () => {
 	it("resolveEuKikiGatewayUrl falls back to studio:9300", () => {
-		expect(resolveEuKikiGatewayUrl({})).toBe(EU_KIKI_DEFAULT_GATEWAY)
+		expect(resolveEuKikiGatewayUrl({})).toBe(AILIANCE_DEFAULT_GATEWAY)
 	})
 
 	it("resolveEuKikiGatewayUrl honours AGENT_KIKI_GATEWAY", () => {
@@ -72,12 +72,12 @@ describe("eu-kiki default fallback", () => {
 		const decision = applyEuKikiDefault(sm as any, { env: {} })
 		expect(decision.applied).toBe(true)
 		expect(decision.reason).toBe("applied-fallback")
-		expect(decision.gatewayUrl).toBe(EU_KIKI_DEFAULT_GATEWAY)
+		expect(decision.gatewayUrl).toBe(AILIANCE_DEFAULT_GATEWAY)
 		expect(sm.globalState.actModeApiProvider).toBe("openai")
 		expect(sm.globalState.planModeApiProvider).toBe("openai")
-		expect(sm.globalState.actModeOpenAiModelId).toBe(EU_KIKI_DEFAULT_MODEL)
-		expect(sm.globalState.openAiBaseUrl).toBe(EU_KIKI_DEFAULT_GATEWAY)
-		expect(sm.secrets.openAiApiKey).toBe(EU_KIKI_DEFAULT_API_KEY)
+		expect(sm.globalState.actModeOpenAiModelId).toBe(AILIANCE_DEFAULT_MODEL)
+		expect(sm.globalState.openAiBaseUrl).toBe(AILIANCE_DEFAULT_GATEWAY)
+		expect(sm.secrets.openAiApiKey).toBe(AILIANCE_DEFAULT_API_KEY)
 		expect(sm.globalState.welcomeViewCompleted).toBe(true)
 	})
 
@@ -92,7 +92,7 @@ describe("eu-kiki default fallback", () => {
 		// Persisted slot stays untouched.
 		expect(sm.globalState.openAiBaseUrl).toBeUndefined()
 		// Secret cache populated only because slot was empty.
-		expect(sm.secrets.openAiApiKey).toBe(EU_KIKI_DEFAULT_API_KEY)
+		expect(sm.secrets.openAiApiKey).toBe(AILIANCE_DEFAULT_API_KEY)
 	})
 
 	it("does not clobber an existing real openAiApiKey when overriding via env", () => {
@@ -110,21 +110,21 @@ describe("eu-kiki default fallback", () => {
 		expect(sm.globalState.actModeApiProvider).toBeUndefined()
 	})
 
-	it("setSecret receives EU_KIKI_DEFAULT_API_KEY by reference (not a literal copy)", () => {
-		// Guard against drift: any setSecret call for the eu-kiki default
+	it("setSecret receives AILIANCE_DEFAULT_API_KEY by reference (not a literal copy)", () => {
+		// Guard against drift: any setSecret call for the ailiance default
 		// must pass the exported constant, so a future rename or rotation
 		// updates every call site uniformly. Strict reference equality
 		// (Object.is) catches both string-literal copies and accidental
 		// trimmed/reformatted variants.
 		const sm = makeFakeStateManager()
 		applyEuKikiDefault(sm as any, { env: {} })
-		expect(Object.is(sm.secrets.openAiApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
-		expect(Object.is(sm.secrets.openAiCompatibleCustomApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm.secrets.openAiApiKey, AILIANCE_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm.secrets.openAiCompatibleCustomApiKey, AILIANCE_DEFAULT_API_KEY)).toBe(true)
 
 		const sm2 = makeFakeStateManager()
 		applyEuKikiDefault(sm2 as any, { env: { AGENT_KIKI_GATEWAY: "http://x:9300" } })
-		expect(Object.is(sm2.secrets.openAiApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
-		expect(Object.is(sm2.secrets.openAiCompatibleCustomApiKey, EU_KIKI_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm2.secrets.openAiApiKey, AILIANCE_DEFAULT_API_KEY)).toBe(true)
+		expect(Object.is(sm2.secrets.openAiCompatibleCustomApiKey, AILIANCE_DEFAULT_API_KEY)).toBe(true)
 	})
 
 	it("skips when the user has already onboarded", () => {

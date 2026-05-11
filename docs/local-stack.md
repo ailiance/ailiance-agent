@@ -1,6 +1,6 @@
 # Local LLM Stack: LiteLLM proxy + Jina semantic router
 
-agent-kiki can run a local stack that routes LLM requests intelligently:
+ailiance-agent can run a local stack that routes LLM requests intelligently:
 
 ```
 aki  →  Jina router (:5050)  →  LiteLLM proxy (:4000)  →  endpoints
@@ -33,7 +33,7 @@ aki stack stop
 
 ### LiteLLM proxy (port 4000)
 
-- Multiplexing across providers (Anthropic, OpenAI, Ollama, eu-kiki workers)
+- Multiplexing across providers (Anthropic, OpenAI, Ollama, ailiance workers)
 - Native fallback, retry, cost tracking, response cache
 - Config: `~/.aki/litellm/config.yaml`
 - RAM: ~300 MB
@@ -173,7 +173,7 @@ for details.
 
 | Use the local stack when... | Use LocalRouter when... |
 |---|---|
-| You want LiteLLM's 100+ provider list | You target EU-kiki workers (Gemma/Apertus/EuroLLM) |
+| You want LiteLLM's 100+ provider list | You target Ailiance workers (Gemma/Apertus/EuroLLM) |
 | You need cost tracking, retries, complex fallback | You need lowest latency overhead |
 | You prefer external services to monitor independently | You want zero install (no Python) |
 
@@ -181,7 +181,7 @@ for details.
 
 Primary tool-capable worker for agentic requests. Launched manually via
 llama-server (no systemd unit). Tunnel: autossh `electron-server:8002` →
-`kxkm-ai:18888`. Exposed by the eu-kiki gateway on `:9300` when `tools[]`
+`kxkm-ai:18888`. Exposed by the ailiance gateway on `:9300` when `tools[]`
 is present.
 
 ```bash

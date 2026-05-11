@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test"
 import { E2E_WORKSPACE_TYPES, e2e } from "./utils/helpers"
 
-// FIXME(eu-kiki): depends on signin → chat → diff round-trip. The signin
+// FIXME(ailiance): depends on signin → chat → diff round-trip. The signin
 // step targets the removed onboarding screen. Re-enable once a fixture
 // seeds a provider so the diff editor flow can be exercised directly.
 e2e.describe.skip("Diff Editor", () => {

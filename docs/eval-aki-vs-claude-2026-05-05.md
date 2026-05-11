@@ -1,9 +1,9 @@
-# Eval — `aki` (eu-kiki + Qwen 32B AWQ) vs Claude Code (Opus 4.7)
+# Eval — `aki` (ailiance + Qwen 32B AWQ) vs Claude Code (Opus 4.7)
 
 **Date:** 2026-05-05
 **aki version:** v0.3.0 (`70b4e91 + branding HEAD`)
 **Claude Code version:** Opus 4.7 sub-agent (general-purpose), invoked from this session
-**eu-kiki backend:** kxkm-ai Qwen 32B AWQ via SSH tunnel `:8002`, gateway `100.78.191.52:9300`
+**ailiance backend:** kxkm-ai Qwen 32B AWQ via SSH tunnel `:8002`, gateway `100.78.191.52:9300`
 **Methodology:** identical task to both, fresh tmp dir, measure wall + tool calls + tokens + correctness.
 
 ## Tasks
@@ -27,17 +27,17 @@
 | Correctness | endpoint @ L462, diagnostics clean ✓ | both typos fixed ✓ | 3 unittests pass ✓ |
 | aki cache hit (cumulative) | 90% (262K/288K) | 74% (25K/34K) | 86% (64K/75K) |
 | Claude cost estimate | ~$2 (large input) | ~$0.50 | ~$0.75 |
-| aki cost (eu-kiki self-hosted) | $0 | $0 | $0 |
+| aki cost (ailiance self-hosted) | $0 | $0 | $0 |
 
 **Claude Code is ~2× faster on the medium task, equivalent on easy tasks, and uses 3-4× fewer tool calls across the board.**
 
 ## Observations
 
 ### Where aki shines
-- **Cost zero** — eu-kiki + Qwen 32B AWQ is local-only, no per-token billing.
+- **Cost zero** — ailiance + Qwen 32B AWQ is local-only, no per-token billing.
 - **EU-sovereign** — no data leaves the Tailscale fleet (gateway → workers → back). Telemetry off (#commit b4125e0 in v0.1).
-- **Auditable** — every turn captured in `<cwd>/.agent-kiki/runs/<id>/{meta.json, trace.jsonl}` with schema 1.0.0. Cross-language validated (Python ↔ TS).
-- **Cache reuse** — 75-90% prompt cache hit rate observed. Subsequent turns are very cheap (eu-kiki has built-in prompt caching across the session).
+- **Auditable** — every turn captured in `<cwd>/.ailiance-agent/runs/<id>/{meta.json, trace.jsonl}` with schema 1.0.0. Cross-language validated (Python ↔ TS).
+- **Cache reuse** — 75-90% prompt cache hit rate observed. Subsequent turns are very cheap (ailiance has built-in prompt caching across the session).
 - **Tools breadth** — search_files, diagnostics_scan, replace_symbol, edit_file, execute_command all working.
 
 ### Where Claude Code shines
@@ -56,17 +56,17 @@
 
 | Use case | Recommended agent |
 |---|---|
-| Daily quick edits, refactors, single-file fixes | **aki+eu-kiki+Qwen** (free, audit-ready, fast enough) |
+| Daily quick edits, refactors, single-file fixes | **aki+ailiance+Qwen** (free, audit-ready, fast enough) |
 | Large unfamiliar repo navigation | **Claude Code** (Opus's planning > Devstral's exploration) |
-| Sensitive code (HIPAA, GDPR, EU AI Act audit) | **aki+eu-kiki** (sovereign + JSONL trace) |
+| Sensitive code (HIPAA, GDPR, EU AI Act audit) | **aki+ailiance** (sovereign + JSONL trace) |
 | Long sessions / multi-hour debugging | aki+Qwen if cost-sensitive; Claude Code if velocity-sensitive |
 | Greenfield project bootstrap | either, comparable on small projects; Claude Code on large ones |
 
 ## Decision
 
-**GO for aki+eu-kiki as default daily-driver** for:
+**GO for aki+ailiance as default daily-driver** for:
 - Code quick-fixes, refactors, README typos, helper module creation, tests.
-- Anything that fits in a tight context window or where eu-kiki cache pays off.
+- Anything that fits in a tight context window or where ailiance cache pays off.
 
 **Keep Claude Code in toolbox** for:
 - Repo-wide refactors needing strong cross-file reasoning.
@@ -84,13 +84,13 @@ The two are complementary; the fork's value is exactly that it gives a free + so
 
 ## Reproducibility
 
-All test repos under `/tmp/eval-aki/` and `/tmp/eval-cc/`. aki traces at `<task-dir>/.agent-kiki/runs/`. Claude Code traces don't persist — only the metrics reported in the agent dispatch transcripts.
+All test repos under `/tmp/eval-aki/` and `/tmp/eval-cc/`. aki traces at `<task-dir>/.ailiance-agent/runs/`. Claude Code traces don't persist — only the metrics reported in the agent dispatch transcripts.
 
 To re-run aki side:
 ```bash
 for task in task1-healthz task2 task3; do
   cd /tmp/eval-aki/$task
-  rm -rf .agent-kiki
-  aki task --yolo --model eu-kiki-qwen "<the prompt>"
+  rm -rf .ailiance-agent
+  aki task --yolo --model ailiance-qwen "<the prompt>"
 done
 ```

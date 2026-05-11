@@ -1,17 +1,17 @@
-# MVP Acceptance — agent-kiki v0.2.0 (end-to-end unblocked)
+# MVP Acceptance — ailiance-agent v0.2.0 (end-to-end unblocked)
 
 **Date:** 2026-05-05 (09:42-09:51 UTC+02)
-**Branch:** branding (agent-kiki) + main (eu-kiki)
-**agent-kiki HEAD:** `35fb213` (v0.1.0) — no fork-side changes for v0.2
-**eu-kiki HEAD:** `fd03f00` (function-calling shim + SSE proxy + tool-turn normalize)
+**Branch:** branding (ailiance-agent) + main (ailiance)
+**ailiance-agent HEAD:** `35fb213` (v0.1.0) — no fork-side changes for v0.2
+**ailiance HEAD:** `fd03f00` (function-calling shim + SSE proxy + tool-turn normalize)
 
 ## Summary
 
 **v0.1.0 backend gap closed.** End-to-end SCRATCH-Rust task convergence
-demonstrated against the default eu-kiki backend. The fix was entirely
-on the eu-kiki side; the agent-kiki fork code is unchanged.
+demonstrated against the default ailiance backend. The fix was entirely
+on the ailiance side; the ailiance-agent fork code is unchanged.
 
-## eu-kiki commits this iteration
+## ailiance commits this iteration
 
 ```
 fd03f00 fix(worker): normalize tool turns for template
@@ -24,7 +24,7 @@ a74dba4 feat(worker): add function-calling shim module
 
 ## Live test (canonical Phase 14 Step 2)
 
-`aki task --yolo --model eu-kiki-devstral "Create a minimal TOML parser
+`aki task --yolo --model ailiance-devstral "Create a minimal TOML parser
 in Rust with one unit test"` against `http://100.116.92.12:9300/v1`.
 
 **Outcome:**
@@ -44,7 +44,7 @@ in Rust with one unit test"` against `http://100.116.92.12:9300/v1`.
 
 | Capability | Status |
 |------------|--------|
-| OpenAI tool spec → eu-kiki worker (gateway pass-through) | ✅ |
+| OpenAI tool spec → ailiance worker (gateway pass-through) | ✅ |
 | Worker injects tool spec into Mistral chat template | ✅ |
 | Devstral emits `[TOOL_CALLS]name[ARGS]json` natively | ✅ |
 | Worker parses Mistral / XML / JSON tool-call formats | ✅ |
@@ -72,10 +72,10 @@ in Rust with one unit test"` against `http://100.116.92.12:9300/v1`.
 
 ## Decision
 
-**Tag `agent-kiki v0.2.0` GO.**
+**Tag `ailiance-agent v0.2.0` GO.**
 
 Rationale: the function-calling gap that gated v0.1.0 is closed
-upstream. agent-kiki itself ships unchanged from v0.1.0 — its caveats
-README section can drop the "eu-kiki backend lacks native
+upstream. ailiance-agent itself ships unchanged from v0.1.0 — its caveats
+README section can drop the "ailiance backend lacks native
 function-calling" bullet in a follow-up commit. End-to-end is verifiably
 working with the default backend.

@@ -607,8 +607,8 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 	return (
 		<Box flexDirection="column">
 			<Text bold color="white">
-				{/* agent-kiki fork: rebrand "Dirac" → "agent-kiki" in config header */}
-				⚙️ agent-kiki Configuration
+				{/* ailiance-agent fork: rebrand "Dirac" → "ailiance-agent" in config header */}
+				⚙️ ailiance-agent Configuration
 			</Text>
 			<Text color="gray">{SEPARATOR}</Text>
 

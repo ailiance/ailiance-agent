@@ -514,7 +514,7 @@ export class Task {
 
 	public async startTask(task?: string, images?: string[], files?: string[]): Promise<void> {
 		// Initialize MCP tools before starting the task so the LLM sees them
-		// on its first request. Failures are swallowed — agent-kiki must work
+		// on its first request. Failures are swallowed — ailiance-agent must work
 		// without plugins.
 		await initializeMcpForTask(this.toolExecutor)
 		return this.lifecycleManager.startTask(task, images, files)
@@ -529,7 +529,7 @@ export class Task {
 	}
 
 	async abortTask(reason = "aborted", exitCode = 130) {
-		// agent-kiki fork: tracing close hook — finalise the JSONL trace meta
+		// ailiance-agent fork: tracing close hook — finalise the JSONL trace meta
 		// even when the task ends via abort/cancel/error rather than via a
 		// successful attempt_completion. Run before the lifecycle abort so
 		// that disposed dependencies cannot interfere; closeTrace itself is

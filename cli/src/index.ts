@@ -1,5 +1,5 @@
 /**
- * agent-kiki CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
+ * ailiance-agent CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
  */
 
 // MUST be the first import — its top-level side effect (raw-mode stdin) runs
@@ -28,10 +28,10 @@ export { shouldDoQuickAuth, hasExplicitAuthQuickSetupFlags } from "./commands/au
 // Setup CLI commands
 const program = new Command()
 
-// agent-kiki fork: rebrand CLI banner
+// ailiance-agent fork: rebrand CLI banner
 program
 	.name("aki")
-	.description("agent-kiki - EU-sovereign AI coding agent (fork of Dirac/Cline)")
+	.description("ailiance-agent - EU-sovereign AI coding agent (fork of Dirac/Cline)")
 	.version(CLI_VERSION)
 
 // Enable positional options to avoid conflicts between root and subcommand options with the same name
@@ -51,7 +51,7 @@ program
 	.option("--provider <provider>", "API provider to use (requires --model)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to agent-kiki configuration directory")
+	.option("--config <path>", "Path to ailiance-agent configuration directory")
 	.option("--thinking [tokens]", "Enable extended thinking (default: 1024 tokens)")
 	.option("--reasoning-effort <effort>", "Reasoning effort: none|low|medium|high|xhigh")
 	.option("--max-consecutive-mistakes <count>", "Maximum consecutive mistakes before halting in yolo mode")
@@ -76,7 +76,7 @@ program
 	.description("List task history")
 	.option("-n, --limit <number>", "Number of tasks to show", "10")
 	.option("-p, --page <number>", "Page number (1-based)", "1")
-	.option("--config <path>", "Path to agent-kiki configuration directory")
+	.option("--config <path>", "Path to ailiance-agent configuration directory")
 	.action(async (options) => {
 		const { listHistory } = await import("./commands/history")
 		return listHistory(options)
@@ -96,7 +96,7 @@ program
 program
 	.command("config")
 	.description("Show current configuration")
-	.option("--config <path>", "Path to agent-kiki configuration directory")
+	.option("--config <path>", "Path to ailiance-agent configuration directory")
 	.action(async (options) => {
 		const { showConfig } = await import("./commands/config")
 		return showConfig(options)
@@ -112,7 +112,7 @@ program
 	.option("--azure-api-version <version>", "Azure API version (optional, only for azure openai)")
 	.option("-v, --verbose", "Show verbose output")
 	.option("-c, --cwd <path>", "Working directory for the task")
-	.option("--config <path>", "Path to agent-kiki configuration directory")
+	.option("--config <path>", "Path to ailiance-agent configuration directory")
 	.action(async (options) => {
 		const { runAuth } = await import("./commands/auth")
 		return runAuth(options)
@@ -120,10 +120,10 @@ program
 
 program
 	.command("version")
-	.description("Show agent-kiki CLI version number")
+	.description("Show ailiance-agent CLI version number")
 	.action(async () => {
 		const { printInfo } = await import("./utils/display")
-		printInfo(`agent-kiki CLI version: ${CLI_VERSION}`)
+		printInfo(`ailiance-agent CLI version: ${CLI_VERSION}`)
 	})
 
 program
@@ -135,14 +135,14 @@ program
 		return checkForUpdates(CLI_VERSION, options)
 	})
 
-// agent-kiki fork: drop upstream Dirac kanban integration — we don't ship it.
+// ailiance-agent fork: drop upstream Dirac kanban integration — we don't ship it.
 
-// agent-kiki fork: trace rotation + listing CLI
-const traceCommand = program.command("trace").description("Manage agent-kiki run traces")
+// ailiance-agent fork: trace rotation + listing CLI
+const traceCommand = program.command("trace").description("Manage ailiance-agent run traces")
 
 traceCommand
 	.command("list")
-	.description("List run directories under .agent-kiki/runs/")
+	.description("List run directories under .ailiance-agent/runs/")
 	.option("-c, --cwd <path>", "Working directory")
 	.action(async (options) => {
 		const { runTraceList } = await import("./commands/trace")
@@ -232,7 +232,7 @@ program
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
 	.option("--continue", "Resume the most recent task from the current working directory")
 	.action(async (prompt, options) => {
-		// agent-kiki fork: kanban path removed.
+		// ailiance-agent fork: kanban path removed.
 		const { printWarning } = await import("./utils/display")
 		// Check for ACP mode first - this takes precedence over everything else
 		if (options.acp) {

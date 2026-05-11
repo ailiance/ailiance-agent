@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Scope : extension VS Code d'agent-kiki (publishée en `agent-kiki-0.x.0.vsix`,
+Scope : extension VS Code d'ailiance-agent (publishée en `ailiance-agent-0.x.0.vsix`,
 `main = ./dist/extension.js`, engines `vscode ^1.84.0`). Le core agent multi-LLM
 vit aussi dans cet arbre mais est partagé avec le mode standalone (CLI) — voir
 `hosts/` pour la frontière plateforme.
@@ -66,7 +66,7 @@ et l'implémenter dans `hosts/vscode/`.
 
 - `activationEvents` : `onLanguage`, `onUri`, `onStartupFinished`,
   `workspaceContains:evals.env`. L'activation est quasi-systématique.
-- 21 commandes namespacées `dirac.*` (legacy — branding produit = "agent-kiki",
+- 21 commandes namespacées `dirac.*` (legacy — branding produit = "ailiance-agent",
   préfixe id = `dirac.`). Câblage dans `extension.ts` puis dispatch vers
   `core/controller/commands/` et `core/controller/ui/subscribeTo*`.
 - Une vue webview unique `dirac.SidebarProvider` dans le container activitybar
@@ -111,6 +111,6 @@ les alias aux chemins relatifs profonds.
 - Migrations storage tournent à chaque activate ; idempotentes mais ordre
   important — ne pas réordonner sans relire `extension.ts:60-90`.
 - L'id de commande/config legacy `dirac` reste pour compat ascendante des
-  installations existantes ; ne pas renommer en `agent-kiki` sans plan de migration.
+  installations existantes ; ne pas renommer en `ailiance-agent` sans plan de migration.
 - Tests d'intégration ouvrent une vraie instance VS Code → lents, à éviter pour
   du TDD ; préférer `test:unit` qui mocke `HostProvider`.

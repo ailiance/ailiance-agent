@@ -82,7 +82,7 @@ export function mcpToolToSpec(tool: McpToolMetadata): DiracToolSpec {
  * in the ToolExecutor coordinator, and expose tool specs to the LLM via DiracToolSet.
  *
  * Lazy-spawns MCP servers (only when listAllTools is called). Failures are logged
- * but never crash the boot — agent-kiki must work without plugins.
+ * but never crash the boot — ailiance-agent must work without plugins.
  *
  * @param toolExecutor - The ToolExecutor instance to register MCP tool handlers on.
  * @param registerSpec - Optional override for tool spec registration (default: DiracToolSet.register).

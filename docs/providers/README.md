@@ -94,13 +94,13 @@ curl -s -X POST http://127.0.0.1:8080/v1/chat/completions \
 - `mlx_lm.server` returns OpenAI-compatible streaming when `stream: true`, so Dirac's `OpenAiHandler` works as-is.
 - Tool calling: requires the model to natively support OpenAI tool format. Qwen 3+ and Mistral 3+ are good defaults.
 
-## eu-kiki Gateway (EU-Sovereign Stack)
+## ailiance Gateway (EU-Sovereign Stack)
 
-The [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) gateway routes prompts to one of three EU/Swiss foundation models (Apertus 70B / Devstral 24B / EuroLLM 22B) via a Jina v3 domain classifier and exposes an OpenAI-compatible API. Connecting Dirac to it gives a fully on-premise, EU-sovereign coding agent.
+The [ailiance](https://github.com/ailiance/ailiance) gateway routes prompts to one of three EU/Swiss foundation models (Apertus 70B / Devstral 24B / EuroLLM 22B) via a Jina v3 domain classifier and exposes an OpenAI-compatible API. Connecting Dirac to it gives a fully on-premise, EU-sovereign coding agent.
 
 ### Prerequisites
 
-The gateway must be running on a machine with enough memory to hold the EU-KIKI worker stack (~200+ GB unified memory recommended for BF16; quantized variants are smaller). Default ports:
+The gateway must be running on a machine with enough memory to hold the AILIANCE worker stack (~200+ GB unified memory recommended for BF16; quantized variants are smaller). Default ports:
 
 | Service | Port |
 |---|---|
@@ -111,7 +111,7 @@ The gateway must be running on a machine with enough memory to hold the EU-KIKI 
 
 ```bash
 # On the gateway host (Mac Studio, Linux server, etc.)
-cd eu-kiki
+cd ailiance
 bash scripts/start.sh   # or your own launcher
 curl -s http://localhost:9300/health
 # {"status":"ok","router_loaded":true,"uptime_s":...,"domains":40}
@@ -124,23 +124,23 @@ curl -s http://localhost:9300/health
 | Provider | `openai` (OpenAI Compatible) |
 | Base URL | `http://<gateway-host>:9300/v1` |
 | API Key | `noop` (gateway does not validate; protect with a reverse proxy if exposed) |
-| Model ID | one of `eu-kiki`, `eu-kiki-apertus`, `eu-kiki-devstral`, `eu-kiki-eurollm` |
+| Model ID | one of `ailiance`, `ailiance-apertus`, `ailiance-devstral`, `ailiance-eurollm` |
 
-The bare `eu-kiki` model id triggers the Jina classifier, which dispatches to the most relevant adapter for the prompt. The three explicit names bypass the router and target a specific worker.
+The bare `ailiance` model id triggers the Jina classifier, which dispatches to the most relevant adapter for the prompt. The three explicit names bypass the router and target a specific worker.
 
 ### Smoke test
 
 ```bash
 curl -s http://<host>:9300/v1/models | jq .data[].id
-# eu-kiki, eu-kiki-apertus, eu-kiki-devstral, eu-kiki-eurollm
+# ailiance, ailiance-apertus, ailiance-devstral, ailiance-eurollm
 
 curl -s -X POST http://<host>:9300/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"eu-kiki-devstral","messages":[{"role":"user","content":"reply ok"}],"max_tokens":10}'
+  -d '{"model":"ailiance-devstral","messages":[{"role":"user","content":"reply ok"}],"max_tokens":10}'
 ```
 
 ### Notes
 
-- Use `eu-kiki-devstral` for code, `eu-kiki-apertus` for hardware/embedded reasoning, `eu-kiki-eurollm` for multilingual chat. The `eu-kiki` umbrella id picks one automatically.
+- Use `ailiance-devstral` for code, `ailiance-apertus` for hardware/embedded reasoning, `ailiance-eurollm` for multilingual chat. The `ailiance` umbrella id picks one automatically.
 - All three workers expose the same `/v1/chat/completions` shape; the gateway forwards `req.model_dump()` straight through and adds an `X-Lora-Domain` header so the worker can swap LoRA adapters.
 - For multi-machine setups, reach the gateway over Tailscale (`http://<tailscale-name>:9300/v1`).

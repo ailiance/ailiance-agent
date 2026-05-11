@@ -1,7 +1,7 @@
 import type { WorkerEndpoint } from "./types"
 
 /**
- * Default eu-kiki worker endpoints.
+ * Default ailiance worker endpoints.
  * Users can override via setting `localRouterWorkers` (array of WorkerEndpoint).
  *
  * ctxMax reflects the runtime context window of each worker (mesured live).
@@ -12,7 +12,7 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 	{
 		id: "tower-gemma",
 		url: "http://100.78.6.122:9304/v1",
-		modelId: "eu-kiki-gemma",
+		modelId: "ailiance-gemma",
 		capabilities: ["general", "code"],
 		priority: 10,
 		ctxMax: 32768, // llama-server -c 32768 (Gemma 3 native 128k)

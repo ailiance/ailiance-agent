@@ -13,7 +13,7 @@ export const FEATURE_SETTINGS = {
 		stateKey: "subagentsEnabled",
 		default: false,
 		label: "Subagents",
-		description: "Let agent-kiki run focused subagents in parallel to explore the codebase for you",
+		description: "Let ailiance-agent run focused subagents in parallel to explore the codebase for you",
 	},
 	autoCondense: {
 		stateKey: "useAutoCondense",

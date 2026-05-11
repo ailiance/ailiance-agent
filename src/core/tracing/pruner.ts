@@ -1,6 +1,6 @@
-// agent-kiki fork: trace rotation policy.
+// ailiance-agent fork: trace rotation policy.
 //
-// The tracer writes one directory per task under <cwd>/.agent-kiki/runs/.
+// The tracer writes one directory per task under <cwd>/.ailiance-agent/runs/.
 // Without a prune step, that directory grows unbounded over months of
 // use. We apply a "whichever is more permissive" policy:
 //

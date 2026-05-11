@@ -1,9 +1,9 @@
 import { expect } from "@playwright/test"
 import { e2e } from "./utils/helpers"
 
-// FIXME(eu-kiki): depends on auth.test.ts signin flow which targets a
+// FIXME(ailiance): depends on auth.test.ts signin flow which targets a
 // removed onboarding screen. Re-enable once a fixture seeds an OpenRouter
-// (or eu-kiki gateway) provider directly via StateManager so the test can
+// (or ailiance gateway) provider directly via StateManager so the test can
 // jump straight to chat input + plan/act mode toggle.
 e2e.skip("Chat - can send messages and switch between modes", async ({ helper, sidebar, page }) => {
 	// Sign in

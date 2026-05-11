@@ -1,7 +1,7 @@
 # tracing
 
 EU AI Act-compliant per-task JSONL traces. Mirrors the Python schema from
-`agent-kiki-py-archive` at `schema_version = "1.0.0"`.
+`ailiance-agent-py-archive` at `schema_version = "1.0.0"`.
 
 Note : pas de `cli/src/core/tracing/` — la CLI Ink ne duplique rien, elle
 consomme `JsonlTracer` via `src/core/tracing` (les tests vivent côté `cli/tests/`).
@@ -16,11 +16,11 @@ consomme `JsonlTracer` via `src/core/tracing` (les tests vivent côté `cli/test
 
 ## Output layout
 
-`<taskCwd>/.agent-kiki/runs/<taskId>/`
+`<taskCwd>/.ailiance-agent/runs/<taskId>/`
 - `meta.json` — `RunMeta` réécrit atomiquement (write tmp + rename) à chaque update
 - `trace.jsonl` — append-only, une `TraceLine` par turn
 
-NB : pas `.aki/traces/` — c'est `.agent-kiki/runs/<taskId>/` (constante `TRACING_DIR_NAME`).
+NB : pas `.aki/traces/` — c'est `.ailiance-agent/runs/<taskId>/` (constante `TRACING_DIR_NAME`).
 `taskId` est strictement validé `^[a-zA-Z0-9_-]+$` (throw sinon — anti path-escape).
 
 ## Schema (snake_case sur disque)
@@ -32,7 +32,7 @@ NB : pas `.aki/traces/` — c'est `.agent-kiki/runs/<taskId>/` (constante `TRACI
 `ToolExecutionRecord` : `tool_name, tool_args?, tool_result?, latency_ms, success`.
 
 `RunMeta` : run_id, started_at/ended_at, exit_code/exit_reason, task, cwd, mode,
-hint_domain, approval_mode, agent_kiki_version, gateway_url, workers{}, stats{}, limits_hit[].
+hint_domain, approval_mode, ailiance_agent_version, gateway_url, workers{}, stats{}, limits_hit[].
 
 ## When emitted
 

@@ -54,7 +54,7 @@ export async function parseSlashCommands(
 	isDirectResponse?: boolean
 	directResponseText?: string
 }> {
-	// agent-kiki fork: dropped "askDirac" — RAG over upstream Dirac source code, irrelevant for our fork
+	// ailiance-agent fork: dropped "askDirac" — RAG over upstream Dirac source code, irrelevant for our fork
 	const SUPPORTED_DEFAULT_COMMANDS = ["newtask", "smol", "compact", "newrule", "reportbug", "explain-changes", "permissions"]
 
 	const willUseNativeTools = true

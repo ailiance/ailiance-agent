@@ -46,7 +46,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ isWelcomeState, quote, o
 			)}
 			<Text> </Text>
 			<Text bold color="white">
-				{centerText(`agent-kiki v${CLI_VERSION} — EU-sovereign coding agent (fork of Dirac/Cline)`)}
+				{centerText(`ailiance-agent v${CLI_VERSION} — EU-sovereign coding agent (fork of Dirac/Cline)`)}
 			</Text>
 			{webuiUrl && (
 				<Box marginTop={0}>

@@ -1,4 +1,4 @@
-// agent-kiki fork: tests for the 3-zone shell command classifier.
+// ailiance-agent fork: tests for the 3-zone shell command classifier.
 import { describe, expect, it } from "vitest"
 import { classifyCommand } from "@core/safety/zoneClassifier"
 

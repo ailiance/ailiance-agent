@@ -1,7 +1,7 @@
 /**
  * Help panel content for inline display in ChatView
- * Explains agent-kiki CLI features and links to documentation
- * agent-kiki fork: rebrand
+ * Explains ailiance-agent CLI features and links to documentation
+ * ailiance-agent fork: rebrand
  */
 
 import { Box, Text, useInput } from "ink"
@@ -34,14 +34,14 @@ export const HelpPanelContent: React.FC<HelpPanelContentProps> = ({ onClose }) =
 		<Panel label="Help">
 			<Box flexDirection="column" gap={1}>
 				<Text>
-						agent-kiki can edit files, run terminal commands, use the browser, and more with your permission.
+						ailiance-agent can edit files, run terminal commands, use the browser, and more with your permission.
 					</Text>
 
 				<Box flexDirection="column">
 					<Text bold>Plan vs Act Mode</Text>
 					<Text>
 						Use <Text color="yellow">Plan</Text> mode to discuss and strategize before making changes. Use{" "}
-						<Text color={COLORS.primaryBlue}>Act</Text> mode when you're ready for agent-kiki to edit files and run
+						<Text color={COLORS.primaryBlue}>Act</Text> mode when you're ready for ailiance-agent to edit files and run
 						commands. Toggle between them with <Text color="white">Tab</Text>.
 					</Text>
 				</Box>
@@ -93,12 +93,12 @@ export const HelpPanelContent: React.FC<HelpPanelContentProps> = ({ onClose }) =
 					</Text>
 					<Text>
 						{"  "}
-						<Text color="white">/q</Text> - Quit agent-kiki
+						<Text color="white">/q</Text> - Quit ailiance-agent
 					</Text>
 				</Box>
 
 				<Text>
-					For more help: <Text color={COLORS.primaryBlue}>https://github.com/L-electron-Rare/agent-kiki</Text>
+					For more help: <Text color={COLORS.primaryBlue}>https://github.com/ailiance/ailiance-agent</Text>
 				</Text>
 			</Box>
 		</Panel>

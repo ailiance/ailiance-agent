@@ -4,7 +4,7 @@ import type { ChatRequest } from "./types"
  * Rough estimate: ~4 characters per token (anglo + tools/code mix).
  * Overestimate by 20% to be safe against tokenizer variance.
  *
- * For agent-kiki workflows where system prompt is ~6-10k tokens,
+ * For ailiance-agent workflows where system prompt is ~6-10k tokens,
  * this is accurate enough to skip clearly-undersized workers without
  * the cost of a real tokenizer.
  */

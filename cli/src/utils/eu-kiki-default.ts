@@ -1,7 +1,7 @@
-// agent-kiki fork: eu-kiki default fallback
+// ailiance-agent fork: ailiance default fallback
 //
 // When no provider is configured (no API key env vars, no persisted
-// auth state), default to the eu-kiki gateway via the OpenAI-compatible
+// auth state), default to the ailiance gateway via the OpenAI-compatible
 // code path. The user can override by setting AGENT_KIKI_GATEWAY=<url>
 // or by configuring any of the standard upstream provider env vars.
 //
@@ -9,27 +9,27 @@
 //   - AGENT_KIKI_GATEWAY=<url> set    -> session override with that url
 //   - upstream provider env present   -> skip (env-config wins)
 //   - persisted welcomeViewCompleted  -> skip (user already onboarded)
-//   - otherwise                       -> persist eu-kiki defaults so
+//   - otherwise                       -> persist ailiance defaults so
 //                                        first-run + later runs both work
 
 import type { StateManager } from "@/core/storage/StateManager"
 
-export const EU_KIKI_DEFAULT_GATEWAY = "http://studio:9300"
-export const EU_KIKI_DEFAULT_MODEL = "eu-kiki"
+export const AILIANCE_DEFAULT_GATEWAY = "http://studio:9300"
+export const AILIANCE_DEFAULT_MODEL = "ailiance"
 
 /**
- * Sentinel value, never a real credential. The eu-kiki gateway does not
+ * Sentinel value, never a real credential. The ailiance gateway does not
  * validate API keys — it is an internal LiteLLM proxy on the trusted
  * network. This string is required only because the openai-compatible
  * provider code path expects a non-empty key field; passing "" would
  * cause the SDK client to refuse to construct.
  *
  * Important: any code that passes a key to setSecret("openAiApiKey", ...)
- * for the eu-kiki default MUST reference this constant by name rather
+ * for the ailiance default MUST reference this constant by name rather
  * than re-inlining the literal "unused", so a future rename / rotation
  * cannot leave a stray copy behind. No telemetry path logs this value.
  */
-export const EU_KIKI_DEFAULT_API_KEY = "unused"
+export const AILIANCE_DEFAULT_API_KEY = "unused"
 
 export type EuKikiDefaultReason =
 	| "env-provider-already-set"
@@ -44,12 +44,12 @@ export interface EuKikiDefaultDecision {
 }
 
 /**
- * Derive the eu-kiki gateway URL from env (AGENT_KIKI_GATEWAY) or the
+ * Derive the ailiance gateway URL from env (AGENT_KIKI_GATEWAY) or the
  * built-in default. Trailing slashes and `/chat/completions` suffix are
  * stripped to mirror provider-config normalisation.
  */
 export function resolveEuKikiGatewayUrl(env: NodeJS.ProcessEnv = process.env): string {
-	const raw = (env.AGENT_KIKI_GATEWAY || EU_KIKI_DEFAULT_GATEWAY).trim()
+	const raw = (env.AGENT_KIKI_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
 	let url = raw.replace(/\/chat\/completions\/?$/, "")
 	url = url.replace(/\/+$/, "")
 	return url
@@ -98,7 +98,7 @@ interface ApplyOptions {
 }
 
 /**
- * Apply the eu-kiki defaults to the StateManager.
+ * Apply the ailiance defaults to the StateManager.
  * Returns a decision object so callers can log what happened.
  *
  * Precedence:
@@ -106,7 +106,7 @@ interface ApplyOptions {
  *   2. AGENT_KIKI_GATEWAY env var present     -> session override
  *      (does NOT persist; respects per-run overrides).
  *   3. welcomeViewCompleted=true && persisted provider already set -> skip.
- *   4. Otherwise -> persist eu-kiki defaults + mark welcomeViewCompleted.
+ *   4. Otherwise -> persist ailiance defaults + mark welcomeViewCompleted.
  */
 export function applyEuKikiDefault(
 	stateManager: StateManager,
@@ -126,19 +126,19 @@ export function applyEuKikiDefault(
 		// user can rotate AGENT_KIKI_GATEWAY freely between runs.
 		stateManager.setSessionOverride("actModeApiProvider", "openai")
 		stateManager.setSessionOverride("planModeApiProvider", "openai")
-		stateManager.setSessionOverride("actModeOpenAiModelId", EU_KIKI_DEFAULT_MODEL)
-		stateManager.setSessionOverride("planModeOpenAiModelId", EU_KIKI_DEFAULT_MODEL)
+		stateManager.setSessionOverride("actModeOpenAiModelId", AILIANCE_DEFAULT_MODEL)
+		stateManager.setSessionOverride("planModeOpenAiModelId", AILIANCE_DEFAULT_MODEL)
 		stateManager.setSessionOverride("openAiBaseUrl", gatewayUrl)
 		// Secrets cannot be session-overridden; mirror them in cache via
 		// setSecret so the API handler can build a client. We only do this
 		// if the cache slot is empty so we never clobber a real key.
 		const cachedKey = stateManager.getSecretKey("openAiApiKey")
 		if (!cachedKey) {
-			stateManager.setSecret("openAiApiKey", EU_KIKI_DEFAULT_API_KEY)
+			stateManager.setSecret("openAiApiKey", AILIANCE_DEFAULT_API_KEY)
 		}
 		const cachedCompatKey = stateManager.getSecretKey("openAiCompatibleCustomApiKey")
 		if (!cachedCompatKey) {
-			stateManager.setSecret("openAiCompatibleCustomApiKey", EU_KIKI_DEFAULT_API_KEY)
+			stateManager.setSecret("openAiCompatibleCustomApiKey", AILIANCE_DEFAULT_API_KEY)
 		}
 		return { applied: true, reason: "applied-from-env", gatewayUrl }
 	}
@@ -152,11 +152,11 @@ export function applyEuKikiDefault(
 	// First-run fallback: persist so subsequent invocations still work.
 	stateManager.setGlobalState("actModeApiProvider", "openai")
 	stateManager.setGlobalState("planModeApiProvider", "openai")
-	stateManager.setGlobalState("actModeOpenAiModelId", EU_KIKI_DEFAULT_MODEL)
-	stateManager.setGlobalState("planModeOpenAiModelId", EU_KIKI_DEFAULT_MODEL)
+	stateManager.setGlobalState("actModeOpenAiModelId", AILIANCE_DEFAULT_MODEL)
+	stateManager.setGlobalState("planModeOpenAiModelId", AILIANCE_DEFAULT_MODEL)
 	stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
-	stateManager.setSecret("openAiApiKey", EU_KIKI_DEFAULT_API_KEY)
-	stateManager.setSecret("openAiCompatibleCustomApiKey", EU_KIKI_DEFAULT_API_KEY)
+	stateManager.setSecret("openAiApiKey", AILIANCE_DEFAULT_API_KEY)
+	stateManager.setSecret("openAiCompatibleCustomApiKey", AILIANCE_DEFAULT_API_KEY)
 	stateManager.setGlobalState("welcomeViewCompleted", true)
 
 	return { applied: true, reason: "applied-fallback", gatewayUrl }

@@ -1,7 +1,7 @@
 {
-	"name": "agent-kiki-cli",
+	"name": "ailiance-agent-cli",
 	"version": "0.5.0-beta",
-	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to eu-kiki LLM gateway by default",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"
 	],
@@ -9,7 +9,7 @@
 	"types": "dist/lib.d.ts",
 	"bin": {
 		"aki": "./dist/cli.mjs",
-		"agent-kiki": "./dist/cli.mjs"
+		"ailiance-agent": "./dist/cli.mjs"
 	},
 	"exports": {
 		".": {
@@ -49,8 +49,8 @@
 		"test:run": "vitest run"
 	},
 	"keywords": [
-		"agent-kiki",
-		"eu-kiki",
+		"ailiance-agent",
+		"ailiance",
 		"dirac",
 		"claude",
 		"dev",
@@ -65,16 +65,16 @@
 		"cli"
 	],
 	"author": {
-		"name": "L'Electron Rare"
+		"name": "Ailiance"
 	},
 	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/L-electron-Rare/agent-kiki.git"
+		"url": "git+https://github.com/ailiance/ailiance-agent.git"
 	},
-	"homepage": "https://github.com/L-electron-Rare/agent-kiki",
+	"homepage": "https://github.com/ailiance/ailiance-agent",
 	"bugs": {
-		"url": "https://github.com/L-electron-Rare/agent-kiki/issues"
+		"url": "https://github.com/ailiance/ailiance-agent/issues"
 	},
 	"devDependencies": {
 		"@types/marked": "^5.0.2",

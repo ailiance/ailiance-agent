@@ -13,14 +13,14 @@ import { DiracContent } from "@shared/messages/content"
 import { DiracDefaultTool, toolUseNames } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
-// agent-kiki fork: source the version from package.json so trace meta and
+// ailiance-agent fork: source the version from package.json so trace meta and
 // the package binary never drift apart at release time.
 import { version as AGENT_KIKI_VERSION } from "../../../package.json"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
-// agent-kiki fork: tracing hook
+// ailiance-agent fork: tracing hook
 import { JsonlTracer } from "../tracing"
 import { WorkspaceRootManager } from "../workspace"
 import { ToolResponse } from "."
@@ -46,7 +46,7 @@ export function canonicalizeAttemptCompletionParams(block: ToolUse): boolean {
 export class ToolExecutor {
 	private autoApprover: AutoApprove
 	private coordinator: ToolExecutorCoordinator
-	// agent-kiki fork: tracing hook
+	// ailiance-agent fork: tracing hook
 	private tracer: JsonlTracer | null = null
 	private traceMetaWritten = false
 
@@ -137,7 +137,7 @@ export class ToolExecutor {
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
 
-		// agent-kiki fork: tracing hook — per-task JSONL trace dir
+		// ailiance-agent fork: tracing hook — per-task JSONL trace dir
 		try {
 			this.tracer = new JsonlTracer(this.taskId, this.cwd)
 		} catch (_err) {
@@ -145,7 +145,7 @@ export class ToolExecutor {
 		}
 	}
 
-	// agent-kiki fork: tracing hook helpers
+	// ailiance-agent fork: tracing hook helpers
 	private ensureTraceMeta(): void {
 		if (!this.tracer || this.traceMetaWritten) return
 		try {
@@ -160,7 +160,7 @@ export class ToolExecutor {
 				task: this.taskId,
 				mode,
 				approval_mode: yolo ? "yolo" : "manual",
-				agent_kiki_version: AGENT_KIKI_VERSION,
+				ailiance_agent_version: AGENT_KIKI_VERSION,
 				gateway_url: gatewayUrl,
 				workers: {
 					default: {
@@ -202,7 +202,7 @@ export class ToolExecutor {
 		}
 	}
 
-	// agent-kiki fork: expose planner-turn recorder so the Task's API request
+	// ailiance-agent fork: expose planner-turn recorder so the Task's API request
 	// loop can capture every roundtrip (not just successful tool calls).
 	public recordPlannerTurn(rawResponse: string, latencyMs: number, errors: string[] = []): void {
 		if (!this.tracer) return
@@ -701,7 +701,7 @@ export class ToolExecutor {
 
 			this.pushToolResult(toolResult, block)
 
-			// agent-kiki fork: tracing hook (success path)
+			// ailiance-agent fork: tracing hook (success path)
 			this.recordToolTurn(block, toolResult, true, executionStartTime)
 			if (block.name === "attempt_completion") {
 				this.closeTrace("attempt_completion", 0)
@@ -731,7 +731,7 @@ export class ToolExecutor {
 			executionSuccess = false
 			toolResult = formatResponse.toolError(`Tool execution failed: ${error}`)
 
-			// agent-kiki fork: tracing hook (error path)
+			// ailiance-agent fork: tracing hook (error path)
 			this.recordToolTurn(block, toolResult, false, executionStartTime, [String((error as Error)?.message ?? error)])
 
 			// Check abort before running PostToolUse hook (error path)
