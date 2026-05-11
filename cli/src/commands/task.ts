@@ -32,7 +32,7 @@ export async function runTaskInPlainTextMode(
 	// In plain text mode we can't show the interactive auth flow
 	const hasAuth = await isAuthConfigured()
 	if (!hasAuth) {
-		// agent-kiki fork: rebrand 'dirac auth' -> 'aki auth'
+		// ailiance-agent fork: rebrand 'dirac auth' -> 'aki auth'
 		printWarning("Not authenticated. Please run 'aki auth' first to configure your API credentials.")
 		await disposeCliContext(ctx)
 		exit(1)
@@ -64,7 +64,7 @@ export async function runTaskInPlainTextMode(
 /**
  * Run a task with the given prompt - uses welcome view for consistent behavior
  */
-// agent-kiki fork: greeting short-circuit
+// ailiance-agent fork: greeting short-circuit
 // Skip the agent loop on trivial prompts ("bonjour", "test", "hi"...) which
 // otherwise cause the model to spin in an infinite tool-call retry loop
 // because the agent runtime expects every user turn to produce a tool_call.
@@ -83,19 +83,19 @@ export async function runTask(
 	options: TaskOptions & { images?: string[] },
 	existingContext?: CliContext,
 ) {
-	// agent-kiki fork: short-circuit greetings before spinning up the full agent.
+	// ailiance-agent fork: short-circuit greetings before spinning up the full agent.
 	if (isTrivialGreeting(prompt)) {
 		// Use process.stdout directly — Ink isn't mounted yet.
 		process.stdout.write(
-			"\n👋 Hi! agent-kiki is a coding agent — give it a task with a goal.\n" +
+			"\n👋 Hi! ailiance-agent is a coding agent — give it a task with a goal.\n" +
 			"   Examples:\n" +
 			"     aki t -y \"create hello.py with print('hi')\"\n" +
 			"     aki t -y \"fix the failing test in tests/foo.py\"\n" +
-			"     aki t -y --model eu-kiki-qwen \"add a /healthz endpoint to api.py\"\n\n" +
+			"     aki t -y --model ailiance-qwen \"add a /healthz endpoint to api.py\"\n\n" +
 			"   For chat-style replies, hit the gateway directly:\n" +
 			"     curl http://100.78.191.52:9300/v1/chat/completions \\\n" +
 			"       -H 'Content-Type: application/json' \\\n" +
-			"       -d '{\"model\":\"eu-kiki-eurollm\",\"messages\":[{\"role\":\"user\",\"content\":\"...\"}]}'\n\n",
+			"       -d '{\"model\":\"ailiance-eurollm\",\"messages\":[{\"role\":\"user\",\"content\":\"...\"}]}'\n\n",
 		)
 		exit(0)
 	}

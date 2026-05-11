@@ -1,6 +1,6 @@
 # cli/
 
-Binaire `aki` (alias `agent-kiki`) — CLI Ink/React, fork de Dirac. Entry point :
+Binaire `aki` (alias `ailiance-agent`) — CLI Ink/React, fork de Dirac. Entry point :
 `src/index.ts` (utilise `commander`). Build esbuild → `dist/cli.mjs` (bin) et
 `dist/lib.mjs` (lib programmatique). Réutilise le core de l'extension via alias
 `@/`, `@core/`, `@shared/`, … résolus par `aliasResolverPlugin` (esbuild.mts).

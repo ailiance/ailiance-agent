@@ -16,8 +16,8 @@ export type AsciiMotionCliProps = {
 	onReady?: (api: PlaybackAPI) => void;
 };
 
-// agent-kiki fork: replaced upstream Dirac delta logo with the
-// L'Electron Rare "ER" PCB-trace logo. Original asset:
+// ailiance-agent fork: replaced upstream Dirac delta logo with the
+// Ailiance "ER" PCB-trace logo. Original asset:
 // /Users/electron/Business OS/logo ER.png — three letters E·r·R
 // with copper traces, pads, and through-holes, evoking a PCB.
 const _ER_COLORS = {

@@ -1,4 +1,4 @@
-// agent-kiki fork: telemetry phone-home regression test.
+// ailiance-agent fork: telemetry phone-home regression test.
 // Asserts that the telemetry config ships with no apiKey/host so the
 // EU-sovereign fork never sends events to dirac.run / posthog.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -7,7 +7,7 @@ import {
 	isDiracTelemetryConfigValid,
 } from "@shared/services/config/dirac-telemetry-config"
 
-describe("agent-kiki fork: telemetry is disabled at the config layer", () => {
+describe("ailiance-agent fork: telemetry is disabled at the config layer", () => {
 	it("ships without a hardcoded telemetry apiKey", () => {
 		expect(diracTelemetryConfig.apiKey).toBeFalsy()
 	})
@@ -26,7 +26,7 @@ describe("agent-kiki fork: telemetry is disabled at the config layer", () => {
 	})
 })
 
-describe("agent-kiki fork: providers no-op when config is invalid", () => {
+describe("ailiance-agent fork: providers no-op when config is invalid", () => {
 	let fetchSpy: ReturnType<typeof vi.spyOn>
 
 	beforeEach(() => {
@@ -43,7 +43,7 @@ describe("agent-kiki fork: providers no-op when config is invalid", () => {
 		// logRequired is the most aggressive code path — it bypasses isEnabled
 		// and goes straight to captureToDirac. The only thing that should stop
 		// the fetch is the apiKey guard inside captureToDirac.
-		provider.logRequired("agent_kiki_phone_home_probe", { foo: "bar" })
+		provider.logRequired("ailiance_agent_phone_home_probe", { foo: "bar" })
 		// Allow any pending microtask in captureToDirac to flush.
 		await new Promise((r) => setImmediate(r))
 		expect(fetchSpy).not.toHaveBeenCalled()

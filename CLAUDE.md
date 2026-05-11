@@ -1,7 +1,7 @@
-# agent-kiki
+# ailiance-agent
 
 Coding agent (fork de Dirac/Cline) — extension VS Code + CLI Ink, orchestrateur multi-LLM.
-Branding "aki" / kiki, packaging `agent-kiki-0.x.0.vsix`.
+Branding "aki" / kiki, packaging `ailiance-agent-0.x.0.vsix`.
 
 ## Workspaces
 
@@ -29,7 +29,7 @@ npm run lint            # biome
 |------|---------|
 | Boucle d'exécution agent / state | `src/core/task/` |
 | Provider LLM (anthropic, openai, …) | `src/core/api/providers/` |
-| Tracing JSONL (.agent-kiki/runs/) | `src/core/tracing/` |
+| Tracing JSONL (.ailiance-agent/runs/) | `src/core/tracing/` |
 | Persistence disque (~/.dirac, globalStorage) | `src/core/storage/` |
 | Tool handlers | `src/core/task/tools/handlers/` |
 | Slash commands | `src/core/slash-commands/` |

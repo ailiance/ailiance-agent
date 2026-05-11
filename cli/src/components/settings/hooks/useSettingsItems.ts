@@ -282,7 +282,7 @@ export function useSettingsItems({
 						label: "Enable notifications",
 						type: "checkbox",
 						value: autoApproveSettings.enableNotifications,
-						description: "System alerts when agent-kiki needs your attention",
+						description: "System alerts when ailiance-agent needs your attention",
 					},
 				)
 				return result
@@ -305,10 +305,10 @@ export function useSettingsItems({
 						label: "Error/usage reporting",
 						type: "checkbox",
 						value: telemetry !== "disabled",
-						description: "Help improve agent-kiki by sending anonymous usage data",
+						description: "Help improve ailiance-agent by sending anonymous usage data",
 					},
 					{ key: "separator", label: "", type: "separator", value: "" },
-					{ key: "version", label: "", type: "readonly", value: `agent-kiki v${CLI_VERSION}` },
+					{ key: "version", label: "", type: "readonly", value: `ailiance-agent v${CLI_VERSION}` },
 				]
 
 			default:

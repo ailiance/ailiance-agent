@@ -1,5 +1,5 @@
-agent-kiki
-Copyright 2026 L'Electron Rare / Clément Saillant
+ailiance-agent
+Copyright 2026 Ailiance / Clément Saillant
 
 This product includes software developed at:
   - Dirac Delta Labs (https://github.com/dirac-run/dirac)
@@ -7,8 +7,8 @@ This product includes software developed at:
   - Cline (https://github.com/cline/cline)
     Apache License 2.0
 
-Modifications by L'Electron Rare since 2026-05-04:
-  - Rebrand to agent-kiki / aki CLI binary
-  - Default provider routed to eu-kiki (EU-sovereign multi-model gateway)
+Modifications by Ailiance since 2026-05-04:
+  - Rebrand to ailiance-agent / aki CLI binary
+  - Default provider routed to ailiance (EU-sovereign multi-model gateway)
   - JSONL trace per task (EU AI Act Article 53 audit support)
   - Telemetry to dirac.run / PostHog disabled

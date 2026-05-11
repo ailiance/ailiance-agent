@@ -119,7 +119,7 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	useLocalStack: { default: false as boolean },
 
 	// Local router: in-process Node.js LLM router (no Python, no sub-process).
-	// Default ON for the eu-kiki gateway — routes to local stack first, falls back to HTTP.
+	// Default ON for the ailiance gateway — routes to local stack first, falls back to HTTP.
 	useLocalRouter: { default: true as boolean },
 	localRouterWorkers: { default: undefined as WorkerEndpoint[] | undefined },
 

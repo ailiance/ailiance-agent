@@ -39,7 +39,7 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 		<Box flexDirection="column" padding={1}>
 			<Text>
 				<Text color="cyan" bold>
-					agent-kiki timeline
+					ailiance-agent timeline
 				</Text>
 				<Text dimColor>
 					{" · "}

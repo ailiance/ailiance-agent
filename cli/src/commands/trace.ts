@@ -1,4 +1,4 @@
-// agent-kiki fork: `aki trace` subcommand.
+// ailiance-agent fork: `aki trace` subcommand.
 //
 // Subcommands:
 //   - aki trace list                    : list all run directories
@@ -12,7 +12,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { exit } from "node:process"
 
-const TRACING_DIR_NAME = ".agent-kiki/runs"
+const TRACING_DIR_NAME = ".ailiance-agent/runs"
 
 function resolveRunsDir(cwd?: string): string {
 	const base = cwd ?? process.cwd()

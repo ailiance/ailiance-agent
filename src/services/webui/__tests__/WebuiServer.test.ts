@@ -140,11 +140,11 @@ describe("WebuiServer", () => {
 			})
 		}
 
-		it("GET / returns landing page containing agent-kiki heading", async () => {
+		it("GET / returns landing page containing ailiance-agent heading", async () => {
 			const { status, body, contentType } = await get("/")
 			expect(status).to.equal(200)
 			expect(contentType).to.include("text/html")
-			expect(body).to.include("<h1>agent-kiki</h1>")
+			expect(body).to.include("<h1>ailiance-agent</h1>")
 		})
 
 		it("GET /api/version returns current version string", async () => {

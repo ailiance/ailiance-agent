@@ -1,6 +1,6 @@
 # Plugin Marketplace
 
-agent-kiki supports the Claude Code plugin format. You can install plugins from any Git repository.
+ailiance-agent supports the Claude Code plugin format. You can install plugins from any Git repository.
 
 ## Quick start
 

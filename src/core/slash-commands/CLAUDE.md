@@ -45,4 +45,4 @@ Builtins gagnent toujours sur les workflows homonymes.
 - `needsDiracrulesFileCheck: true` uniquement pour `newrule`.
 - CLI vs webview : la résolution est partagée (host process) ; UI rendu diffère
   (`cli/src/components/HighlightedInput.tsx` vs webview React) mais pas la logique.
-- Fork agent-kiki : `askDirac` (RAG sur source upstream) **retiré** — ne pas restaurer.
+- Fork ailiance-agent : `askDirac` (RAG sur source upstream) **retiré** — ne pas restaurer.

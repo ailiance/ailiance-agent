@@ -45,7 +45,7 @@ class McpClientManager {
 			env: { ...process.env, CLAUDE_PLUGIN_ROOT: cfg.pluginRoot },
 		})
 
-		const client = new Client({ name: "agent-kiki", version: "0.1.0" }, { capabilities: {} })
+		const client = new Client({ name: "ailiance-agent", version: "0.1.0" }, { capabilities: {} })
 
 		await client.connect(transport)
 

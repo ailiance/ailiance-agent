@@ -2,7 +2,7 @@
  * Plugin Hook Loader — P2-M4
  *
  * Parses Claude Code plugin hooks/hooks.json files and converts them into
- * a structure compatible with agent-kiki's hook system.
+ * a structure compatible with ailiance-agent's hook system.
  *
  * Integration note (Sprint P3): to wire plugin hooks at boot, call
  * `loadPluginHooks()` and register the resulting commands via
@@ -31,7 +31,7 @@ const PluginHookMatcherEntrySchema = z.object({
 	hooks: z.array(PluginHookCommandSchema),
 })
 
-// All Claude Code hook events (superset of agent-kiki events)
+// All Claude Code hook events (superset of ailiance-agent events)
 const CLAUDE_CODE_EVENTS = [
 	"PreToolUse",
 	"PostToolUse",
@@ -50,21 +50,21 @@ const PluginHooksFileSchema = z.object({
 })
 
 // ---------------------------------------------------------------------------
-// agent-kiki supported events mapping
+// ailiance-agent supported events mapping
 // ---------------------------------------------------------------------------
 
-/** Events supported by agent-kiki (keys of Hooks interface in hook-factory.ts) */
+/** Events supported by ailiance-agent (keys of Hooks interface in hook-factory.ts) */
 const SUPPORTED_AGENT_KIKI_EVENTS = new Set([
 	"PreToolUse",
 	"PostToolUse",
 	"UserPromptSubmit",
 	"Notification",
 	"PreCompact",
-	// TaskStart / TaskResume / TaskCancel / TaskComplete exist in agent-kiki but
+	// TaskStart / TaskResume / TaskCancel / TaskComplete exist in ailiance-agent but
 	// are not in Claude Code format — not mapped here.
 ])
 
-/** Claude Code events not supported by agent-kiki — emit a warning once */
+/** Claude Code events not supported by ailiance-agent — emit a warning once */
 const UNSUPPORTED_EVENTS = new Set<string>()
 
 // ---------------------------------------------------------------------------
@@ -74,11 +74,11 @@ const UNSUPPORTED_EVENTS = new Set<string>()
 export interface PluginHookCommand {
 	/** Absolute path to the command, after ${CLAUDE_PLUGIN_ROOT} expansion */
 	command: string
-	/** Optional timeout in seconds (defaults to agent-kiki's 10s) */
+	/** Optional timeout in seconds (defaults to ailiance-agent's 10s) */
 	timeoutSeconds?: number
 	/** Regex matcher for tool name filtering (empty = match all) */
 	matcher: string
-	/** agent-kiki event name (e.g. "PreToolUse") */
+	/** ailiance-agent event name (e.g. "PreToolUse") */
 	event: string
 	/** Plugin name for attribution */
 	pluginName: string
@@ -167,7 +167,7 @@ async function loadPluginHooksFile(
  *
  * For each plugin, reads `hooks/hooks.json` (if present), parses it, expands
  * `${CLAUDE_PLUGIN_ROOT}` to the plugin's root directory, and maps the event
- * names to agent-kiki supported events.
+ * names to ailiance-agent supported events.
  *
  * Unsupported events (Stop, SessionStart, PermissionRequest) are logged as
  * warnings and skipped. Malformed files are swallowed silently.

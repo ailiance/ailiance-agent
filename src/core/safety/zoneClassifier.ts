@@ -1,5 +1,5 @@
-// agent-kiki fork: 3-zone shell-command classifier ported from
-// agent-kiki-py-archive/src/agent_kiki/tools/shell.py (classify_command).
+// ailiance-agent fork: 3-zone shell-command classifier ported from
+// ailiance-agent-py-archive/src/ailiance_agent/tools/shell.py (classify_command).
 //
 // Zones:
 //   - "auto_ok"   : safe read-only commands; run without prompting.

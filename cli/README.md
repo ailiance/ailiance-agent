@@ -1,7 +1,7 @@
-# agent-kiki CLI (`aki`) — v0.3.0
+# ailiance-agent CLI (`aki`) — v0.3.0
 
-> Fork of Dirac/Cline. Binary `aki` (alias `agent-kiki`). Defaults to
-> the [eu-kiki](https://github.com/L-electron-Rare/eu-kiki) gateway at
+> Fork of Dirac/Cline. Binary `aki` (alias `ailiance-agent`). Defaults to
+> the [ailiance](https://github.com/ailiance/ailiance) gateway at
 > `http://studio:9300/v1`. See the root [`README.md`](../README.md)
 > and [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) for the full
 > release notes.

@@ -1,4 +1,4 @@
-// agent-kiki fork: tracing barrel
+// ailiance-agent fork: tracing barrel
 export {
 	JsonlTracer,
 	scrubSecrets,

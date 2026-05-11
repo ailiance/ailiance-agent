@@ -122,7 +122,7 @@ export abstract class DiracWebviewProvider {
 				</style>
 				<link rel="stylesheet" type="text/css" href="${stylesUrl}">
 				<link href="${codiconsUrl}" rel="stylesheet" />
-				<!-- agent-kiki fork: CSP narrowed — drop *.dirac.run (telemetry off) -->
+				<!-- ailiance-agent fork: CSP narrowed — drop *.dirac.run (telemetry off) -->
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none';
 					connect-src https://*.posthog.com;
 					font-src ${this.getCspSource()} data:; 

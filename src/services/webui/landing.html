@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agent-kiki dashboard</title>
+  <title>ailiance-agent dashboard</title>
   <style>
     body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 2rem; }
     h1 { color: #58a6ff; margin-bottom: 0.25rem; }
@@ -22,7 +22,7 @@
   </style>
 </head>
 <body>
-  <h1>agent-kiki</h1>
+  <h1>ailiance-agent</h1>
   <div class="version">EU-sovereign coding agent · v<span id="version">…</span></div>
 
   <div class="grid">
@@ -33,7 +33,7 @@
     </div>
 
     <div class="card">
-      <h2>EU-kiki workers</h2>
+      <h2>Ailiance workers</h2>
       <div class="row"><span>Gateway (electron-server :9300)</span><span id="gw-status" class="status-unknown">…</span></div>
       <div class="row"><span>Apertus 70b (studio :9301)</span><span id="apertus-status" class="status-unknown">…</span></div>
       <div class="row"><span>EuroLLM 22b (studio :9303)</span><span id="eurollm-status" class="status-unknown">…</span></div>
@@ -44,7 +44,7 @@
     <div class="card">
       <h2>Quick links</h2>
       <div class="row"><a href="vscode://saoudrizwan.claude-dev/openInNewTab">Open in VS Code extension</a></div>
-      <div class="row"><a href="https://github.com/L-electron-Rare/agent-kiki" target="_blank">GitHub repo</a></div>
+      <div class="row"><a href="https://github.com/ailiance/ailiance-agent" target="_blank">GitHub repo</a></div>
       <div class="row"><span>CLI command</span><code>aki</code></div>
       <div class="row"><span>Stack mgmt</span><code>aki stack {start,stop,status}</code></div>
       <div class="row"><span>Plugins</span><code>aki plugin {list,install,...}</code></div>
@@ -52,7 +52,7 @@
   </div>
 
   <div class="footer">
-    For the full UI (chat, settings, monitoring), use VS Code with the agent-kiki extension.
+    For the full UI (chat, settings, monitoring), use VS Code with the ailiance-agent extension.
   </div>
 
   <script>
@@ -62,7 +62,7 @@
       el.textContent = up ? "● up" : "● down"
       el.className = up ? "status-up" : "status-down"
     }
-    // Server-side probe avoids browser CORS issues with EU-kiki workers.
+    // Server-side probe avoids browser CORS issues with Ailiance workers.
     async function refreshAll() {
       try {
         const r = await fetch("/api/probe-workers")

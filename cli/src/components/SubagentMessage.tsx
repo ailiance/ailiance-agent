@@ -1,4 +1,4 @@
-// agent-kiki fork: rebrand "Dirac" → "agent-kiki" in subagent status messages
+// ailiance-agent fork: rebrand "Dirac" → "ailiance-agent" in subagent status messages
 import type { DiracAskUseSubagents, DiracMessage, DiracSaySubagentStatus } from "@shared/ExtensionMessage"
 import { Box, Text } from "ink"
 import Spinner from "ink-spinner"
@@ -189,7 +189,7 @@ export const SubagentMessage: React.FC<SubagentMessageProps> = ({ message, mode,
 			return (
 				<Box flexDirection="column" marginBottom={1} width="100%">
 					<DotRow color={toolColor}>
-						<Text color={toolColor}>agent-kiki wants to run subagents:</Text>
+						<Text color={toolColor}>ailiance-agent wants to run subagents:</Text>
 					</DotRow>
 				</Box>
 			)
@@ -199,7 +199,7 @@ export const SubagentMessage: React.FC<SubagentMessageProps> = ({ message, mode,
 		return (
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={toolColor} flashing={partial === true && isStreaming}>
-					<Text color={toolColor}>{singular ? "agent-kiki wants to run a subagent:" : "agent-kiki wants to run subagents:"}</Text>
+					<Text color={toolColor}>{singular ? "ailiance-agent wants to run a subagent:" : "ailiance-agent wants to run subagents:"}</Text>
 				</DotRow>
 				<Box flexDirection="column" marginLeft={2} width="100%">
 					{prompts.map((prompt, index) => {
@@ -257,7 +257,7 @@ export const SubagentMessage: React.FC<SubagentMessageProps> = ({ message, mode,
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={toolColor} flashing={partial === true && isStreaming}>
 					<Text color={toolColor}>
-						{items.length === 1 ? "agent-kiki is running a subagent:" : "agent-kiki is running subagents:"}
+						{items.length === 1 ? "ailiance-agent is running a subagent:" : "ailiance-agent is running subagents:"}
 					</Text>
 				</DotRow>
 				<Box flexDirection="column" marginLeft={2} width="100%">

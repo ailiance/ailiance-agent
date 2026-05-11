@@ -19,7 +19,7 @@ Root = `HostProvider.get().globalStorageFsPath` (CLI : `~/.dirac` via `getDiracH
   cache/                            # model caches
 ```
 
-Tracing JSONL : **PAS ici**. Voir `../tracing/CLAUDE.md` (chemin réel `.agent-kiki/runs/<taskId>/`).
+Tracing JSONL : **PAS ici**. Voir `../tracing/CLAUDE.md` (chemin réel `.ailiance-agent/runs/<taskId>/`).
 
 Workspace-side (rules/skills) : `.diracrules/`, `.dirac/skills`, `.claude/skills`, `.agents/skills`, `.ai/skills`, `.cursor/rules`, `.windsurfrules`, `AGENTS.md`.
 

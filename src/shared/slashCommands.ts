@@ -1,4 +1,4 @@
-// agent-kiki fork: rebrand command descriptions, drop /askDirac (RAG over upstream source)
+// ailiance-agent fork: rebrand command descriptions, drop /askDirac (RAG over upstream source)
 export interface SlashCommand {
 	name: string
 	description?: string
@@ -21,24 +21,24 @@ export const BASE_SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{
 		name: "newrule",
-		description: "Create a new agent-kiki rule based on your conversation",
+		description: "Create a new ailiance-agent rule based on your conversation",
 		section: "default",
 		cliCompatible: true,
 	},
 	{
 		name: "reportbug",
-		description: "Create a Github issue with agent-kiki",
+		description: "Create a Github issue with ailiance-agent",
 		section: "default",
 		cliCompatible: true,
 	},
 	{
 		name: "help",
-		description: "Learn how to use agent-kiki CLI",
+		description: "Learn how to use ailiance-agent CLI",
 		section: "default",
 		cliCompatible: true,
 	},
 
-	// agent-kiki fork: dropped /askDirac (RAG over upstream Dirac source — irrelevant here)
+	// ailiance-agent fork: dropped /askDirac (RAG over upstream Dirac source — irrelevant here)
 ]
 
 // VS Code-only slash commands

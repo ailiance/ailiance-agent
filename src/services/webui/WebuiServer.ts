@@ -15,7 +15,7 @@ function getAkiVersion(): string {
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: dynamic require for version lookup
 			const pkg = require(p) as { name?: string; version?: string }
-			if (pkg.name === "agent-kiki" && pkg.version) return pkg.version
+			if (pkg.name === "ailiance-agent" && pkg.version) return pkg.version
 		} catch {}
 	}
 	return "?"

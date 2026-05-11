@@ -1,0 +1,12 @@
+{
+  "name": "ailiance-agent",
+  "version": "0.4.0",
+  "description": "EU-sovereign autonomous coding agent CLI - capable of creating/editing files, running commands, using the browser, and more. Routed to the ailiance LLM gateway by default.",
+  "command": "aki",
+  "args": ["--acp"],
+  "homepage": "https://github.com/ailiance/ailiance-agent",
+  "repository": "https://github.com/ailiance/ailiance-agent",
+  "author": "Ailiance",
+  "license": "Apache-2.0",
+  "icon": "icon.svg"
+}

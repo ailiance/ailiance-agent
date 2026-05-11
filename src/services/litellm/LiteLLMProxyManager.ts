@@ -45,10 +45,10 @@ const DEFAULT_CONFIG_YAML = `model_list:
       model: ollama/llama3.1:8b
       api_base: http://localhost:11434
 
-  # Workers eu-kiki (placeholders, l'utilisateur ajuste)
-  # - model_name: eu-kiki-apertus-70b
+  # Workers ailiance (placeholders, l'utilisateur ajuste)
+  # - model_name: ailiance-apertus-70b
   #   litellm_params:
-  #     model: openai/eu-kiki/apertus-70b
+  #     model: openai/ailiance/apertus-70b
   #     api_base: http://100.116.92.12:9301
   #     api_key: not-used
 

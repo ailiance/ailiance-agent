@@ -1,4 +1,4 @@
-// agent-kiki fork: regression test for the parallel appendTurn race.
+// ailiance-agent fork: regression test for the parallel appendTurn race.
 // 50 concurrent appendTurn calls must produce 50 valid JSON lines on
 // disk with monotonic turn numbers 1..50 (no interleaving, no dropped
 // writes).
@@ -25,7 +25,7 @@ describe("JsonlTracer parallel appendTurn", () => {
 			task: "race",
 			mode: "EDIT_REPO",
 			approval_mode: "yolo",
-			agent_kiki_version: "0.0.0-test",
+			ailiance_agent_version: "0.0.0-test",
 			gateway_url: "http://localhost",
 		})
 

@@ -1,4 +1,4 @@
-// agent-kiki fork: tracing tests (located under cli/tests so the cli
+// ailiance-agent fork: tracing tests (located under cli/tests so the cli
 // vitest config picks them up — the source lives in @core/tracing).
 import * as fs from "node:fs"
 import * as os from "node:os"
@@ -120,7 +120,7 @@ describe("JsonlTracer", () => {
 			task: "task-123",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		const metaPath = path.join(tmpDir, TRACING_DIR_NAME, "task-123", "meta.json")
@@ -139,7 +139,7 @@ describe("JsonlTracer", () => {
 			task: "task-abc",
 			mode: "act",
 			approval_mode: "yolo",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.appendTurn({
@@ -180,7 +180,7 @@ describe("JsonlTracer", () => {
 			task: "task-secrets",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.appendTurn({
@@ -206,7 +206,7 @@ describe("JsonlTracer", () => {
 			task: "task-close",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.close("attempt_completion", 0, { turns: 3 })
@@ -225,7 +225,7 @@ describe("JsonlTracer", () => {
 			task: "task-idem",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.close("aborted", 130)
@@ -245,7 +245,7 @@ describe("JsonlTracer", () => {
 			task: "task-abort",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.close("aborted", 130)
@@ -275,7 +275,7 @@ describe("JsonlTracer", () => {
 			task: "task-atomic",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		const dir = path.join(tmpDir, TRACING_DIR_NAME, "task-atomic")
@@ -293,7 +293,7 @@ describe("JsonlTracer", () => {
 			task: "task-plan",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.recordPlannerTurn("hello world", 42)
@@ -315,7 +315,7 @@ describe("JsonlTracer", () => {
 			task: "task-plan-err",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://studio:9300",
 		})
 		tracer.recordPlannerTurn("oops", 7, ["transport_failed"])
@@ -333,7 +333,7 @@ describe("JsonlTracer", () => {
 			task: "x",
 			mode: "act",
 			approval_mode: "manual",
-			agent_kiki_version: "0.1.0",
+			ailiance_agent_version: "0.1.0",
 			gateway_url: "http://x",
 		})
 		tracer.appendTurn({ phase: "execute" })

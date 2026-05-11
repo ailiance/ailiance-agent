@@ -1,6 +1,6 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
-// agent-kiki fork: hard-deny zone gate
+// ailiance-agent fork: hard-deny zone gate
 import { classifyCommand, HARD_DENY_EXIT_CODE } from "@core/safety/zoneClassifier"
 import { WorkspacePathAdapter } from "@core/workspace/WorkspacePathAdapter"
 import { MultiCommandState } from "@shared/ExtensionMessage"
@@ -366,7 +366,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				}
 			}
 
-			// agent-kiki fork: hard-deny zone gate — refuse destructive
+			// ailiance-agent fork: hard-deny zone gate — refuse destructive
 			// commands BEFORE any approval flow, even under --yolo. Mirrors
 			// the Python contract (exit_code=8, error surfaced to model).
 			const zone = classifyCommand(actualCommand)

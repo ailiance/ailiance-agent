@@ -276,7 +276,7 @@ export class AgentLoopRunner {
 			this.taskState.toolUseIdMap.clear()
 
 			const { toolUseHandler, reasonsHandler } = this.ctx.streamHandler.getHandlers()
-			// agent-kiki fork: tracing — measure latency of every API roundtrip
+			// ailiance-agent fork: tracing — measure latency of every API roundtrip
 			const plannerStartedAt = Date.now()
 			const stream = this.ctx.attemptApiRequest(previousApiReqIndex, shouldCompact)
 
@@ -442,7 +442,7 @@ export class AgentLoopRunner {
 				}
 				await usageChunkSideEffectsQueue
 
-				// agent-kiki fork: tracing — record this planner roundtrip.
+				// ailiance-agent fork: tracing — record this planner roundtrip.
 				try {
 					this.ctx.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt)
 				} catch (_err) {
@@ -464,7 +464,7 @@ export class AgentLoopRunner {
 				if (!this.taskState.abandoned) {
 					const diracError = ErrorService.get().toDiracError(error, this.ctx.api.getModel().id)
 					const errorMessage = diracError.serialize()
-					// agent-kiki fork: tracing — record the failed roundtrip
+					// ailiance-agent fork: tracing — record the failed roundtrip
 					try {
 						this.ctx.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [errorMessage])
 					} catch (_err) {
@@ -504,7 +504,7 @@ export class AgentLoopRunner {
 						)
 					}
 
-					// agent-kiki fork: tracing close hook
+					// ailiance-agent fork: tracing close hook
 					this.ctx.abortTask("error", 1)
 					await abortStream("streaming_failed", errorMessage)
 					await this.ctx.reinitExistingTaskFromId(this.ctx.taskId)
