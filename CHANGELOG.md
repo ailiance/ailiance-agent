@@ -1,3 +1,14 @@
+## [0.8.2-beta] — 2026-05-12
+
+### Changed
+- **`useAutoCondense` is now ON by default**. Upstream Dirac ships this as `false`, which means the agent only truncates conversation history at 80% of the context window (`maxAllowedSize`) and brute-forces a half/quarter removal of intermediate turns. The auto-condense path instead invokes the `summarize_task` tool at a 75% threshold, producing a structured summary that preserves the agent's intent and the files-touched ledger. On the ailiance gateway (Mistral-Medium 128B, Qwen-80B, auto-router chains) the intelligent summary is decisively better than truncate-and-pray. Set `useAutoCondense=false` in the TUI settings to revert.
+- Stale-default migration extended: already-onboarded users whose persisted `useAutoCondense` is the upstream `false` / undefined are silently flipped to `true` on the first run of v0.8.2, without forcing a re-onboard or config tour.
+
+### Audit notes
+- `discoveredSkillsCache` is already used correctly via `getOrDiscoverSkills(cwd, taskState)` in `src/core/context/instructions/user-instructions/skills.ts:194`. Initial audit mis-grepped the field — the cache works as designed.
+
+---
+
 ## [0.8.1-beta] — 2026-05-12
 
 ### Fixed
