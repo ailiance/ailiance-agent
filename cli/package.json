@@ -1,6 +1,6 @@
 {
 	"name": "ailiance-agent-cli",
-	"version": "0.7.2-beta",
+	"version": "0.8.0-beta",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"

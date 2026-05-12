@@ -1,3 +1,10 @@
+## [0.8.0-beta] — 2026-05-12
+
+### Added
+- Worker / LoRA visibility. The CLI now captures the `X-Ailiance-*` HTTP response headers (port, domain, chain policy, upstream backend fingerprint, upstream model id) emitted by the gateway (companion ailiance/ailiance PR #78). A new module `src/utils/ailiance-worker-info.ts` wraps the configured fetch in `src/shared/net.ts` to intercept every `/chat/completions` response and store the latest headers in a session-local cache. The task summary in plain-text mode (`-y` or `--verbose`) now ends with a line like `[ailiance model=mascarade-kicad:latest · port=8004 · domain=kicad · backend=fp_ollama]` so the user can see which backend (and which LoRA, when applicable) actually served the turn. Falls back silently to no extra line when talking to a non-ailiance gateway.
+
+---
+
 ## [0.7.2-beta] — 2026-05-12
 
 ### Documented

@@ -123,6 +123,19 @@ export const fetch: typeof globalThis.fetch = (() => {
 		baseFetch = undiciFetch as any as typeof globalThis.fetch
 	}
 
+	// ailiance-agent fork: wrap so /chat/completions responses capture
+	// X-Ailiance-* headers into a session cache for UI display.
+	// Static import would create a cycle (utils -> shared -> utils);
+	// require here at module-init time avoids it. Failure-tolerant: if
+	// the module fails to load for any reason, the unwrapped baseFetch
+	// is used so requests still succeed.
+	try {
+		const { wrapFetchForWorkerInfo } = require("@/utils/ailiance-worker-info")
+		baseFetch = wrapFetchForWorkerInfo(baseFetch)
+	} catch {
+		// best-effort
+	}
+
 	return (input: string | URL | Request, init?: RequestInit): Promise<Response> => (mockFetch || baseFetch)(input, init)
 })()
 
