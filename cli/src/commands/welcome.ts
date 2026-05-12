@@ -16,6 +16,35 @@ export async function showWelcome(options: TaskOptions) {
 	const React = (await import("react")).default
 	const { App } = await import("../components/App")
 
+	// Bail loud before instantiating Ink when there is no TTY. ink-picture
+	// queries terminal escape sequences via setRawMode() on boot, which
+	// throws an opaque "Raw mode is not supported on the current
+	// process.stdin" stack the moment Ink mounts. Passing
+	// isRawModeSupported as a prop to <App /> cannot prevent this — Ink
+	// itself needs raw mode for its own terminal-info probe. Detect the
+	// missing TTY here and print a helpful message with the recognised
+	// non-interactive alternatives instead of letting the user see an
+	// unrelated stack trace.
+	if (!checkRawModeSupport()) {
+		const { printError } = await import("../utils/display")
+		printError(
+			[
+				"ailiance-agent interactive mode requires a real TTY.",
+				"",
+				"This shell is not attached to one (piped input, subprocess,",
+				"CI runner, or backgrounded). Use one of these instead:",
+				"",
+				"  ailiance-agent \"<your task>\"     # one-shot run",
+				"  echo \"<task>\" | ailiance-agent    # piped task",
+				"  ailiance-agent --continue          # resume last task",
+				"  ailiance-agent --acp               # editor integration (ACP)",
+				"",
+				"Run from Warp/iTerm/zellij/tmux directly to get the TUI.",
+			].join("\n"),
+		)
+		exit(1)
+	}
+
 	const ctx = await initializeCli({ ...options, enableAuth: true })
 
 	// Check if auth is configured

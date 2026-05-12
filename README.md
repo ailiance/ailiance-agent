@@ -121,7 +121,7 @@ See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHAN
 # Installation globale (Node 20 / 22 / 24 — pas Node 25)
 npm install -g ailiance-agent
 
-# Premier prompt — passerelle ailiance par défaut
+# Premier prompt — passerelle ailiance par défaut (https://gateway.ailiance.fr/v1)
 aki "résume-moi ce dépôt en 5 puces"
 
 # Provider explicite
@@ -129,6 +129,28 @@ aki --provider anthropic --model claude-opus-4-7 "ajoute un test pour foo()"
 
 # Mode plan (réfléchit avant d'agir)
 aki -p "refactor le module bar/ en deux modules"
+```
+
+### Modes de lancement
+
+| Commande | Comportement |
+|----------|--------------|
+| `ailiance-agent` (ou `aki`) sans argument | TUI interactive (Ink/React). **Requiert un vrai TTY** (Warp / iTerm / zellij / tmux). Bail clair si lancé en pipe / subprocess / CI. |
+| `ailiance-agent "<task>"` | Run one-shot avec le prompt positionnel. Pas besoin de TTY. |
+| `echo "<task>" \| ailiance-agent` | Run one-shot via stdin pipé. Le contenu pipé devient le prompt. |
+| `cat file.md \| ailiance-agent "résume"` | Stdin pipé prepend au prompt positionnel. |
+| `ailiance-agent --continue` | Reprend la dernière task du `cwd` courant. |
+| `ailiance-agent --acp` | Mode Agent Client Protocol pour intégration éditeur (Zed, etc.). |
+| `ailiance-agent t -y "<task>"` | Sous-commande `task` (alias `t`) avec yolo mode (auto-approve actions). |
+
+Override de la passerelle (par exemple en mobilité / on-tailnet) :
+
+```bash
+# On-tailnet, moins de latence (skip Cloudflare hop)
+AILIANCE_GATEWAY="http://electron-server:9300/v1" aki "..."
+
+# Endpoint custom (OpenAI-compatible)
+AILIANCE_GATEWAY="https://my-proxy.example.com/v1" aki "..."
 ```
 
 L'extension VS Code s'installe via le `.vsix` du repo (paquet `ailiance-agent-0.3.1.vsix`).
