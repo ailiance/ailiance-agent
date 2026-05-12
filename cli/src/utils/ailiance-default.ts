@@ -18,8 +18,12 @@ import type { StateManager } from "@/core/storage/StateManager"
 
 // The gateway runs on electron-server (FastAPI :9300). Tailscale MagicDNS
 // resolves `electron-server` to 100.78.191.52 for users on the tailnet.
-// Off-tailnet users MUST set AILIANCE_GATEWAY to a reachable URL.
-export const AILIANCE_DEFAULT_GATEWAY = "http://electron-server:9300"
+// The /v1 suffix is REQUIRED: the OpenAI-compatible SDK appends
+// /chat/completions to the configured baseUrl, and the gateway only
+// matches the OpenAI route prefix /v1/*. Without it, every request
+// 404s. Off-tailnet users must set AILIANCE_GATEWAY to a reachable
+// URL (with or without /v1 — resolveEuKikiGatewayUrl normalises).
+export const AILIANCE_DEFAULT_GATEWAY = "http://electron-server:9300/v1"
 export const AILIANCE_DEFAULT_MODEL = "ailiance"
 
 /**
@@ -41,6 +45,25 @@ export type EuKikiDefaultReason =
 	| "auth-already-configured"
 	| "applied-from-env"
 	| "applied-fallback"
+	| "migrated-stale-default"
+
+/**
+ * Returns true when a previously-persisted baseUrl is a known-broken
+ * ailiance default that this CLI version must heal. Covers the two
+ * historical leak points:
+ *   - http://studio:9300* — wrong host (gateway is on electron-server)
+ *   - http://electron-server:9300 — correct host but missing /v1
+ *   - http://studio:9303* / direct worker ports — bypassed gateway
+ * Conservative: only matches the exact patterns shipped by prior
+ * defaults, never a user-supplied URL.
+ */
+export function needsStaleDefaultMigration(url: string): boolean {
+	const trimmed = url.replace(/\/+$/, "")
+	if (trimmed === "http://studio:9300") return true
+	if (trimmed.startsWith("http://studio:930")) return true // 9301..9309 direct workers
+	if (trimmed === "http://electron-server:9300") return true
+	return false
+}
 
 export interface EuKikiDefaultDecision {
 	applied: boolean
@@ -152,6 +175,15 @@ export function applyEuKikiDefault(
 	const welcomeViewCompleted = stateManager.getGlobalStateKey("welcomeViewCompleted")
 	const existingProvider = stateManager.getGlobalSettingsKey("actModeApiProvider")
 	if (welcomeViewCompleted === true && existingProvider) {
+		// Stale-default migration: prior CLI versions persisted broken
+		// baseUrls (http://studio:9300, http://electron-server:9300
+		// without /v1 — gateway only matches /v1/* and 404s otherwise).
+		// Detect those and silently fix without forcing a re-onboard.
+		const persisted = stateManager.getGlobalSettingsKey("openAiBaseUrl") as string | undefined
+		if (persisted && needsStaleDefaultMigration(persisted)) {
+			stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
+			return { applied: true, reason: "migrated-stale-default", gatewayUrl }
+		}
 		return { applied: false, reason: "auth-already-configured" }
 	}
 

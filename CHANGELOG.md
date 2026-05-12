@@ -1,3 +1,21 @@
+## [0.6.0-beta] — 2026-05-12
+
+### Fixed
+- Source file `cli/src/utils/eu-kiki-default.ts` renamed to `ailiance-default.ts` to match `init.ts` and test imports left by PR #7. The build was broken on a clean clone.
+- Default gateway URL `http://studio:9300` → `http://electron-server:9300/v1`. Studio is not the gateway host (it runs MLX workers); the gateway is FastAPI on electron-server, and the OpenAI-compatible SDK requires the `/v1` suffix to avoid 404s.
+- `cli/package.json` `unlink` script targeted the obsolete `dirac-cli` package; now correctly unlinks `ailiance-agent-cli`.
+
+### Added
+- `AILIANCE_GATEWAY` env var as the primary gateway override. `AGENT_KIKI_GATEWAY` retained as a deprecated alias so existing shell configs keep working; `AILIANCE_GATEWAY` takes precedence when both are set.
+- Boot-time gateway prewarm (`cli/src/utils/ailiance-prewarm.ts`): GET `/v1/models` with a 5 s timeout, surfaced on success with `ailiance gateway ready: N models in Mms via URL`, on failure with a stderr line carrying an `AILIANCE_GATEWAY=...` override hint. Failure is non-fatal so the user can recover via config commands.
+- Module-local cache for the prewarmed model list, available to command handlers via `getAilianceGatewayCache()`. Avoids a second `/v1/models` round-trip on the first prompt.
+- Silent migration of stale persisted gateway URLs (`http://studio:9300*`, `http://electron-server:9300` without `/v1`, direct worker ports `:9301..9309` on studio) — `applyEuKikiDefault` now heals them transparently for already-onboarded users instead of skipping at the `auth-already-configured` gate.
+
+### Tests
+- 35 unit tests pass on `cli/src/utils/__tests__/{ailiance-default,ailiance-prewarm}.test.ts` covering precedence, deprecation alias, `/v1` normalisation, HTTP and network failure paths, empty baseUrl, stale-default migration, and log formatting.
+
+---
+
 ## [0.5.0-beta] — 2026-05-06
 
 ### Added
