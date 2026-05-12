@@ -200,6 +200,16 @@ export function applyEuKikiDefault(
 			stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
 			return { applied: true, reason: "migrated-stale-default", gatewayUrl }
 		}
+		// v0.8.2 retrofit: enable useAutoCondense for already-onboarded
+		// users whose persisted setting is still the upstream Dirac
+		// default (undefined/false). The intelligent summary-at-75% beats
+		// the truncate-at-80% path decisively on long tasks; this opt-in-
+		// on-upgrade keeps existing user state intact while still
+		// delivering the improvement without forcing a config tour.
+		const persistedAutoCondense = stateManager.getGlobalSettingsKey("useAutoCondense")
+		if (persistedAutoCondense === undefined || persistedAutoCondense === false) {
+			stateManager.setGlobalState("useAutoCondense", true)
+		}
 		return { applied: false, reason: "auth-already-configured" }
 	}
 
@@ -211,6 +221,17 @@ export function applyEuKikiDefault(
 	stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
 	stateManager.setSecret("openAiApiKey", AILIANCE_DEFAULT_API_KEY)
 	stateManager.setSecret("openAiCompatibleCustomApiKey", AILIANCE_DEFAULT_API_KEY)
+	// useAutoCondense ON by default. Upstream Dirac ships this as `false`
+	// which means the agent only truncates conversation history at 80% of
+	// the context window (maxAllowedSize), then brute-forces a half/quarter
+	// removal of intermediate turns. The auto-condense path instead invokes
+	// the `summarize_task` tool at a 75% threshold, producing a structured
+	// summary of work-so-far that preserves the agent's intent and the
+	// files-touched ledger. For long tasks (Mistral-Medium 128B, Qwen-80B,
+	// auto-router chains) on the ailiance gateway, the intelligent summary
+	// is decisively better than the truncate-and-pray path. Set
+	// `useAutoCondense=false` in the TUI settings to revert.
+	stateManager.setGlobalState("useAutoCondense", true)
 	stateManager.setGlobalState("welcomeViewCompleted", true)
 
 	return { applied: true, reason: "applied-fallback", gatewayUrl }
