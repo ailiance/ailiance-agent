@@ -1,3 +1,23 @@
+## [0.9.0-beta] — 2026-05-12
+
+### Added
+- **Cross-task memory** — new `src/utils/ailiance-memory.ts` module + `ailiance-agent memory {remember,list,show,forget}` subcommands. Persists user-level knowledge (preferences, repo conventions, gotchas) at `~/.ailiance-agent/memory/` as markdown files with YAML frontmatter, modeled on Claude Code's memory layout. Each entry has a `name` (kebab-case slug), `description` (one-line summary), `type` (`user` / `feedback` / `project` / `reference`), and `scope` (`global` or `project:<slug>`). An auto-rebuilt `MEMORY.md` index lists everything for human inspection.
+- 8 unit tests covering save/list/delete/find lifecycle, project-scope filtering, fuzzy-match disambiguation, name validation, and chronological ordering. 63 total tests pass.
+
+### Usage
+```bash
+ailiance-agent memory remember "Prefers French" "Reply in French unless asked otherwise" --type user
+ailiance-agent memory list --type feedback
+ailiance-agent memory show prefers-french
+ailiance-agent memory forget prefers-french
+```
+
+### Out of scope (follow-up)
+- **Auto-injection of relevant memories at turn-1 of each new task** — touches the system-prompt assembly path and warrants its own focused review. The current PR ships only the storage + CLI surface. Until injection lands, memories are user-facing knowledge management; the agent does not yet read them autonomously during task execution.
+- Project-scope autodetection from `cwd` (currently the user must pass `--scope project:<slug>` explicitly).
+
+---
+
 ## [0.8.3-beta] — 2026-05-12
 
 ### Added

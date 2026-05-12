@@ -137,6 +137,45 @@ program
 
 // ailiance-agent fork: drop upstream Dirac kanban integration — we don't ship it.
 
+// ailiance-agent fork: cross-task memory CRUD CLI (v0.9.0).
+const memoryCommand = program.command("memory").description("Manage cross-task memories")
+memoryCommand
+	.command("remember")
+	.description("Save a new memory")
+	.argument("<title>", "Short title (becomes slugified name + description)")
+	.argument("[body]", "Memory body (defaults to title)")
+	.option("--type <type>", "user | feedback | project | reference", "user")
+	.option("--scope <scope>", "global or project:<slug>", "global")
+	.action(async (title, body, options) => {
+		const { runMemoryRemember } = await import("./commands/memory")
+		await runMemoryRemember({ title, body, type: options.type, scope: options.scope })
+	})
+memoryCommand
+	.command("list")
+	.description("List saved memories")
+	.option("--type <type>", "Filter by type")
+	.option("--scope <scope>", "Filter by scope")
+	.action(async (options) => {
+		const { runMemoryList } = await import("./commands/memory")
+		await runMemoryList({ type: options.type, scope: options.scope })
+	})
+memoryCommand
+	.command("show")
+	.description("Show the full body of a memory")
+	.argument("<name>", "Memory name (or fuzzy match)")
+	.action(async (name) => {
+		const { runMemoryShow } = await import("./commands/memory")
+		await runMemoryShow({ name })
+	})
+memoryCommand
+	.command("forget")
+	.description("Delete a memory by name")
+	.argument("<name>", "Exact memory name")
+	.action(async (name) => {
+		const { runMemoryForget } = await import("./commands/memory")
+		await runMemoryForget({ name })
+	})
+
 // ailiance-agent fork: trace rotation + listing CLI
 const traceCommand = program.command("trace").description("Manage ailiance-agent run traces")
 
