@@ -278,9 +278,28 @@ export class OpenAiHandler implements ApiHandler {
 	}
 
 	getModel(): { id: string; info: ModelInfo } {
-		return {
-			id: this.options.openAiModelId ?? "",
-			info: this.options.openAiModelInfo ?? openAiModelInfoSaneDefaults,
+		const id = this.options.openAiModelId ?? ""
+		let info = this.options.openAiModelInfo ?? openAiModelInfoSaneDefaults
+		// ailiance-agent fork: override info.contextWindow with the value
+		// captured from the most recent gateway response's
+		// X-Ailiance-Context-Window header. Upstream's
+		// openAiModelInfoSaneDefaults assumes 128k for every unknown
+		// OpenAI-compatible backend; ailiance workers range from 32k
+		// (Mistral-Small, Tower Ollama, macm1) to 262144
+		// (Qwen3-Coder-30B). Using the real ceiling means the
+		// auto-condense path triggers at the right moment instead of
+		// prematurely truncating tasks. Best-effort require() avoids
+		// a circular import (utils -> core -> api -> utils).
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-var-requires
+			const { getLastWorkerInfo } = require("@/utils/ailiance-worker-info")
+			const wi = getLastWorkerInfo?.()
+			if (wi?.contextWindow && wi.contextWindow !== info.contextWindow) {
+				info = { ...info, contextWindow: wi.contextWindow }
+			}
+		} catch {
+			// best-effort
 		}
+		return { id, info }
 	}
 }
