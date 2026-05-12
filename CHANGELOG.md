@@ -12,7 +12,10 @@
 - Silent migration of stale persisted gateway URLs (`http://studio:9300*`, `http://electron-server:9300` without `/v1`, direct worker ports `:9301..9309` on studio) — `applyEuKikiDefault` now heals them transparently for already-onboarded users instead of skipping at the `auth-already-configured` gate.
 
 ### Tests
-- 35 unit tests pass on `cli/src/utils/__tests__/{ailiance-default,ailiance-prewarm}.test.ts` covering precedence, deprecation alias, `/v1` normalisation, HTTP and network failure paths, empty baseUrl, stale-default migration, and log formatting.
+- 47 unit tests pass on `cli/src/utils/__tests__/{ailiance-default,ailiance-prewarm,parse-hallucinated-tool-xml}.test.ts` covering precedence, deprecation alias, `/v1` normalisation, HTTP and network failure paths, empty baseUrl, stale-default migration, log formatting, and the new XML tool-call parser.
+
+### Infrastructure (deferred integration)
+- New module `cli/src/utils/parse-hallucinated-tool-xml.ts` parses the `<function=NAME>...<parameter=KEY>VALUE</parameter>...</function>` shape that Mistral-Medium-128B (and other MLX workers without native function calling) emit when the gateway leaks a `tools[]` request onto a non-FC-capable backend. The parser handles `<function=...>`, `<invoke=...>`, attribute-style `<parameter name="...">`, multi-block streams, and preserves residual prose. Integration into `ResponseProcessor.ts` text-block path is deferred to v0.7 because synthesising `ToolUse` blocks mid-stream needs `StreamChunkCoordinator` state coordination — see TODO comment at `src/core/task/ResponseProcessor.ts:211`. The root cause is gateway-side (auto-router `ailiance` model must force-route to Qwen 32B vLLM when `tools[]` is present) and is tracked in the `ailiance/ailiance` gateway repo.
 
 ---
 
