@@ -2,11 +2,13 @@
 //
 // When no provider is configured (no API key env vars, no persisted
 // auth state), default to the ailiance gateway via the OpenAI-compatible
-// code path. The user can override by setting AGENT_KIKI_GATEWAY=<url>
-// or by configuring any of the standard upstream provider env vars.
+// code path. The user can override by setting AILIANCE_GATEWAY=<url>
+// (AGENT_KIKI_GATEWAY remains supported as deprecated alias) or by
+// configuring any of the standard upstream provider env vars.
 //
 // Behaviour matrix:
-//   - AGENT_KIKI_GATEWAY=<url> set    -> session override with that url
+//   - AILIANCE_GATEWAY=<url> set      -> session override with that url
+//   - AGENT_KIKI_GATEWAY=<url> set    -> session override (deprecated)
 //   - upstream provider env present   -> skip (env-config wins)
 //   - persisted welcomeViewCompleted  -> skip (user already onboarded)
 //   - otherwise                       -> persist ailiance defaults so
@@ -14,7 +16,14 @@
 
 import type { StateManager } from "@/core/storage/StateManager"
 
-export const AILIANCE_DEFAULT_GATEWAY = "http://studio:9300"
+// The gateway runs on electron-server (FastAPI :9300). Tailscale MagicDNS
+// resolves `electron-server` to 100.78.191.52 for users on the tailnet.
+// The /v1 suffix is REQUIRED: the OpenAI-compatible SDK appends
+// /chat/completions to the configured baseUrl, and the gateway only
+// matches the OpenAI route prefix /v1/*. Without it, every request
+// 404s. Off-tailnet users must set AILIANCE_GATEWAY to a reachable
+// URL (with or without /v1 — resolveEuKikiGatewayUrl normalises).
+export const AILIANCE_DEFAULT_GATEWAY = "http://electron-server:9300/v1"
 export const AILIANCE_DEFAULT_MODEL = "ailiance"
 
 /**
@@ -36,6 +45,25 @@ export type EuKikiDefaultReason =
 	| "auth-already-configured"
 	| "applied-from-env"
 	| "applied-fallback"
+	| "migrated-stale-default"
+
+/**
+ * Returns true when a previously-persisted baseUrl is a known-broken
+ * ailiance default that this CLI version must heal. Covers the two
+ * historical leak points:
+ *   - http://studio:9300* — wrong host (gateway is on electron-server)
+ *   - http://electron-server:9300 — correct host but missing /v1
+ *   - http://studio:9303* / direct worker ports — bypassed gateway
+ * Conservative: only matches the exact patterns shipped by prior
+ * defaults, never a user-supplied URL.
+ */
+export function needsStaleDefaultMigration(url: string): boolean {
+	const trimmed = url.replace(/\/+$/, "")
+	if (trimmed === "http://studio:9300") return true
+	if (trimmed.startsWith("http://studio:930")) return true // 9301..9309 direct workers
+	if (trimmed === "http://electron-server:9300") return true
+	return false
+}
 
 export interface EuKikiDefaultDecision {
 	applied: boolean
@@ -44,12 +72,13 @@ export interface EuKikiDefaultDecision {
 }
 
 /**
- * Derive the ailiance gateway URL from env (AGENT_KIKI_GATEWAY) or the
- * built-in default. Trailing slashes and `/chat/completions` suffix are
- * stripped to mirror provider-config normalisation.
+ * Derive the ailiance gateway URL from env (AILIANCE_GATEWAY, or the
+ * deprecated AGENT_KIKI_GATEWAY alias) or the built-in default.
+ * Trailing slashes and `/chat/completions` suffix are stripped to
+ * mirror provider-config normalisation.
  */
 export function resolveEuKikiGatewayUrl(env: NodeJS.ProcessEnv = process.env): string {
-	const raw = (env.AGENT_KIKI_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
+	const raw = (env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
 	let url = raw.replace(/\/chat\/completions\/?$/, "")
 	url = url.replace(/\/+$/, "")
 	return url
@@ -57,8 +86,8 @@ export function resolveEuKikiGatewayUrl(env: NodeJS.ProcessEnv = process.env): s
 
 /**
  * Returns true when at least one upstream provider env var is present.
- * AGENT_KIKI_GATEWAY is intentionally excluded — it is our opt-in,
- * not a competing provider.
+ * AILIANCE_GATEWAY / AGENT_KIKI_GATEWAY are intentionally excluded —
+ * they are our opt-in, not competing providers.
  */
 export function hasNonEuKikiProviderEnv(env: NodeJS.ProcessEnv = process.env): boolean {
 	const sentinels = [
@@ -119,11 +148,11 @@ export function applyEuKikiDefault(
 	}
 
 	const gatewayUrl = resolveEuKikiGatewayUrl(env)
-	const explicitOverride = !!env.AGENT_KIKI_GATEWAY
+	const explicitOverride = !!(env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY)
 
 	if (explicitOverride) {
 		// In-memory override only; do not pollute persisted config so the
-		// user can rotate AGENT_KIKI_GATEWAY freely between runs.
+		// user can rotate AILIANCE_GATEWAY freely between runs.
 		stateManager.setSessionOverride("actModeApiProvider", "openai")
 		stateManager.setSessionOverride("planModeApiProvider", "openai")
 		stateManager.setSessionOverride("actModeOpenAiModelId", AILIANCE_DEFAULT_MODEL)
@@ -146,6 +175,15 @@ export function applyEuKikiDefault(
 	const welcomeViewCompleted = stateManager.getGlobalStateKey("welcomeViewCompleted")
 	const existingProvider = stateManager.getGlobalSettingsKey("actModeApiProvider")
 	if (welcomeViewCompleted === true && existingProvider) {
+		// Stale-default migration: prior CLI versions persisted broken
+		// baseUrls (http://studio:9300, http://electron-server:9300
+		// without /v1 — gateway only matches /v1/* and 404s otherwise).
+		// Detect those and silently fix without forcing a re-onboard.
+		const persisted = stateManager.getGlobalSettingsKey("openAiBaseUrl") as string | undefined
+		if (persisted && needsStaleDefaultMigration(persisted)) {
+			stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
+			return { applied: true, reason: "migrated-stale-default", gatewayUrl }
+		}
 		return { applied: false, reason: "auth-already-configured" }
 	}
 

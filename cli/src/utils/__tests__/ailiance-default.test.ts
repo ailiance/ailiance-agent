@@ -5,6 +5,7 @@ import {
 	AILIANCE_DEFAULT_MODEL,
 	applyEuKikiDefault,
 	hasNonEuKikiProviderEnv,
+	needsStaleDefaultMigration,
 	resolveEuKikiGatewayUrl,
 } from "../ailiance-default"
 
@@ -45,24 +46,39 @@ function makeFakeStateManager() {
 }
 
 describe("ailiance default fallback", () => {
-	it("resolveEuKikiGatewayUrl falls back to studio:9300", () => {
+	it("resolveEuKikiGatewayUrl falls back to electron-server:9300/v1", () => {
 		expect(resolveEuKikiGatewayUrl({})).toBe(AILIANCE_DEFAULT_GATEWAY)
+		expect(AILIANCE_DEFAULT_GATEWAY).toBe("http://electron-server:9300/v1")
 	})
 
-	it("resolveEuKikiGatewayUrl honours AGENT_KIKI_GATEWAY", () => {
-		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://example.com:9999/" })).toBe(
+	it("resolveEuKikiGatewayUrl honours AILIANCE_GATEWAY", () => {
+		expect(resolveEuKikiGatewayUrl({ AILIANCE_GATEWAY: "http://example.com:9999/" })).toBe(
 			"http://example.com:9999",
 		)
 	})
 
+	it("resolveEuKikiGatewayUrl honours deprecated AGENT_KIKI_GATEWAY", () => {
+		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://legacy:9999/" })).toBe("http://legacy:9999")
+	})
+
+	it("AILIANCE_GATEWAY takes precedence over AGENT_KIKI_GATEWAY", () => {
+		expect(
+			resolveEuKikiGatewayUrl({
+				AILIANCE_GATEWAY: "http://new:9300",
+				AGENT_KIKI_GATEWAY: "http://old:9300",
+			}),
+		).toBe("http://new:9300")
+	})
+
 	it("resolveEuKikiGatewayUrl strips /chat/completions suffix", () => {
-		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://x:9300/chat/completions/" })).toBe(
+		expect(resolveEuKikiGatewayUrl({ AILIANCE_GATEWAY: "http://x:9300/chat/completions/" })).toBe(
 			"http://x:9300",
 		)
 	})
 
 	it("hasNonEuKikiProviderEnv detects a real provider env", () => {
 		expect(hasNonEuKikiProviderEnv({ ANTHROPIC_API_KEY: "k" })).toBe(true)
+		expect(hasNonEuKikiProviderEnv({ AILIANCE_GATEWAY: "http://foo" })).toBe(false)
 		expect(hasNonEuKikiProviderEnv({ AGENT_KIKI_GATEWAY: "http://foo" })).toBe(false)
 		expect(hasNonEuKikiProviderEnv({})).toBe(false)
 	})
@@ -134,5 +150,32 @@ describe("ailiance default fallback", () => {
 		const decision = applyEuKikiDefault(sm as any, { env: {} })
 		expect(decision.applied).toBe(false)
 		expect(decision.reason).toBe("auth-already-configured")
+	})
+
+	describe("stale default migration", () => {
+		it("identifies known-broken historical defaults", () => {
+			expect(needsStaleDefaultMigration("http://studio:9300")).toBe(true)
+			expect(needsStaleDefaultMigration("http://studio:9300/")).toBe(true)
+			expect(needsStaleDefaultMigration("http://studio:9303/v1")).toBe(true)
+			expect(needsStaleDefaultMigration("http://electron-server:9300")).toBe(true)
+		})
+
+		it("leaves correct and user-supplied URLs alone", () => {
+			expect(needsStaleDefaultMigration("http://electron-server:9300/v1")).toBe(false)
+			expect(needsStaleDefaultMigration("http://100.78.191.52:9300/v1")).toBe(false)
+			expect(needsStaleDefaultMigration("https://gateway.ailiance.fr")).toBe(false)
+			expect(needsStaleDefaultMigration("http://my-custom-proxy:8080/v1")).toBe(false)
+		})
+
+		it("heals stale baseUrl even when user is onboarded", () => {
+			const sm = makeFakeStateManager()
+			sm.globalState.welcomeViewCompleted = true
+			sm.globalState.actModeApiProvider = "openai"
+			sm.globalState.openAiBaseUrl = "http://studio:9300"
+			const decision = applyEuKikiDefault(sm as any, { env: {} })
+			expect(decision.applied).toBe(true)
+			expect(decision.reason).toBe("migrated-stale-default")
+			expect(sm.globalState.openAiBaseUrl).toBe(AILIANCE_DEFAULT_GATEWAY)
+		})
 	})
 })

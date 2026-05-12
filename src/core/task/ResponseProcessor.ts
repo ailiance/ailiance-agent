@@ -208,6 +208,14 @@ export class ResponseProcessor {
 					if (content) {
 						content = content.replace(/<function_calls>\s?/g, "")
 						content = content.replace(/\s?<\/function_calls>/g, "")
+						// TODO(ailiance-agent v0.7): on block.partial === false and
+						// hasHallucinatedToolXml(content) === true, run
+						// parseHallucinatedToolXml() and dispatch each call via
+						// toolExecutor.executeTool. Parser ships in
+						// cli/src/utils/parse-hallucinated-tool-xml.ts with full
+						// coverage; integration deferred because synthesizing
+						// ToolUse blocks mid-stream needs StreamChunkCoordinator
+						// state coordination. Tracking: PR #8.
 
 						const lastOpenBracketIndex = content.lastIndexOf("<")
 						if (lastOpenBracketIndex !== -1) {

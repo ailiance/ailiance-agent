@@ -93,6 +93,22 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	}
 	await ErrorService.initialize()
 
+	// ailiance-agent fork: prewarm gateway before the first prompt. Caches
+	// the model list and surfaces connection failures at boot instead of
+	// on the first chat completion (where the user sees an opaque retry
+	// storm). Failure is non-fatal — the CLI must still boot so the user
+	// can override AILIANCE_GATEWAY and retry.
+	const { prewarmAilianceGateway, formatPrewarmLog } = await import("./utils/ailiance-prewarm")
+	const prewarm = await prewarmAilianceGateway(stateManager)
+	outputChannel.appendLine(formatPrewarmLog(prewarm))
+	if (!prewarm.ok) {
+		// Make sure the user actually sees the failure — appendLine alone
+		// only writes to the output channel buffer, which the standalone
+		// CLI does not surface unless --verbose. Stderr is the contract.
+		// eslint-disable-next-line no-console
+		console.error(`[ailiance-agent] ${formatPrewarmLog(prewarm)}`)
+	}
+
 	const webview = HostProvider.get().createDiracWebviewProvider() as any
 	const controller = webview.controller as any
 

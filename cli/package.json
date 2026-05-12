@@ -1,6 +1,6 @@
 {
 	"name": "ailiance-agent-cli",
-	"version": "0.5.0-beta",
+	"version": "0.6.0-beta",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"
@@ -44,7 +44,7 @@
 		"clean": "rimraf dist",
 		"typecheck": "npx tsc --noEmit",
 		"link": "npm run build && npm link",
-		"unlink": "npm unlink -g dirac-cli",
+		"unlink": "npm unlink -g ailiance-agent-cli",
 		"test": "vitest",
 		"test:run": "vitest run"
 	},
