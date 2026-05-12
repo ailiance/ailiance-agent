@@ -1,3 +1,16 @@
+## [0.6.1-beta] — 2026-05-12
+
+### Changed
+- Default gateway URL `http://electron-server:9300/v1` → `https://gateway.ailiance.fr/v1`. The Cloudflare Tunnel now exposes the FastAPI gateway publicly with auto-terminated TLS, so the CLI no longer requires Tailscale to reach the backend. On-tailnet users can override with `AILIANCE_GATEWAY=http://electron-server:9300/v1` for lower latency and no CF hop.
+
+### Added
+- Silent migration extended to promote v0.6.0 Tailscale-internal defaults to the new public endpoint on upgrade: `http://electron-server:9300[/v1]`, `http://electron-server.tail*.ts.net:9300[/v1]`, and `http://100.78.191.52:9300[/v1]` are all rewritten to `https://gateway.ailiance.fr/v1` without forcing a re-onboard.
+
+### Tests
+- 4 new cases in `cli/src/utils/__tests__/ailiance-default.test.ts` cover the v0.6.0 → public migration paths and confirm user-supplied URLs (`https://api.openai.com/v1`, `http://my-custom-proxy/v1`) stay untouched.
+
+---
+
 ## [0.6.0-beta] — 2026-05-12
 
 ### Fixed

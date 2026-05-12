@@ -46,9 +46,9 @@ function makeFakeStateManager() {
 }
 
 describe("ailiance default fallback", () => {
-	it("resolveEuKikiGatewayUrl falls back to electron-server:9300/v1", () => {
+	it("resolveEuKikiGatewayUrl falls back to public gateway.ailiance.fr/v1", () => {
 		expect(resolveEuKikiGatewayUrl({})).toBe(AILIANCE_DEFAULT_GATEWAY)
-		expect(AILIANCE_DEFAULT_GATEWAY).toBe("http://electron-server:9300/v1")
+		expect(AILIANCE_DEFAULT_GATEWAY).toBe("https://gateway.ailiance.fr/v1")
 	})
 
 	it("resolveEuKikiGatewayUrl honours AILIANCE_GATEWAY", () => {
@@ -153,21 +153,29 @@ describe("ailiance default fallback", () => {
 	})
 
 	describe("stale default migration", () => {
-		it("identifies known-broken historical defaults", () => {
+		it("identifies known-broken historical defaults (pre-v0.6)", () => {
 			expect(needsStaleDefaultMigration("http://studio:9300")).toBe(true)
 			expect(needsStaleDefaultMigration("http://studio:9300/")).toBe(true)
 			expect(needsStaleDefaultMigration("http://studio:9303/v1")).toBe(true)
-			expect(needsStaleDefaultMigration("http://electron-server:9300")).toBe(true)
 		})
 
-		it("leaves correct and user-supplied URLs alone", () => {
-			expect(needsStaleDefaultMigration("http://electron-server:9300/v1")).toBe(false)
-			expect(needsStaleDefaultMigration("http://100.78.191.52:9300/v1")).toBe(false)
+		it("identifies v0.6.0 Tailscale-internal defaults (now promoted to public)", () => {
+			expect(needsStaleDefaultMigration("http://electron-server:9300")).toBe(true)
+			expect(needsStaleDefaultMigration("http://electron-server:9300/v1")).toBe(true)
+			expect(needsStaleDefaultMigration("http://electron-server.tail78ae15.ts.net:9300")).toBe(true)
+			expect(needsStaleDefaultMigration("http://electron-server.tail78ae15.ts.net:9300/v1")).toBe(true)
+			expect(needsStaleDefaultMigration("http://100.78.191.52:9300")).toBe(true)
+			expect(needsStaleDefaultMigration("http://100.78.191.52:9300/v1")).toBe(true)
+		})
+
+		it("leaves correct public and user-supplied URLs alone", () => {
+			expect(needsStaleDefaultMigration("https://gateway.ailiance.fr/v1")).toBe(false)
 			expect(needsStaleDefaultMigration("https://gateway.ailiance.fr")).toBe(false)
 			expect(needsStaleDefaultMigration("http://my-custom-proxy:8080/v1")).toBe(false)
+			expect(needsStaleDefaultMigration("https://api.openai.com/v1")).toBe(false)
 		})
 
-		it("heals stale baseUrl even when user is onboarded", () => {
+		it("heals stale pre-v0.6 baseUrl even when user is onboarded", () => {
 			const sm = makeFakeStateManager()
 			sm.globalState.welcomeViewCompleted = true
 			sm.globalState.actModeApiProvider = "openai"
@@ -176,6 +184,17 @@ describe("ailiance default fallback", () => {
 			expect(decision.applied).toBe(true)
 			expect(decision.reason).toBe("migrated-stale-default")
 			expect(sm.globalState.openAiBaseUrl).toBe(AILIANCE_DEFAULT_GATEWAY)
+		})
+
+		it("promotes v0.6.0 Tailscale default to public on upgrade", () => {
+			const sm = makeFakeStateManager()
+			sm.globalState.welcomeViewCompleted = true
+			sm.globalState.actModeApiProvider = "openai"
+			sm.globalState.openAiBaseUrl = "http://electron-server:9300/v1"
+			const decision = applyEuKikiDefault(sm as any, { env: {} })
+			expect(decision.applied).toBe(true)
+			expect(decision.reason).toBe("migrated-stale-default")
+			expect(sm.globalState.openAiBaseUrl).toBe("https://gateway.ailiance.fr/v1")
 		})
 	})
 })
