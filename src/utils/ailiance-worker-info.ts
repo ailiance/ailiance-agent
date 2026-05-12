@@ -30,6 +30,7 @@ export interface WorkerInfo {
 	chain?: string
 	backend?: string
 	upstreamModel?: string
+	contextWindow?: number
 	capturedAt: number
 }
 
@@ -59,9 +60,17 @@ function captureFromResponse(response: Response): void {
 	const chain = response.headers.get("x-ailiance-chain")
 	const backend = response.headers.get("x-ailiance-backend")
 	const upstream = response.headers.get("x-ailiance-upstream-model")
+	const ctxRaw = response.headers.get("x-ailiance-context-window")
 	// Skip when none of the headers are present (non-ailiance gateway).
-	if (!port && !domain && !backend && !upstream && !chain) {
+	if (!port && !domain && !backend && !upstream && !chain && !ctxRaw) {
 		return
+	}
+	let contextWindow: number | undefined
+	if (ctxRaw) {
+		const parsed = Number.parseInt(ctxRaw, 10)
+		if (Number.isFinite(parsed) && parsed > 0) {
+			contextWindow = parsed
+		}
 	}
 	lastWorkerInfo = {
 		workerPort: port ?? undefined,
@@ -69,6 +78,7 @@ function captureFromResponse(response: Response): void {
 		chain: chain ?? undefined,
 		backend: backend ?? undefined,
 		upstreamModel: upstream ?? undefined,
+		contextWindow,
 		capturedAt: Date.now(),
 	}
 }
@@ -112,6 +122,11 @@ export function formatWorkerInfo(info: WorkerInfo | undefined = lastWorkerInfo):
 	if (info.workerPort) parts.push(`port=${info.workerPort}`)
 	if (info.domain) parts.push(`domain=${info.domain}`)
 	if (info.chain) parts.push(`chain=${info.chain}`)
+	if (info.contextWindow) {
+		// Format as Xk for compact display (196608 -> "192k").
+		const kilo = Math.round(info.contextWindow / 1024)
+		parts.push(`ctx=${kilo}k`)
+	}
 	if (info.backend) parts.push(`backend=${info.backend}`)
 	if (parts.length === 0) return null
 	return `[ailiance ${parts.join(" · ")}]`

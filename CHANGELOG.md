@@ -1,3 +1,14 @@
+## [0.8.3-beta] — 2026-05-12
+
+### Added
+- Consume the `X-Ailiance-Context-Window` header emitted by the gateway (companion `ailiance/ailiance#79`). `ailiance-worker-info.ts` parses the value into `WorkerInfo.contextWindow`, and `openai.ts:getModel()` overrides `info.contextWindow` from upstream's 128k default to the real ceiling of the worker that served the most recent response (Qwen3-Next 80B = 196608, Mistral-Medium 128B = 256000, Qwen3-Coder-30B = 262144, Granite/Llama/etc. = 131072, Mixtral 8x22B = 65536, Mistral-Small / macm1 / Tower Ollama = 32768).
+- Task summary footer now shows the context-window of the worker that served the turn: `[ailiance model=qwen-32b-awq · port=8002 · ctx=192k]`. Lets the user see exactly how much room there is before the auto-condense path (75% threshold) would trigger.
+
+### Why this matters
+Combined with v0.8.2's `useAutoCondense=true` default, the agent now triggers the intelligent summarize_task at 75% of the **real** worker ceiling — for a Qwen3-Coder run that means 196k tokens of headroom before the first condense, versus 96k under the upstream 128k assumption. Long agentic tasks (refactors, multi-file edits, big repo exploration) get roughly **2× the productive window** on the same hardware.
+
+---
+
 ## [0.8.2-beta] — 2026-05-12
 
 ### Changed
