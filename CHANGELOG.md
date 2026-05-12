@@ -1,3 +1,13 @@
+## [0.7.1-beta] — 2026-05-12
+
+### Fixed
+- Bare `ailiance-agent` (no positional prompt) used to crash with an opaque `Raw mode is not supported on the current process.stdin` stack trace from `ink-picture`'s terminal-info probe whenever stdin was not a real TTY (CI runner, subprocess, piped invocation, backgrounded shell). The welcome path now detects the missing TTY via `checkRawModeSupport()` BEFORE instantiating Ink and prints a one-screen guide listing the non-interactive alternatives (`ailiance-agent "<task>"`, `echo <task> | ailiance-agent`, `--continue`, `--acp`) plus the recommended TTY hosts (Warp / iTerm / zellij / tmux). Exits with status 1.
+
+### Documented
+- README "Démarrer en 30 secondes" now ships a launch-mode matrix covering the 7 ways `ailiance-agent` can be invoked (bare TUI, positional one-shot, piped stdin, stdin + prompt, `--continue`, `--acp`, `task -y`) plus two `AILIANCE_GATEWAY` override examples (on-tailnet, custom proxy).
+
+---
+
 ## [0.7.0-beta] — 2026-05-12
 
 ### Added
