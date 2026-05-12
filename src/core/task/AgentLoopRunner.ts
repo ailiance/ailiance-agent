@@ -569,7 +569,19 @@ export class AgentLoopRunner {
 							? "You have reached the output token limit. Please continue your response from where you left off. If you were in the middle of a tool call, start over with that tool call. If you were finished, call attempt_completion."
 							: formatResponse.noToolsUsed(this.taskState.useNativeToolCalls),
 					})
-					this.taskState.consecutiveMistakeCount++
+					// ailiance-agent fork: faster fail when the response carried
+					// zero output tokens. Some MLX backends (Mistral-Medium-128B
+					// observed 2026-05-12) accept a tools[] request but reply
+					// with finish_reason=stop and empty content — neither a
+					// tool_call nor visible text. Without this guard, the agent
+					// loop burns 5 full iterations (~5 × 3 retries × 30 s)
+					// before hitting maxConsecutiveMistakes. Counting empty
+					// responses double moves the abort to 3 iterations, which
+					// is still enough for transient flakes (e.g. one stalled
+					// streaming chunk recoverable on retry) but bounds the
+					// damage when the backend is structurally incompatible.
+					const emptyOutput = !taskMetrics.outputTokens || taskMetrics.outputTokens === 0
+					this.taskState.consecutiveMistakeCount += emptyOutput ? 2 : 1
 				}
 
 				this.taskState.autoRetryAttempts = 0

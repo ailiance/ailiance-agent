@@ -1,3 +1,16 @@
+## [0.8.1-beta] — 2026-05-12
+
+### Fixed
+- **Retry on permanent 4xx errors** (`src/core/task/ApiRequestHandler.ts`). The auto-retry path treated every non-auth / non-credits error as transient and burned 3 attempts with exponential backoff (~14 s total) before giving up. Backends returning a deterministic 400 ("model does not support tools" from Ollama is the canonical case observed against `ailiance-kicad`) cannot succeed by retrying. Status codes 400, 404, 422, 501 now skip the retry path and surface the error immediately with a `permanent: true` flag in the `error_retry` payload.
+- **Double dispatch of XML hallucinated tools when native FC is also active** (`src/core/task/ResponseProcessor.ts`). The v0.7 XML dispatch path fired unconditionally on a complete text block matching `hasHallucinatedToolXml`. When the same stream also produced a native `tool_use` block (some MLX backends emit both: a delta with `tool_calls` AND text containing the XML imitation), the synthetic ToolUse from XML was dispatched first, then the native one ran the same tool a second time. Guard added: skip the XML path when `useNativeToolCalls === true` AND the parsed `assistantMessageContent` already contains at least one `tool_use` block.
+- **Faster fail when a backend returns empty output** (`src/core/task/AgentLoopRunner.ts`). Some MLX backends (Mistral-Medium-128B observed 2026-05-12) accept a `tools[]` request but reply with `finish_reason=stop` and empty content — neither a tool_call nor visible text. The agent previously needed 5 such iterations to hit `maxConsecutiveMistakes`. Empty-output responses now count double, so the same condition triggers abort in 3 iterations. Transient single-chunk stalls (1 empty + 4 normal) still recover normally.
+
+### Audit notes
+- Re-entry through `presentAssistantMessageHasPendingUpdates` (`ResponseProcessor.ts:334`) is idempotent today because the XML dispatch is gated on `!block.partial` and the per-block index advances before the recursive call. Left untouched.
+- The `@withRetry()` decorator in `src/core/api/retry.ts` is correctly scoped to rate-limit errors (status 429) only when `retryAllErrors=false` (the default). The 3-retry storms users observed were entirely from the `ApiRequestHandler` layer fixed above.
+
+---
+
 ## [0.8.0-beta] — 2026-05-12
 
 ### Added
