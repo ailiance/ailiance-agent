@@ -312,9 +312,32 @@ ${notice}`
 					}
 				})()
 
+				// ailiance-agent fork: skip auto-retry for permanent 4xx client
+				// errors. These cannot be fixed by retrying the same request
+				// (e.g. a 400 "model does not support tools" from Ollama, a 404
+				// "model not found", a 422 unprocessable). Retrying burns 3×
+				// tokens + ~14 s of exponential backoff for a guaranteed
+				// failure. The agent loop catches the error and surfaces it to
+				// the user with the recommended override (use a different
+				// --model, or disable tools).
+				const isPermanentClientError = (() => {
+					const status = error?.status
+					if (typeof status !== "number") return false
+					// 408 (timeout) and 429 (rate limit) are transient — they
+					// are NOT in this list and stay retryable via the existing
+					// path.
+					return status === 400 || status === 404 || status === 422 || status === 501
+				})()
+
 				let response: DiracAskResponse
-				// Skip auto-retry for Dirac provider insufficient credits or auth errors
-				if (!isDiracProviderInsufficientCredits && !isAuthError && this.taskState.autoRetryAttempts < 3) {
+				// Skip auto-retry for: insufficient credits, auth errors, or
+				// permanent client errors.
+				if (
+					!isDiracProviderInsufficientCredits &&
+					!isAuthError &&
+					!isPermanentClientError &&
+					this.taskState.autoRetryAttempts < 3
+				) {
 					// Auto-retry enabled with max 3 attempts: automatically approve the retry
 					this.taskState.autoRetryAttempts++
 
@@ -368,14 +391,21 @@ ${notice}`
 				} else {
 					// Show error_retry with failed flag to indicate all retries exhausted (but not for insufficient credits)
 					if (!isDiracProviderInsufficientCredits && !isAuthError) {
+						// For permanent client errors, mark attempt=1 to signal
+						// "fail-fast, no retries attempted" so the UI does not
+						// claim 3 retries were tried.
+						const finalAttempt = isPermanentClientError
+							? this.taskState.autoRetryAttempts + 1
+							: 3
 						await this.ctx.say(
 							"error_retry",
 							JSON.stringify({
-								attempt: 3,
+								attempt: finalAttempt,
 								maxAttempts: 3,
 								delaySeconds: 0,
 								failed: true, // Special flag to indicate retries exhausted
 								errorMessage: streamingFailedMessage,
+								permanent: isPermanentClientError || undefined,
 							}),
 						)
 					}

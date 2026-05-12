@@ -229,7 +229,19 @@ export class ResponseProcessor {
 						// (FC_FORCE_ROUTE_PORT redirects tools[] to a native-FC
 						// worker); this dispatch path is defense-in-depth for the
 						// non-FC backends that still slip through.
-						if (!block.partial && hasHallucinatedToolXml(content)) {
+						//
+						// Double-dispatch guard (v0.8.1): when the stream parsed
+						// at least one native tool_use block, the model has
+						// already expressed its tool intent through the OpenAI
+						// FC channel — dispatching the XML duplicate would run
+						// the same tool twice. Skip XML extraction in that
+						// case; the native path will handle the call.
+						const hasNativeToolBlock =
+							this.dependencies.taskState.useNativeToolCalls &&
+							this.dependencies.taskState.assistantMessageContent.some(
+								(b: any) => b.type === "tool_use",
+							)
+						if (!block.partial && !hasNativeToolBlock && hasHallucinatedToolXml(content)) {
 							const parsed = parseHallucinatedToolXml(content)
 							if (parsed.calls.length > 0) {
 								// Replace content with residual prose so the say()
