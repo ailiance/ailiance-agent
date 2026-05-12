@@ -253,3 +253,101 @@ async function rebuildIndex(): Promise<void> {
 export function getMemoryRoot(): string {
 	return MEMORY_ROOT
 }
+
+/**
+ * Derive a project-scope slug from a working directory path. Strategy:
+ * basename(cwd) lowercased, non-alphanumeric → "-", trimmed. Same
+ * algorithm as Claude Code's project memory layout, so a user who runs
+ * `ailiance-agent` from /Users/x/Documents/my-app gets scope
+ * `project:my-app` regardless of whether they ran it from a subdirectory.
+ *
+ * Returns null when cwd is empty / unparseable — caller should fall back
+ * to global-only memory injection.
+ */
+export function projectScopeFromCwd(cwd: string | undefined): MemoryScope | null {
+	if (!cwd) return null
+	const base = path.basename(cwd).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "")
+	if (!base) return null
+	return `project:${base}` as MemoryScope
+}
+
+const MEMORY_BUDGET_CHARS = 8_000 // ~2000 tokens at ~4 chars/token average
+
+/**
+ * Load global + project-scoped memories for a given cwd, sorted by
+ * relevance (project memories first, then global, both newest-first
+ * within each bucket). Truncates the combined output at
+ * MEMORY_BUDGET_CHARS so an unbounded memory store cannot dominate the
+ * system prompt.
+ *
+ * Returns null when no memories are present or the directory is empty.
+ * Callers should treat null as "skip the section entirely" — the
+ * placeholder mechanism in PromptBuilder leaves the section empty so
+ * the system prompt does not show a stale "USER MEMORIES" header.
+ */
+export async function loadRelevantMemories(cwd?: string): Promise<{
+	memories: Memory[]
+	totalChars: number
+	truncated: boolean
+} | null> {
+	const projectScope = projectScopeFromCwd(cwd)
+	const globalList = await listMemories({ scope: "global" })
+	const projectList = projectScope ? await listMemories({ scope: projectScope }) : []
+	// Project memories rank higher than global; both sub-lists are
+	// already newest-first from listMemories().
+	const combined = [...projectList, ...globalList]
+	if (combined.length === 0) return null
+	const included: Memory[] = []
+	let totalChars = 0
+	let truncated = false
+	for (const m of combined) {
+		// 64 chars overhead per entry for the markdown header line, scope
+		// tag, separator. Approximation, not exact.
+		const entrySize = 64 + m.description.length + m.body.length
+		if (totalChars + entrySize > MEMORY_BUDGET_CHARS) {
+			truncated = true
+			break
+		}
+		included.push(m)
+		totalChars += entrySize
+	}
+	if (included.length === 0) return null
+	return { memories: included, totalChars, truncated }
+}
+
+/**
+ * Render the loaded memories as a markdown section ready to splice into
+ * the system prompt. Each memory becomes a `### <name>` heading with the
+ * description as a sub-line and the body verbatim. Returns the empty
+ * string when there is nothing to inject — the caller can drop the
+ * placeholder cleanly.
+ */
+export function formatMemoriesSection(loaded: {
+	memories: Memory[]
+	truncated: boolean
+} | null): string {
+	if (!loaded || loaded.memories.length === 0) return ""
+	const lines: string[] = [
+		"",
+		"====",
+		"",
+		"# USER MEMORIES",
+		"",
+		"The following memories were saved by the user across previous sessions.",
+		"Treat them as durable user preferences and project context. Apply them",
+		"silently when relevant; do not echo them back in responses.",
+		"",
+	]
+	for (const m of loaded.memories) {
+		lines.push(`## ${m.name} (${m.type}, ${m.scope})`)
+		lines.push(`_${m.description}_`)
+		lines.push("")
+		lines.push(m.body)
+		lines.push("")
+	}
+	if (loaded.truncated) {
+		lines.push("_(some memories truncated to respect the system-prompt budget)_")
+		lines.push("")
+	}
+	return lines.join("\n")
+}

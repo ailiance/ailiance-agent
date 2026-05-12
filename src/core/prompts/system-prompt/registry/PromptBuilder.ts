@@ -2,6 +2,7 @@ import { SYSTEM_PROMPT } from "../template"
 import { TemplateEngine } from "../templates/TemplateEngine"
 import type { SystemPromptContext } from "../types"
 import { SkillMetadata } from "@/shared/skills"
+import { formatMemoriesSection, loadRelevantMemories } from "@/utils/ailiance-memory"
 
 export class PromptBuilder {
 	private templateEngine: TemplateEngine
@@ -12,12 +13,12 @@ export class PromptBuilder {
 
 	async build(): Promise<string> {
 		const promptTemplate = SYSTEM_PROMPT(this.context)
-		const placeholders = this.preparePlaceholders()
+		const placeholders = await this.preparePlaceholders()
 		const prompt = this.templateEngine.resolve(promptTemplate, this.context, placeholders)
 		return this.postProcess(prompt)
 	}
 
-	private preparePlaceholders(): Record<string, unknown> {
+	private async preparePlaceholders(): Promise<Record<string, unknown>> {
 		const placeholders: Record<string, unknown> = {}
 
 		placeholders["OS"] = process.platform
@@ -37,6 +38,23 @@ export class PromptBuilder {
 			placeholders["SKILLS_SECTION"] = this.formatSkillsSection(this.context.skills)
 		} else {
 			placeholders["SKILLS_SECTION"] = ""
+		}
+
+		// ailiance-agent fork (v0.9.1): auto-inject cross-task memories
+		// saved at ~/.ailiance-agent/memory/ scoped to cwd. The memory
+		// store is best-effort — a corrupted file or missing directory
+		// returns null, and the placeholder collapses to the empty string
+		// without breaking the prompt. Budget-capped at MEMORY_BUDGET_CHARS
+		// (~2000 tokens) so an unbounded memory store cannot dominate.
+		// Skipped during isTesting so unit tests stay deterministic.
+		placeholders["MEMORIES_SECTION"] = ""
+		if (!this.context.isTesting) {
+			try {
+				const loaded = await loadRelevantMemories(this.context.cwd)
+				placeholders["MEMORIES_SECTION"] = formatMemoriesSection(loaded)
+			} catch {
+				// best-effort; never break system-prompt assembly
+			}
 		}
 
 		return placeholders

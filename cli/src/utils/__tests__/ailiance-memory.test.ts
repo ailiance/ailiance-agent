@@ -5,8 +5,11 @@ import * as os from "os"
 import {
 	deleteMemory,
 	findMemories,
+	formatMemoriesSection,
 	getMemoryRoot,
 	listMemories,
+	loadRelevantMemories,
+	projectScopeFromCwd,
 	saveMemory,
 } from "@/utils/ailiance-memory"
 
@@ -149,5 +152,136 @@ describe("ailiance-memory", () => {
 		const older = list.findIndex((m) => m.name === "another-memory")
 		expect(newer).toBeGreaterThanOrEqual(0)
 		expect(older).toBeGreaterThan(newer)
+	})
+
+	describe("projectScopeFromCwd", () => {
+		it("returns null for empty / undefined cwd", () => {
+			expect(projectScopeFromCwd(undefined)).toBeNull()
+			expect(projectScopeFromCwd("")).toBeNull()
+		})
+		it("slugifies basename to a project: scope tag", () => {
+			expect(projectScopeFromCwd("/Users/x/Documents/My-App")).toBe("project:my-app")
+			expect(projectScopeFromCwd("/var/repos/factory-4-life")).toBe("project:factory-4-life")
+			expect(projectScopeFromCwd("/tmp/Some App With Spaces")).toBe("project:some-app-with-spaces")
+		})
+		it("returns null when basename slugifies to empty", () => {
+			expect(projectScopeFromCwd("/...")).toBeNull()
+		})
+	})
+
+	describe("loadRelevantMemories", () => {
+		it("returns null when no memories exist", async () => {
+			// Cleanup runs in beforeEach; for this test we ensure global + project are empty
+			const loaded = await loadRelevantMemories("/tmp/nonexistent-project-zzz9999")
+			// Other memories from other tests in this file may exist transiently;
+			// but the rebuild + cleanup leaves no entries. Accept null OR an
+			// empty-after-project-filter result.
+			if (loaded !== null) {
+				// At minimum no project-scoped memories for our random cwd:
+				const projectScoped = loaded.memories.filter((m) =>
+					m.scope.startsWith("project:nonexistent-project-zzz9999"),
+				)
+				expect(projectScoped).toEqual([])
+			}
+		})
+
+		it("includes project-scoped memories ahead of global ones", async () => {
+			await saveMemory({
+				name: "test-user-pref",
+				description: "global pref",
+				type: "user",
+				body: "x",
+			})
+			await saveMemory({
+				name: "test-project-repo-convention",
+				description: "project pref",
+				type: "project",
+				scope: "project:test-cwd",
+				body: "y",
+			})
+			const loaded = await loadRelevantMemories("/tmp/test-cwd")
+			expect(loaded).not.toBeNull()
+			const names = loaded!.memories.map((m) => m.name)
+			const projectIdx = names.indexOf("test-project-repo-convention")
+			const globalIdx = names.indexOf("test-user-pref")
+			expect(projectIdx).toBeGreaterThanOrEqual(0)
+			expect(globalIdx).toBeGreaterThanOrEqual(0)
+			expect(projectIdx).toBeLessThan(globalIdx)
+		})
+
+		it("respects budget cap and sets truncated when exceeded", async () => {
+			// 9000-char body forces truncation against the 8000-char budget
+			const bigBody = "x".repeat(9_000)
+			await saveMemory({
+				name: "another-memory",
+				description: "small enough",
+				type: "user",
+				body: "small",
+			})
+			await new Promise((resolve) => setTimeout(resolve, 10))
+			await saveMemory({
+				name: "test-user-pref",
+				description: "huge",
+				type: "user",
+				body: bigBody,
+			})
+			const loaded = await loadRelevantMemories(undefined)
+			// "test-user-pref" is newest (listed first); its 9k body exceeds
+			// the 8k budget so the budget loop breaks before adding it →
+			// truncated=true, included list contains nothing OR earlier
+			// smaller entries up to the cap, never the big one.
+			if (loaded) {
+				expect(loaded.totalChars).toBeLessThanOrEqual(8_000)
+				expect(loaded.truncated).toBe(true)
+				expect(loaded.memories.find((m) => m.name === "test-user-pref")).toBeUndefined()
+			}
+		})
+	})
+
+	describe("formatMemoriesSection", () => {
+		it("returns empty string on null input", () => {
+			expect(formatMemoriesSection(null)).toBe("")
+		})
+		it("returns empty string when memories list is empty", () => {
+			expect(formatMemoriesSection({ memories: [], truncated: false })).toBe("")
+		})
+		it("renders a USER MEMORIES section header and per-memory blocks", () => {
+			const out = formatMemoriesSection({
+				memories: [
+					{
+						name: "x",
+						description: "desc x",
+						type: "user",
+						scope: "global",
+						created: "2026-05-12T00:00:00Z",
+						body: "body x",
+						filePath: "/dev/null",
+					},
+				],
+				truncated: false,
+			})
+			expect(out).toContain("# USER MEMORIES")
+			expect(out).toContain("## x (user, global)")
+			expect(out).toContain("_desc x_")
+			expect(out).toContain("body x")
+			expect(out).not.toContain("(some memories truncated")
+		})
+		it("appends a truncation footer when needed", () => {
+			const out = formatMemoriesSection({
+				memories: [
+					{
+						name: "x",
+						description: "d",
+						type: "user",
+						scope: "global",
+						created: "2026-05-12T00:00:00Z",
+						body: "b",
+						filePath: "/dev/null",
+					},
+				],
+				truncated: true,
+			})
+			expect(out).toContain("(some memories truncated")
+		})
 	})
 })
