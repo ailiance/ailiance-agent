@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { hasHallucinatedToolXml, parseHallucinatedToolXml } from "../parse-hallucinated-tool-xml"
+import {
+	canonicaliseToolName,
+	hasHallucinatedToolXml,
+	parseHallucinatedToolXml,
+} from "@/utils/parse-hallucinated-tool-xml"
 
 describe("parseHallucinatedToolXml", () => {
 	it("extracts the exact Mistral-128B leak pattern observed in prod", () => {
@@ -109,6 +113,52 @@ world"</parameter></function>`
 
 		it("returns false when only Anthropic wrapper is present", () => {
 			expect(hasHallucinatedToolXml(`<function_calls><invoke name="x"/></function_calls>`)).toBe(false)
+		})
+	})
+
+	describe("canonicaliseToolName", () => {
+		const known = new Set([
+			"list_files",
+			"read_file",
+			"write_to_file",
+			"execute_command",
+			"search_files",
+		])
+
+		it("returns the canonical name when it matches the enum exactly", () => {
+			expect(canonicaliseToolName("list_files", known)).toBe("list_files")
+			expect(canonicaliseToolName("read_file", known)).toBe("read_file")
+		})
+
+		it("lower-cases before matching for case drift", () => {
+			expect(canonicaliseToolName("List_Files", known)).toBe("list_files")
+			expect(canonicaliseToolName("READ_FILE", known)).toBe("read_file")
+		})
+
+		it("maps observed Mistral-128B aliases to canonical names", () => {
+			expect(canonicaliseToolName("listfiles", known)).toBe("list_files")
+			expect(canonicaliseToolName("lsfiles", known)).toBe("list_files")
+			expect(canonicaliseToolName("read_files", known)).toBe("read_file")
+			expect(canonicaliseToolName("write_file", known)).toBe("write_to_file")
+			expect(canonicaliseToolName("bash", known)).toBe("execute_command")
+			expect(canonicaliseToolName("grep", known)).toBe("search_files")
+		})
+
+		it("returns null for entirely unknown names (strict policy)", () => {
+			expect(canonicaliseToolName("totally_made_up", known)).toBe(null)
+			expect(canonicaliseToolName("", known)).toBe(null)
+		})
+
+		it("returns null when the alias resolves to a name the runtime doesn't expose", () => {
+			// An alias entry exists for `bash` -> `execute_command`. If the runtime
+			// somehow doesn't expose execute_command, the canonicalisation refuses
+			// silently rather than dispatching a non-existent tool.
+			const restricted = new Set(["list_files"])
+			expect(canonicaliseToolName("bash", restricted)).toBe(null)
+		})
+
+		it("trims whitespace before matching", () => {
+			expect(canonicaliseToolName("  list_files  ", known)).toBe("list_files")
 		})
 	})
 })
