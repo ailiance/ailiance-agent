@@ -1,3 +1,24 @@
+## [0.9.1-beta] — 2026-05-12
+
+### Added
+- **Auto-injection of memories at turn-1 of each new task** (the deferred half of v0.9.0). `PromptBuilder.preparePlaceholders()` now calls `loadRelevantMemories(cwd)` and splices the result into a new `{{MEMORIES_SECTION}}` placeholder in the system prompt template, right after `{{SKILLS_SECTION}}`. The section renders only when at least one memory survived the budget filter; otherwise the placeholder collapses to the empty string.
+- Two helpers in `src/utils/ailiance-memory.ts`:
+  - `projectScopeFromCwd(cwd)`: derives `project:<slug>` from the basename of the working directory (lowercased, non-alphanumeric → `-`). Mirrors Claude Code's project-memory layout.
+  - `loadRelevantMemories(cwd)`: returns project-scoped memories first then global, capped at ~8 000 chars (≈ 2 000 tokens) so an unbounded memory store cannot dominate the prompt. Sets `truncated: true` when the cap kicks in.
+  - `formatMemoriesSection(loaded)`: renders the markdown section with a `# USER MEMORIES` header, per-memory blocks (`## name (type, scope)`, italicised description, body verbatim), and a truncation footer when needed.
+- 10 new unit tests on top of the v0.9.0 storage tests: scope slugification, project-first ordering, budget enforcement, formatting edge cases, truncation footer.
+
+### Why this matters
+v0.9.0 saved memories but the agent never read them itself. Now every new task automatically receives the user's accumulated context — preferences, repo conventions, gotchas — as durable system-prompt content. Combined with v0.8.2 (auto-condense) and v0.8.3 (real ctx-window), the agent both starts each task informed AND keeps that information across condense cycles within the task.
+
+### Safety
+- Budget cap (≈ 2 000 tokens) prevents prompt bloat.
+- `isTesting=true` short-circuits the injection so existing system-prompt integration tests stay deterministic.
+- Best-effort error handling: any filesystem / parse failure collapses the section to empty, never breaks the prompt assembly.
+- The prompt instructs the model to "apply silently, do not echo memories back", reducing the risk of memories leaking verbatim into responses.
+
+---
+
 ## [0.9.0-beta] — 2026-05-12
 
 ### Added

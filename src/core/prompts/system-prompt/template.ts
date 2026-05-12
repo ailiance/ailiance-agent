@@ -107,6 +107,7 @@ FEEDBACK
 
 When user is providing you with feedback on how you could improve, you can let the user know to report new issue using the '/reportbug' slash command.
 {{SKILLS_SECTION}}
+{{MEMORIES_SECTION}}
 ${
 	userInstructions ||
 	diracRules ||
