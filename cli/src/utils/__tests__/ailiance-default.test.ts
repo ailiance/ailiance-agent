@@ -45,24 +45,39 @@ function makeFakeStateManager() {
 }
 
 describe("ailiance default fallback", () => {
-	it("resolveEuKikiGatewayUrl falls back to studio:9300", () => {
+	it("resolveEuKikiGatewayUrl falls back to electron-server:9300", () => {
 		expect(resolveEuKikiGatewayUrl({})).toBe(AILIANCE_DEFAULT_GATEWAY)
+		expect(AILIANCE_DEFAULT_GATEWAY).toBe("http://electron-server:9300")
 	})
 
-	it("resolveEuKikiGatewayUrl honours AGENT_KIKI_GATEWAY", () => {
-		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://example.com:9999/" })).toBe(
+	it("resolveEuKikiGatewayUrl honours AILIANCE_GATEWAY", () => {
+		expect(resolveEuKikiGatewayUrl({ AILIANCE_GATEWAY: "http://example.com:9999/" })).toBe(
 			"http://example.com:9999",
 		)
 	})
 
+	it("resolveEuKikiGatewayUrl honours deprecated AGENT_KIKI_GATEWAY", () => {
+		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://legacy:9999/" })).toBe("http://legacy:9999")
+	})
+
+	it("AILIANCE_GATEWAY takes precedence over AGENT_KIKI_GATEWAY", () => {
+		expect(
+			resolveEuKikiGatewayUrl({
+				AILIANCE_GATEWAY: "http://new:9300",
+				AGENT_KIKI_GATEWAY: "http://old:9300",
+			}),
+		).toBe("http://new:9300")
+	})
+
 	it("resolveEuKikiGatewayUrl strips /chat/completions suffix", () => {
-		expect(resolveEuKikiGatewayUrl({ AGENT_KIKI_GATEWAY: "http://x:9300/chat/completions/" })).toBe(
+		expect(resolveEuKikiGatewayUrl({ AILIANCE_GATEWAY: "http://x:9300/chat/completions/" })).toBe(
 			"http://x:9300",
 		)
 	})
 
 	it("hasNonEuKikiProviderEnv detects a real provider env", () => {
 		expect(hasNonEuKikiProviderEnv({ ANTHROPIC_API_KEY: "k" })).toBe(true)
+		expect(hasNonEuKikiProviderEnv({ AILIANCE_GATEWAY: "http://foo" })).toBe(false)
 		expect(hasNonEuKikiProviderEnv({ AGENT_KIKI_GATEWAY: "http://foo" })).toBe(false)
 		expect(hasNonEuKikiProviderEnv({})).toBe(false)
 	})
