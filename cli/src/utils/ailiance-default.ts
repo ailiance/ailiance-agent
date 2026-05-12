@@ -16,14 +16,21 @@
 
 import type { StateManager } from "@/core/storage/StateManager"
 
-// The gateway runs on electron-server (FastAPI :9300). Tailscale MagicDNS
-// resolves `electron-server` to 100.78.191.52 for users on the tailnet.
+// Public gateway endpoint. Cloudflare Tunnel
+// (2c6b04a3-9cac-4336-9dbd-9f1d432b08d8) routes
+// https://gateway.ailiance.fr to the FastAPI :9300 on electron-server.
+// Auto-terminated TLS (CF Flexible SSL), no auth — the gateway accepts
+// any bearer string (AILIANCE_DEFAULT_API_KEY sentinel below). Reachable
+// from anywhere without Tailscale; on-tailnet users can override to the
+// LAN endpoint via AILIANCE_GATEWAY=http://electron-server:9300/v1 for
+// lower latency / no CF dependency.
+//
 // The /v1 suffix is REQUIRED: the OpenAI-compatible SDK appends
 // /chat/completions to the configured baseUrl, and the gateway only
 // matches the OpenAI route prefix /v1/*. Without it, every request
-// 404s. Off-tailnet users must set AILIANCE_GATEWAY to a reachable
-// URL (with or without /v1 — resolveEuKikiGatewayUrl normalises).
-export const AILIANCE_DEFAULT_GATEWAY = "http://electron-server:9300/v1"
+// 404s. resolveEuKikiGatewayUrl normalises trailing slashes and the
+// /chat/completions suffix when present in the override URL.
+export const AILIANCE_DEFAULT_GATEWAY = "https://gateway.ailiance.fr/v1"
 export const AILIANCE_DEFAULT_MODEL = "ailiance"
 
 /**
@@ -49,19 +56,28 @@ export type EuKikiDefaultReason =
 
 /**
  * Returns true when a previously-persisted baseUrl is a known-broken
- * ailiance default that this CLI version must heal. Covers the two
- * historical leak points:
+ * or superseded ailiance default that this CLI version must heal.
+ * Covers the historical leak points and the v0.6.0 Tailscale-internal
+ * defaults that v0.6.1 promotes to the public Cloudflare endpoint:
+ *
  *   - http://studio:9300* — wrong host (gateway is on electron-server)
- *   - http://electron-server:9300 — correct host but missing /v1
  *   - http://studio:9303* / direct worker ports — bypassed gateway
+ *   - http://electron-server:9300* — v0.6.0 Tailscale-internal default
+ *   - http://electron-server.tail*.ts.net:9300* — same, FQDN form
+ *   - http://100.78.191.52:9300* — same, raw Tailscale IP
+ *
  * Conservative: only matches the exact patterns shipped by prior
- * defaults, never a user-supplied URL.
+ * defaults, never a user-supplied custom URL (an operator pointing at
+ * https://my-proxy/v1 or http://10.x.x.x:9300 stays untouched).
  */
 export function needsStaleDefaultMigration(url: string): boolean {
 	const trimmed = url.replace(/\/+$/, "")
-	if (trimmed === "http://studio:9300") return true
-	if (trimmed.startsWith("http://studio:930")) return true // 9301..9309 direct workers
-	if (trimmed === "http://electron-server:9300") return true
+	const noV1 = trimmed.replace(/\/v1$/, "")
+	if (noV1 === "http://studio:9300") return true
+	if (noV1.startsWith("http://studio:930")) return true // 9301..9309 direct workers
+	if (noV1 === "http://electron-server:9300") return true
+	if (/^http:\/\/electron-server\.tail[a-z0-9]+\.ts\.net:9300$/.test(noV1)) return true
+	if (noV1 === "http://100.78.191.52:9300") return true
 	return false
 }
 
