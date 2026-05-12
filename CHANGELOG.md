@@ -1,3 +1,10 @@
+## [0.7.2-beta] — 2026-05-12
+
+### Documented
+- New README section "Outils de l'agent — read / write / bash" covering the 3 primary tools (with their handler files + limits), the 3 auto-approve modes (yolo / autoApproveAll / per-action), the shell safety zones (`auto_ok` enumerated; `confirm` enumerated; `hard_deny` enumerated with exit code 8 contract), the 18 long-runner regex patterns that bump timeout from 30 s to 300 s, and how the v0.7 XML hallucination fallback ties back to the gateway's `FC_FORCE_ROUTE_PORT`.
+
+---
+
 ## [0.7.1-beta] — 2026-05-12
 
 ### Fixed

@@ -155,6 +155,93 @@ AILIANCE_GATEWAY="https://my-proxy.example.com/v1" aki "..."
 
 L'extension VS Code s'installe via le `.vsix` du repo (paquet `ailiance-agent-0.3.1.vsix`).
 
+## Outils de l'agent — read / write / bash
+
+L'agent dispose de 27 outils canoniques (`DiracDefaultTool`) ; les trois principaux sont :
+
+| Outil | Enum | Handler | Limite |
+|-------|------|---------|--------|
+| `read_file` | `FILE_READ` | `ReadFileToolHandler` | 50 KB par fichier (PDF/code/Word via `extractFileContent`) |
+| `write_to_file` | `FILE_NEW` | `WriteToFileToolHandler` | Pas de cap, mais content tronqué côté UI streamée |
+| `execute_command` | `BASH` | `ExecuteCommandToolHandler` | Output 10 KB head/tail, timeout 30 s (300 s pour long-runners) |
+
+### Auto-approve — 3 modes
+
+| Mode | Comment | Effet |
+|------|---------|-------|
+| **yolo** (`-y`) | flag CLI ou toggle session | Approuve TOUT (read + write + bash + browser), sauf `hard_deny` zone shell |
+| **autoApproveAll** | toggle persistant TUI | Idem yolo mais entre sessions |
+| **per-action** | `autoApprovalSettings.actions.{readFiles, editFiles, executeCommands, useBrowser}` | Granulaire ; par défaut tout `false` → approbation manuelle de chaque appel |
+
+### Zones de sécurité shell (`execute_command`)
+
+Le `zoneClassifier` (`src/core/safety/zoneClassifier.ts`) classe chaque commande dans 3 zones :
+
+#### Zone `auto_ok` — exécutées sans prompt
+Commandes lecture-seule ou outils de build standards :
+
+```
+ls, cat, head, tail, find, wc, file
+pytest, uv, cargo, npm, pnpm, yarn, bun, make, cmake, go, rustc, ctest
+black, ruff, prettier, rustfmt, gofmt, clang-format
+git status / diff / log / show / branch / tag / remote
+```
+
+#### Zone `confirm` — toujours approbation explicite
+Commandes avec effets de bord network / package / push :
+
+```
+{npm,pnpm,yarn,pip,uv,cargo} install/add/update/publish
+git push, git commit (write)
+docker run / build / push
+curl / wget / ssh / scp / rsync (network egress)
+```
+
+Même en yolo mode, ces commandes demandent confirmation si `autoApprovalSettings.actions.executeCommands` est `false`.
+
+#### Zone `hard_deny` — refusées TOUJOURS (exit code 8)
+
+```
+rm -rf <path>                    rm -r <path>
+dd of=/dev/...                   mkfs.<fs>
+shutdown / reboot / halt         sudo / su / doas
+:(){ :|:& };:                    (fork bomb)
+curl ... | sh                    (pipe-to-shell)
+> /dev/sd[a-z]                   (raw disk write)
+chmod 777 -R /                   chown -R root /
+```
+
+Yolo mode ne déverrouille **pas** cette zone. Le LLM reçoit l'exit code 8 et doit choisir une alternative.
+
+### Long-runners — timeout 300 s
+
+Pour ces commandes le timeout par défaut passe de 30 s à 5 minutes :
+
+```
+{npm,pnpm,yarn,bun} install/ci/build/test
+{pip,uv,poetry,pipenv} install
+{cargo,go,mvn,gradle} build/test/install
+make, cmake, ctest
+pytest, tox, nox, jest, vitest, mocha
+docker/podman build
+torchrun, deepspeed, accelerate launch
+{rails,alembic,prisma,django} migrate
+ffmpeg
+python ... train|finetune
+```
+
+### XML hallucination fallback (v0.7)
+
+Quand un backend MLX (Mistral-Medium-128B, Devstral, etc.) sans native function calling reçoit un schéma `tools[]`, il émet parfois du XML hallucination :
+
+```xml
+<function=list_files>
+<parameter=paths>["."]</parameter>
+</function>
+```
+
+Le CLI parse ces blocs en `ToolUse` synthétiques (cf. `src/utils/parse-hallucinated-tool-xml.ts`), valide chaque nom contre `DiracDefaultTool` (avec alias map : `bash`/`grep`/`writefile`/`listfiles` mappés à leur enum canonique), et dispatche via le même handler que les tool_calls natifs. Le root-cause fix vit dans la gateway (`FC_FORCE_ROUTE_PORT`) qui redirige les `tools[]` vers le worker natif-FC Qwen 32B, mais ce parser CLI reste comme defense-in-depth.
+
 ## Extension VS Code
 
 [![Install in VS Code](https://img.shields.io/badge/Install-VS%20Code-007ACC?logo=visualstudiocode)](https://github.com/ailiance/ailiance-agent/releases) [![VSIX](https://img.shields.io/badge/.vsix-agent--kiki--0.3.1-005a8b)](https://github.com/ailiance/ailiance-agent/releases)
