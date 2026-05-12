@@ -1,3 +1,20 @@
+## [0.7.0-beta] — 2026-05-12
+
+### Added
+- Hallucinated XML tool-call dispatch in `ResponseProcessor.ts`. When a non-FC backend (Mistral-Medium-128B MLX, EuroLLM, Gemma macm1) emits a flat `<function=NAME>...<parameter=KEY>VALUE</parameter></function>` block on a complete text stream, the CLI now extracts it, validates the name against `DiracDefaultTool` (with a model-alias map covering `bash`/`grep`/`writefile`/`listfiles` and case drift), synthesises a non-native `ToolUse` block, and dispatches via `toolExecutor.executeTool`. Residual prose is preserved so any explanation the model emitted alongside the call is still shown. Closes the agent-loop retry storm observed in v0.6.x when the gateway's FC force-route did not catch a backend.
+- New `canonicaliseToolName(name, knownTools)` helper in `parse-hallucinated-tool-xml.ts` with strict policy: unknown names return `null` rather than being silently dispatched, preventing crashes in `toolExecutor` from invented tool names.
+
+### Changed
+- Parser module moved from `cli/src/utils/parse-hallucinated-tool-xml.ts` to `src/utils/parse-hallucinated-tool-xml.ts` so `ResponseProcessor.ts` (library side, lives in `src/core/task/`) can import it via the `@/utils/` alias without crossing the CLI/library boundary. Tests import via the same alias; vitest setup unchanged.
+
+### Tests
+- 18 unit tests on the parser module (12 prior + 6 new for `canonicaliseToolName` covering exact-match, case drift, observed aliases, strict-null on unknown, alias gated on runtime tool exposure, and whitespace trimming).
+
+### Out of scope (now closed)
+- Companion gateway-side fix (`FC_FORCE_ROUTE_PORT` redirect of `tools[]` to native-FC worker) shipped in `ailiance/ailiance` PR #76 — merged + deployed. This CLI parser is defense-in-depth for the case where the gateway override is disabled (`GATEWAY_FC_FORCE_ROUTE=false`) or a future non-FC backend slips into FC_CAPABLE_PORTS.
+
+---
+
 ## [0.6.1-beta] — 2026-05-12
 
 ### Changed

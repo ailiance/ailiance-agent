@@ -4,10 +4,19 @@ import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialM
 import { telemetryService } from "@services/telemetry"
 import { convertDiracMessageToProto } from "@shared/proto-conversions/dirac-message"
 import { Session } from "@shared/services/Session"
-import { READ_ONLY_TOOLS } from "@shared/tools"
+import { DiracDefaultTool, READ_ONLY_TOOLS, toolUseNames } from "@shared/tools"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import cloneDeep from "clone-deep"
+import {
+	canonicaliseToolName,
+	hasHallucinatedToolXml,
+	parseHallucinatedToolXml,
+} from "@/utils/parse-hallucinated-tool-xml"
 import { ResponseProcessorDependencies } from "./types/response-processor"
+
+// Build the canonical tool-name set once at module load. ResponseProcessor
+// is instantiated per-task; the set is constant for the process lifetime.
+const KNOWN_TOOL_NAMES: ReadonlySet<string> = new Set(toolUseNames as readonly string[])
 
 export class ResponseProcessor {
 	constructor(private dependencies: ResponseProcessorDependencies) {}
@@ -208,14 +217,50 @@ export class ResponseProcessor {
 					if (content) {
 						content = content.replace(/<function_calls>\s?/g, "")
 						content = content.replace(/\s?<\/function_calls>/g, "")
-						// TODO(ailiance-agent v0.7): on block.partial === false and
-						// hasHallucinatedToolXml(content) === true, run
-						// parseHallucinatedToolXml() and dispatch each call via
-						// toolExecutor.executeTool. Parser ships in
-						// cli/src/utils/parse-hallucinated-tool-xml.ts with full
-						// coverage; integration deferred because synthesizing
-						// ToolUse blocks mid-stream needs StreamChunkCoordinator
-						// state coordination. Tracking: PR #8.
+						// Hallucinated XML tool dispatch (v0.7).
+						// Only act on complete text blocks (block.partial === false)
+						// so we never dispatch on a half-streamed parameter value.
+						// The parser is best-effort: when it extracts a known tool
+						// (validated against DiracDefaultTool via canonicaliseToolName),
+						// we synthesize a non-native ToolUse and execute it
+						// immediately. Residual prose is preserved so the user can
+						// still see explanation text the model emitted alongside the
+						// hallucinated call. Root-cause fix lives in the gateway
+						// (FC_FORCE_ROUTE_PORT redirects tools[] to a native-FC
+						// worker); this dispatch path is defense-in-depth for the
+						// non-FC backends that still slip through.
+						if (!block.partial && hasHallucinatedToolXml(content)) {
+							const parsed = parseHallucinatedToolXml(content)
+							if (parsed.calls.length > 0) {
+								// Replace content with residual prose so the say()
+								// call below shows only the non-tool narration.
+								content = parsed.residualText
+								for (const call of parsed.calls) {
+									const canonical = canonicaliseToolName(call.name, KNOWN_TOOL_NAMES)
+									if (!canonical) {
+										// Skip unknown tool name. The caller will see
+										// it surface as text in residualText if the
+										// model included a description outside the
+										// XML block.
+										continue
+									}
+									const synthetic: ToolUse = {
+										type: "tool_use",
+										name: canonical as DiracDefaultTool,
+										params: call.params,
+										partial: false,
+										isNativeToolCall: false,
+									}
+									if (this.dependencies.taskState.initialCheckpointCommitPromise) {
+										if (!READ_ONLY_TOOLS.includes(synthetic.name as any)) {
+											await this.dependencies.taskState.initialCheckpointCommitPromise
+											this.dependencies.taskState.initialCheckpointCommitPromise = undefined
+										}
+									}
+									await this.dependencies.toolExecutor.executeTool(synthetic)
+								}
+							}
+						}
 
 						const lastOpenBracketIndex = content.lastIndexOf("<")
 						if (lastOpenBracketIndex !== -1) {

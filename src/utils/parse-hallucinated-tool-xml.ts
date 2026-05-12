@@ -98,3 +98,56 @@ export function hasHallucinatedToolXml(text: string): boolean {
 	const hasClose = /<\/(function|invoke)>/.test(text)
 	return hasOpen && hasClose
 }
+
+/**
+ * Canonical aliases observed in the wild. The keys are exactly what
+ * Mistral-Medium-128B (and similar MLX backends) emit when they
+ * hallucinate tool calls; the values are the real DiracDefaultTool
+ * enum strings. Extend this map when new hallucinations are observed
+ * in production logs.
+ *
+ * Strict policy: unknown names are NOT silently passed through. Names
+ * not in the canonical enum and not in this alias map are dropped
+ * (the caller surfaces them as text so the user can see what the
+ * model attempted).
+ */
+const TOOL_NAME_ALIASES: Record<string, string> = {
+	// Plural / singular drift
+	read_files: "read_file",
+	list_file: "list_files",
+	// Mistral-128B observed forms 2026-05-12
+	listfiles: "list_files",
+	lsfiles: "list_files",
+	ls_files: "list_files",
+	writefile: "write_to_file",
+	write_file: "write_to_file",
+	readfile: "read_file",
+	executecommand: "execute_command",
+	exec_command: "execute_command",
+	run_command: "execute_command",
+	bash: "execute_command",
+	shell: "execute_command",
+	searchfiles: "search_files",
+	search_file: "search_files",
+	grep: "search_files",
+}
+
+/**
+ * Resolve a model-emitted tool name to a canonical DiracDefaultTool
+ * string. Pass the runtime enum-value set so this module stays
+ * decoupled from the broader tool registry (the registry imports
+ * proto-generated types; this module is parser-only).
+ *
+ * Returns the canonical name when the input is recognised, or null
+ * when it cannot be matched to any known tool.
+ */
+export function canonicaliseToolName(name: string, knownTools: ReadonlySet<string>): string | null {
+	if (!name) return null
+	const trimmed = name.trim()
+	if (knownTools.has(trimmed)) return trimmed
+	const lower = trimmed.toLowerCase()
+	if (knownTools.has(lower)) return lower
+	const alias = TOOL_NAME_ALIASES[lower]
+	if (alias && knownTools.has(alias)) return alias
+	return null
+}
