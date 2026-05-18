@@ -21,7 +21,7 @@ import { extractLastKnownHashFromHistory } from "../../utils/extractLastKnownHas
 import { ToolResultUtils } from "../../utils/ToolResultUtils"
 import { EditExecutor } from "./EditExecutor"
 import { EditFormatter } from "./EditFormatter"
-import { FileEdit, PreparedEdits, PreparedFileBatch } from "./types"
+import { FailedEdit, FileEdit, FuzzyCandidate, PreparedEdits, PreparedFileBatch, ResolvedEdit } from "./types"
 
 export class BatchProcessor {
     constructor(
@@ -657,8 +657,21 @@ export class BatchProcessor {
 
             const { resolvedEdits, failedEdits } = this.executor.resolveEdits(blocks, lines, lineHashes)
 
+            // Fuzzy fallback: for each failed edit that has a high-confidence
+            // Levenshtein candidate, request user approval. On approval, promote
+            // to resolved; on refusal, keep as failed (per-anchor granularity,
+            // never penalises sibling edits).
+            const { promotedEdits, remainingFailedEdits } = await this.requestFuzzyApprovals(
+                config,
+                displayPath,
+                failedEdits,
+                lineHashes.map((h) => h.trim()),
+                lines,
+            )
+            resolvedEdits.push(...promotedEdits)
+
             if (resolvedEdits.length === 0) {
-                const failureMessages = failedEdits.map((f) => this.executor.formatFailureMessage(f.edit, f.error))
+                const failureMessages = remainingFailedEdits.map((f) => this.executor.formatFailureMessage(f.edit, f.error))
                 return { error: formatResponse.toolError(failureMessages.join("\n\n")) }
             }
 
@@ -667,7 +680,7 @@ export class BatchProcessor {
                 finalContent: content, // Placeholder
                 diff: "", // Placeholder
                 resolvedEdits,
-                failedEdits,
+                failedEdits: remainingFailedEdits,
                 appliedEdits: [], // Placeholder
                 lines,
                 lineHashes,
@@ -678,6 +691,95 @@ export class BatchProcessor {
             const errorMessage = error instanceof Error ? error.message : String(error)
             return { error: formatResponse.toolError(`Error preparing edits: ${errorMessage}`) }
         }
+    }
+
+    /**
+     * Fuzzy fallback approval loop.
+     *
+     * For each FailedEdit carrying a high-confidence Levenshtein candidate
+     * (`fuzzyCandidates` populated by EditExecutor), prompt the user once per
+     * candidate. On approval, re-resolve the edit with the candidate's
+     * actualLineIdx pinned and add to `promotedEdits`. On refusal, leave the
+     * edit in `remainingFailedEdits` with its original diagnostic.
+     *
+     * Granularity is per-anchor: refusing a fuzzy match only skips that one
+     * edit, never affects sibling edits in the same batch.
+     */
+    private async requestFuzzyApprovals(
+        config: TaskConfig,
+        displayPath: string,
+        failedEdits: FailedEdit[],
+        normalizedLineHashes: string[],
+        lines: string[],
+    ): Promise<{ promotedEdits: ResolvedEdit[]; remainingFailedEdits: FailedEdit[] }> {
+        const promotedEdits: ResolvedEdit[] = []
+        const remainingFailedEdits: FailedEdit[] = []
+
+        for (const failed of failedEdits) {
+            const candidates = failed.fuzzyCandidates
+            if (!candidates || candidates.length === 0) {
+                remainingFailedEdits.push(failed)
+                continue
+            }
+
+            // Ask once per fuzzy side. If any side is refused, the whole edit
+            // stays failed (we can't apply with a half-approved range).
+            const approvedCandidates = new Map<"anchor" | "end_anchor", FuzzyCandidate>()
+            let anyRefused = false
+            for (const candidate of candidates) {
+                const approved = await this.askFuzzyApproval(config, displayPath, candidate)
+                if (approved) {
+                    approvedCandidates.set(candidate.type, candidate)
+                } else {
+                    anyRefused = true
+                    break
+                }
+            }
+
+            if (anyRefused) {
+                remainingFailedEdits.push(failed)
+                continue
+            }
+
+            const promoted = this.executor.resolveFuzzyEdit(failed, approvedCandidates, normalizedLineHashes, lines)
+            if (promoted) {
+                promotedEdits.push(promoted)
+            } else {
+                // Fuzzy approval succeeded but the edit still has unrelated
+                // diagnostics (range error, etc.) — keep the original failure.
+                remainingFailedEdits.push(failed)
+            }
+        }
+
+        return { promotedEdits, remainingFailedEdits }
+    }
+
+    /**
+     * Issue a single per-anchor fuzzy-match approval prompt. Returns true iff
+     * the user clicked the equivalent of "yes". Auto-approved when the
+     * workspace already auto-approves edits for this path (no double prompt).
+     */
+    private async askFuzzyApproval(config: TaskConfig, displayPath: string, candidate: FuzzyCandidate): Promise<boolean> {
+        // Subagent / fully auto-approved workspace: skip the prompt.
+        if (config.isSubagentExecution) return true
+        const autoApproved = await config.callbacks.shouldAutoApproveToolWithPath(DiracDefaultTool.EDIT_FILE, displayPath)
+        if (autoApproved) return true
+
+        const message = {
+            tool: "editFile",
+            path: displayPath,
+            fuzzyMatch: {
+                anchor: candidate.anchorName,
+                anchorType: candidate.type,
+                provided: candidate.provided,
+                actualLine: candidate.actualLineIdx + 1,
+                actualContent: candidate.actualContent,
+                similarity: Number(candidate.similarity.toFixed(2)),
+            },
+            hint: `Anchor "${candidate.anchorName}" did not match exactly. Apply on the similar line?`,
+        }
+        const { response } = await config.callbacks.ask("tool", JSON.stringify(message), false)
+        return response === "yesButtonClicked"
     }
 
     async saveAndTrackChanges(
