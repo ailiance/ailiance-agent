@@ -2,7 +2,7 @@ import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ToolUse } from "@core/assistant-message"
 import { resolveWorkspacePath } from "@core/workspace"
 import type { DiffStructure } from "@shared/utils/diff"
-import { computeDiff } from "@shared/utils/diff"
+import { computeDiffFromContents } from "@shared/utils/diff"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import { formatLineWithHash } from "@utils/line-hashing"
 import { getReadablePath } from "@utils/path"
@@ -243,8 +243,8 @@ export class RenameSymbolToolHandler implements IFullyManagedTool {
 				files_affected: fileResults.length,
 				editSummaries: fileResults.map((fr) => {
 					let hunks: DiffStructure | undefined
-					if (fr.diff && fr.diff.length <= 500_000) {
-						const computed = computeDiff(fr.diff)
+					if (fr.originalContent.length + fr.finalContent.length <= 1_000_000) {
+						const computed = computeDiffFromContents(fr.originalContent, fr.finalContent)
 						hunks = {
 							path: fr.displayPath,
 							totalAdditions: computed.totalAdditions,
