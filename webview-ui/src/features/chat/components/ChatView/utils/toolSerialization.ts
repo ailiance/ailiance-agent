@@ -19,7 +19,25 @@ export function serializeToolToDisplayUnits(
 		(message.ask === "tool" || message.ask === "command" || message.ask === "browser_action_launch" || message.ask === "use_subagents") &&
 		!isCommandExecuting &&
 		!message.partial
-	const status: DisplayUnitStatus = statusOverride || (isPending ? "pending" : message.partial ? "active" : "success")
+	// v0.6 Sprint 2-G: async tool notifications carry their own lifecycle.
+	// When asyncStatus is present, it overrides the partial/pending heuristic.
+	let asyncStatus: DisplayUnitStatus | undefined
+	switch (tool.asyncStatus) {
+		case "running":
+			asyncStatus = "running"
+			break
+		case "completed":
+			asyncStatus = "success"
+			break
+		case "failed":
+			asyncStatus = "error"
+			break
+		case "cancelled":
+			asyncStatus = "cancelled"
+			break
+	}
+	const status: DisplayUnitStatus =
+		statusOverride || asyncStatus || (isPending ? "pending" : message.partial ? "active" : "success")
 
 	const units: DisplayUnit[] = []
 	const icon = getIconForTool(tool.tool)
@@ -169,6 +187,7 @@ export function serializeToolToDisplayUnits(
 						isExpandable: true,
 						content: fileDiff,
 						path: path,
+						hunks: summary.hunks,
 					})
 				})
 			} else if (tool.path || (tool as any).path) {
@@ -294,6 +313,7 @@ export function serializeToolToDisplayUnits(
 						isExpandable: true,
 						content: fileDiff,
 						path: path,
+						hunks: summary.hunks,
 					})
 				})
 			} else {
@@ -317,8 +337,17 @@ export function serializeToolToDisplayUnits(
 		case "replaceSymbol":
 		case "replace_symbol": {
 			const replacements = tool.replacements || (tool as any).replacements
+			// v0.6 Sprint 1-F: ReplaceSymbol now emits editSummaries[] with per-file hunks.
+			const editSummariesByPath = new Map<string, any>()
+			const replaceSummaries = (tool.editSummaries || (tool as any).editSummaries) as any[] | undefined
+			if (Array.isArray(replaceSummaries)) {
+				for (const s of replaceSummaries) {
+					if (s?.path) editSummariesByPath.set(s.path, s)
+				}
+			}
 			if (replacements && Array.isArray(replacements)) {
 				replacements.forEach((r: any, idx: number) => {
+					const summary = editSummariesByPath.get(r.path)
 					units.push({
 						toolName: "replaceSymbol",
 						id: `${message.ts}-replace-${idx}`,
@@ -332,9 +361,11 @@ export function serializeToolToDisplayUnits(
 						isExpandable: true,
 						content: r.diff || r.text,
 						path: r.path,
+						hunks: summary?.hunks,
 					})
 				})
 			} else {
+				const summary = tool.path ? editSummariesByPath.get(tool.path) : undefined
 				units.push({
 					toolName: "replaceSymbol",
 					id: `${message.ts}-replace`,
@@ -348,6 +379,7 @@ export function serializeToolToDisplayUnits(
 					isExpandable: true,
 					content: tool.diff || tool.content || (tool as any).newContent,
 					path: tool.path,
+					hunks: summary?.hunks ?? replaceSummaries?.[0]?.hunks,
 				})
 			}
 			break
@@ -355,6 +387,9 @@ export function serializeToolToDisplayUnits(
 		case "newFileCreated":
 		case "editedExistingFile":
 		case "fileDeleted": {
+			// v0.6 Sprint 1-F: WriteToFile may now ship editSummaries[0].hunks
+			// so we render structured +/- diff via DiffEditRow (EditFileOutput).
+			const editSummary = (tool.editSummaries || (tool as any).editSummaries)?.[0]
 			units.push({
 				toolName: tool.tool,
 				id: `${message.ts}-edit-0`,
@@ -367,6 +402,7 @@ export function serializeToolToDisplayUnits(
 				content: tool.content || tool.diff,
 				path: tool.path,
 				isFilePath: true,
+				hunks: editSummary?.hunks,
 			})
 			break
 		}
@@ -423,6 +459,14 @@ export function serializeToolToDisplayUnits(
 		default: {
 			// Unknown tool or non-tool message absorbed into group - return nothing
 			return []
+		}
+	}
+
+	// v0.6 Sprint 2-G: stamp async duration onto every unit so ToolRow can
+	// render "(2.3s)" suffixes without re-parsing the tool payload.
+	if (tool.asyncDurationMs !== undefined) {
+		for (const u of units) {
+			u.asyncDurationMs = tool.asyncDurationMs
 		}
 	}
 
