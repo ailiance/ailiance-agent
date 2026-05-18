@@ -1,3 +1,4 @@
+import { reportInvalidToolName, validateToolName } from "@core/task/tools/validateToolName"
 import { Logger } from "@shared/services/Logger"
 import { renderEmulationPrompt } from "./EmulationPrompts"
 import { estimateTokens } from "./estimateTokens"
@@ -71,6 +72,27 @@ const DEFAULT_LOCAL_ROUTER_IDLE_TIMEOUT_MS = 20_000
 
 function sanitizeTimeout(v: number | undefined, fallback: number): number {
 	return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback
+}
+
+/** Pattern keys that tryExtract knows how to handle, in their default order. */
+type ExtractorKey = "tool_fence" | "xml" | "json_fence" | "json_inline" | "bash_fence" | "plain_func"
+
+const DEFAULT_EXTRACTOR_ORDER: ExtractorKey[] = ["tool_fence", "xml", "json_fence", "json_inline", "bash_fence", "plain_func"]
+
+/** Map a profile format to the extractor key that should be tried first. */
+function priorityExtractor(format: ToolCallFormat | undefined): ExtractorKey | null {
+	switch (format) {
+		case "markdown_fence":
+			return "tool_fence"
+		case "xml":
+			return "xml"
+		case "json_inline":
+			return "json_inline"
+		case "plain_function":
+			return "plain_func"
+		default:
+			return null
+	}
 }
 
 function formatToolsAsPromptText(tools: ChatTool[]): string {
@@ -193,107 +215,129 @@ export class LocalRouter {
 
 	/**
 	 * Try to extract a tool call from the accumulated text buffer.
-	 * Accepts five formats in priority order:
-	 *   1. ```tool\n{...}\n```  (preferred few-shot format)
-	 *   2. <tool_call>{...}</tool_call>
-	 *   3. ```json\n{...}\n```  (JSON fence with a "name" field)
-	 *   4. ```bash|sh|shell|console\n<cmd>\n```  → execute_command (only when listed in tools)
-	 *   5. plain function-call syntax: read_file("foo.txt") or read_file(path="foo.txt")
+	 * Six extractors are tried; their order can be reshuffled by passing
+	 * `priority` (the format the worker was instructed to use). Falls back
+	 * to the default order on failure. Parsed tool names are validated by
+	 * the shared validateToolName whitelist before being accepted.
 	 */
 	private static tryExtract(
 		buf: string,
 		tools: ChatTool[],
+		priority?: ExtractorKey | null,
 	): { match: RegExpMatchArray; toolCall: { name: string; arguments: Record<string, unknown> } } | null {
 		const toolNames = new Set(tools.map((t) => t.function.name))
 
-		// 1. ```tool fence (preferred)
-		const toolFence = buf.match(/```tool\s*(\{[\s\S]*?\})\s*```/)
-		if (toolFence) {
-			try {
-				const parsed = JSON.parse(toolFence[1]) as { name?: string; arguments?: unknown; args?: unknown }
-				if (parsed.name && toolNames.has(parsed.name)) {
-					return {
-						match: toolFence,
-						toolCall: {
-							name: parsed.name,
-							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
-						},
-					}
-				}
-			} catch {
-				// malformed JSON — fall through
-			}
-		}
+		// Build the extractor sequence: priority key first (if provided),
+		// then the default order minus the duplicate.
+		const order: ExtractorKey[] = priority
+			? [priority, ...DEFAULT_EXTRACTOR_ORDER.filter((k) => k !== priority)]
+			: DEFAULT_EXTRACTOR_ORDER
 
-		// 2. <tool_call>{...}</tool_call>
-		const xml = buf.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
-		if (xml) {
-			try {
-				const parsed = JSON.parse(xml[1]) as { name?: string; arguments?: unknown; args?: unknown }
-				if (parsed.name && toolNames.has(parsed.name)) {
-					return {
-						match: xml,
-						toolCall: {
-							name: parsed.name,
-							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
-						},
-					}
-				}
-			} catch {
-				// malformed JSON — fall through
-			}
+		for (const key of order) {
+			const hit = LocalRouter.runExtractor(key, buf, tools, toolNames)
+			if (hit) return hit
 		}
-
-		// 3. ```json fence with name field
-		const jsonFence = buf.match(/```json\s*(\{[\s\S]*?\})\s*```/)
-		if (jsonFence) {
-			try {
-				const parsed = JSON.parse(jsonFence[1]) as { name?: string; arguments?: unknown; args?: unknown }
-				if (parsed.name && toolNames.has(parsed.name)) {
-					return {
-						match: jsonFence,
-						toolCall: {
-							name: parsed.name,
-							arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
-						},
-					}
-				}
-			} catch {
-				// malformed JSON — fall through
-			}
-		}
-
-		// 4. ```bash | ```sh | ```shell | ```console → execute_command
-		if (toolNames.has("execute_command")) {
-			const bashFence = buf.match(/```(?:bash|sh|shell|console)\s*([\s\S]*?)```/)
-			if (bashFence) {
-				const command = bashFence[1].trim()
-				if (command) {
-					return {
-						match: bashFence,
-						toolCall: { name: "execute_command", arguments: { command, requires_approval: false } },
-					}
-				}
-			}
-		}
-
-		// 5. Plain function-call syntax: read_file("foo.txt") or read_file(path="foo.txt")
-		for (const toolName of toolNames) {
-			const re = new RegExp(`\\b${toolName}\\s*\\(([^)]*)\\)`)
-			const m = buf.match(re)
-			if (m) {
-				const argsStr = m[1].trim()
-				const args = LocalRouter.parsePlainArgs(
-					argsStr,
-					tools.find((t) => t.function.name === toolName),
-				)
-				if (args !== null) {
-					return { match: m, toolCall: { name: toolName, arguments: args } }
-				}
-			}
-		}
-
 		return null
+	}
+
+	private static runExtractor(
+		key: ExtractorKey,
+		buf: string,
+		tools: ChatTool[],
+		toolNames: Set<string>,
+	): { match: RegExpMatchArray; toolCall: { name: string; arguments: Record<string, unknown> } } | null {
+		switch (key) {
+			case "tool_fence":
+				return LocalRouter.extractJsonByRegex(buf, /```tool\s*(\{[\s\S]*?\})\s*```/, toolNames)
+			case "xml":
+				return LocalRouter.extractJsonByRegex(buf, /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/, toolNames)
+			case "json_fence":
+				return LocalRouter.extractJsonByRegex(buf, /```json\s*(\{[\s\S]*?\})\s*```/, toolNames)
+			case "json_inline": {
+				// Bare top-level JSON object on its own (not inside a fence we
+				// already tried). Match a balanced-looking object with a "name".
+				const m = buf.match(/(?:^|\n)\s*(\{\s*"name"\s*:\s*"[^"]+"[\s\S]*?\})\s*(?:\n|$)/)
+				if (!m) return null
+				try {
+					const parsed = JSON.parse(m[1]) as { name?: string; arguments?: unknown; args?: unknown }
+					if (LocalRouter.acceptToolName(parsed.name, toolNames)) {
+						return {
+							match: m,
+							toolCall: {
+								name: parsed.name as string,
+								arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
+							},
+						}
+					}
+				} catch {
+					// fall through
+				}
+				return null
+			}
+			case "bash_fence": {
+				if (!toolNames.has("execute_command")) return null
+				const bashFence = buf.match(/```(?:bash|sh|shell|console)\s*([\s\S]*?)```/)
+				if (!bashFence) return null
+				const command = bashFence[1].trim()
+				if (!command) return null
+				return {
+					match: bashFence,
+					toolCall: { name: "execute_command", arguments: { command, requires_approval: false } },
+				}
+			}
+			case "plain_func": {
+				for (const toolName of toolNames) {
+					const re = new RegExp(`\\b${toolName}\\s*\\(([^)]*)\\)`)
+					const m = buf.match(re)
+					if (!m) continue
+					const args = LocalRouter.parsePlainArgs(
+						m[1].trim(),
+						tools.find((t) => t.function.name === toolName),
+					)
+					if (args !== null) return { match: m, toolCall: { name: toolName, arguments: args } }
+				}
+				return null
+			}
+		}
+	}
+
+	private static extractJsonByRegex(
+		buf: string,
+		re: RegExp,
+		toolNames: Set<string>,
+	): { match: RegExpMatchArray; toolCall: { name: string; arguments: Record<string, unknown> } } | null {
+		const m = buf.match(re)
+		if (!m) return null
+		try {
+			const parsed = JSON.parse(m[1]) as { name?: string; arguments?: unknown; args?: unknown }
+			if (LocalRouter.acceptToolName(parsed.name, toolNames)) {
+				return {
+					match: m,
+					toolCall: {
+						name: parsed.name as string,
+						arguments: (parsed.arguments ?? parsed.args ?? {}) as Record<string, unknown>,
+					},
+				}
+			}
+		} catch {
+			// malformed JSON — fall through
+		}
+		return null
+	}
+
+	/**
+	 * Validate a parsed tool name against the whitelist using the
+	 * shared validator. Logs + reports telemetry on rejection so we can
+	 * see when models persist with hallucinated names like
+	 * `digikey:search`.
+	 */
+	private static acceptToolName(name: unknown, toolNames: ReadonlySet<string>): name is string {
+		const result = validateToolName(name, toolNames)
+		if (result.valid) return true
+		const displayName = typeof name === "string" ? name : "<non-string>"
+		Logger.warn(`[LocalRouter] Rejected tool name "${displayName}": ${result.reason}`)
+		reportInvalidToolName(displayName, result.reason)
+		return false
 	}
 
 	/**
@@ -357,11 +401,13 @@ export class LocalRouter {
 		// it (isNative); a worker with supportsTools:false always emulates.
 		const profile = getToolProfile(worker.modelId)
 		const useNative = profile.isNative && worker.supportsTools
-		// Format used for emulation prompt rendering. When the worker is
-		// non-native but the profile is native (registry thinks "deepseek" is
-		// OpenAI native but a local worker doesn't expose it), fall back to
-		// markdown_fence which is the safest emulated format.
+		// Format used for emulation prompt rendering AND parser priority.
+		// When the worker is non-native but the profile is native (registry
+		// thinks "deepseek" is OpenAI native but a local worker doesn't
+		// expose it), fall back to markdown_fence which is the safest
+		// emulated format.
 		const emulationFormat: ToolCallFormat = profile.isNative ? "markdown_fence" : profile.format
+		const extractorPriority = priorityExtractor(emulationFormat)
 
 		// Strip transport-only fields that should never hit the wire.
 		delete body.signal
@@ -484,7 +530,7 @@ export class LocalRouter {
 							yield { type: "text", text: textBuffer }
 						} else if (textBuffer && needsEmulation) {
 							// Emulation: try one last parse, then flush remaining as text
-							const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+							const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [], extractorPriority)
 							if (extracted) {
 								const { match, toolCall } = extracted
 								const before = textBuffer.slice(0, match.index!)
@@ -525,7 +571,7 @@ export class LocalRouter {
 								textBuffer += delta.content
 								// Extract complete tool call blocks (XML, json fence, bash fence)
 								for (;;) {
-									const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+									const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [], extractorPriority)
 									if (!extracted) break
 									const { match, toolCall } = extracted
 									const before = textBuffer.slice(0, match.index!)
@@ -579,7 +625,7 @@ export class LocalRouter {
 			}
 			// Final flush of any remaining buffered text
 			if (textBuffer) {
-				const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [])
+				const extracted = LocalRouter.tryExtract(textBuffer, req.tools ?? [], extractorPriority)
 				if (extracted) {
 					const { match, toolCall } = extracted
 					const before = textBuffer.slice(0, match.index!)
