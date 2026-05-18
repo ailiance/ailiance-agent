@@ -288,6 +288,17 @@ export interface DiracSayTool {
 	url?: string
 	query?: string
 	diagnostics?: { fixedCount: number; newProblemsMessage?: string }
+
+	// Sprint 2 — async tool fields. Populated when a long-running tool
+	// returns a placeholder and continues in the background. The UI
+	// transitions a single message from "running" to the terminal status.
+	asyncTaskId?: string
+	asyncStatus?: "running" | "completed" | "failed" | "cancelled"
+	asyncStartedAt?: number
+	asyncFinishedAt?: number
+	asyncDurationMs?: number
+	asyncResult?: string
+	asyncError?: string
 }
 
 export interface DiracSayHook {
