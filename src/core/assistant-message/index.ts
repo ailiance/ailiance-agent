@@ -75,6 +75,10 @@ export const toolParamNames = [
 	"existing_symbol",
 	"new_symbol",
 	"required_files",
+	// Sprint 2 — get_tool_result params.
+	"task_id",
+	"wait",
+	"timeout_ms",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]

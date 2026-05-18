@@ -19,7 +19,25 @@ export function serializeToolToDisplayUnits(
 		(message.ask === "tool" || message.ask === "command" || message.ask === "browser_action_launch" || message.ask === "use_subagents") &&
 		!isCommandExecuting &&
 		!message.partial
-	const status: DisplayUnitStatus = statusOverride || (isPending ? "pending" : message.partial ? "active" : "success")
+	// v0.6 Sprint 2-G: async tool notifications carry their own lifecycle.
+	// When asyncStatus is present, it overrides the partial/pending heuristic.
+	let asyncStatus: DisplayUnitStatus | undefined
+	switch (tool.asyncStatus) {
+		case "running":
+			asyncStatus = "running"
+			break
+		case "completed":
+			asyncStatus = "success"
+			break
+		case "failed":
+			asyncStatus = "error"
+			break
+		case "cancelled":
+			asyncStatus = "cancelled"
+			break
+	}
+	const status: DisplayUnitStatus =
+		statusOverride || asyncStatus || (isPending ? "pending" : message.partial ? "active" : "success")
 
 	const units: DisplayUnit[] = []
 	const icon = getIconForTool(tool.tool)
@@ -441,6 +459,14 @@ export function serializeToolToDisplayUnits(
 		default: {
 			// Unknown tool or non-tool message absorbed into group - return nothing
 			return []
+		}
+	}
+
+	// v0.6 Sprint 2-G: stamp async duration onto every unit so ToolRow can
+	// render "(2.3s)" suffixes without re-parsing the tool payload.
+	if (tool.asyncDurationMs !== undefined) {
+		for (const u of units) {
+			u.asyncDurationMs = tool.asyncDurationMs
 		}
 	}
 

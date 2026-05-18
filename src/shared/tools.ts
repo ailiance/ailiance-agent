@@ -32,6 +32,10 @@ export enum DiracDefaultTool {
 	DIAGNOSTICS_SCAN = "diagnostics_scan",
 	REPLACE_SYMBOL = "replace_symbol",
 	RENAME_SYMBOL = "rename_symbol",
+
+	// Sprint 2 — async tool result lookup. Fetches the result of a
+	// previously-dispatched long-running tool by task_id.
+	GET_TOOL_RESULT = "get_tool_result",
 }
 
 // Array of all tool names for compatibility
@@ -66,4 +70,7 @@ export const READ_ONLY_TOOLS = [
 	DiracDefaultTool.USE_SKILL,
 	DiracDefaultTool.LIST_SKILLS,
 	DiracDefaultTool.USE_SUBAGENTS,
+
+	// Sprint 2 — get_tool_result is a metadata-only lookup, never mutates.
+	DiracDefaultTool.GET_TOOL_RESULT,
 ] as const

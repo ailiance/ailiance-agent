@@ -2,9 +2,15 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import { AssistantMessageContent } from "@core/assistant-message"
 import { DiracAskResponse } from "@shared/WebviewMessage"
 import type { HookExecution } from "./types/HookExecution"
+import { PendingToolRegistry } from "./PendingToolRegistry"
 import { SkillMetadata } from "@/shared/skills"
 
 export class TaskState {
+	// Sprint 2 — registry of asynchronously executing tool invocations.
+	// One per Task instance; consumed by GetToolResultToolHandler and
+	// cancelled on task abort to avoid orphan background work.
+	pendingTools: PendingToolRegistry = new PendingToolRegistry()
+
 	// Task-level timing
 	taskStartTimeMs = Date.now()
 	taskFirstTokenTimeMs?: number
