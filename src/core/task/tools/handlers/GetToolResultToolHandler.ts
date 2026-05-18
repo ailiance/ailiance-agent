@@ -113,6 +113,9 @@ export class GetToolResultToolHandler implements IFullyManagedTool {
 		// Reset mistake count for a successful lookup.
 		config.taskState.consecutiveMistakeCount = 0
 
+		// Drop stale terminal entries so long autonomous sessions don't leak.
+		registry.prune()
+
 		// Terminal states return immediately.
 		if (entry.status === "completed") {
 			return this.formatCompleted(entry)

@@ -64,6 +64,13 @@ export class PendingToolRegistry {
 	private readonly entries = new Map<string, PendingToolEntry>()
 	public readonly events = new EventEmitter()
 
+	constructor() {
+		// Each running async tool adds an "updated" listener (AsyncToolNotifier
+		// plus get_tool_result waiters). Raise the cap above Node's default of
+		// 10 so concurrent async tools don't trigger a MaxListeners warning.
+		this.events.setMaxListeners(50)
+	}
+
 	/**
 	 * Register a new running tool invocation.
 	 *
