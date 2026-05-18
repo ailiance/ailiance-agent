@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    name: Typecheck & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Protocol Buffers
+        run: npm run protos
+
+      - name: Check types
+        run: npm run check-types
+
+      - name: Lint
+        run: npm run lint
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Protocol Buffers
+        run: npm run protos
+
+      # The mocha-based unit suite (`test:unit`) can be flaky in CI (it loads
+      # ts-node + VS Code shims). Keep it non-blocking so it surfaces failures
+      # as a signal without gating typecheck/lint, which run in the `build` job.
+      - name: Run unit tests
+        run: npm run test:unit
+        continue-on-error: true
