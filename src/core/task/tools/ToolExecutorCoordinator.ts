@@ -12,6 +12,7 @@ import { FindSymbolReferencesToolHandler } from "./handlers/FindSymbolReferences
 import { GenerateExplanationToolHandler } from "./handlers/GenerateExplanationToolHandler"
 import { GetFileSkeletonToolHandler } from "./handlers/GetFileSkeletonToolHandler"
 import { GetFunctionToolHandler } from "./handlers/GetFunctionToolHandler"
+import { GetToolResultToolHandler } from "./handlers/GetToolResultToolHandler"
 import { ListFilesToolHandler } from "./handlers/ListFilesToolHandler"
 import { ListSkillsToolHandler } from "./handlers/ListSkillsToolHandler"
 import { NewTaskHandler } from "./handlers/NewTaskHandler"
@@ -106,6 +107,7 @@ export class ToolExecutorCoordinator {
 		[DiracDefaultTool.USE_SKILL]: (_v: ToolValidator) => new UseSkillToolHandler(),
 		[DiracDefaultTool.LIST_SKILLS]: (_v: ToolValidator) => new ListSkillsToolHandler(),
 		[DiracDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
+		[DiracDefaultTool.GET_TOOL_RESULT]: (_v: ToolValidator) => new GetToolResultToolHandler(),
 	}
 
 	/**
