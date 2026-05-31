@@ -199,6 +199,11 @@ class McpClientManager {
 		this.diskCacheDirty = false
 		try {
 			await fs.mkdir(path.dirname(CACHE_FILE), { recursive: true })
+			// tmp + rename is atomic per write (no torn reads). Across concurrent
+			// isaac processes this is last-writer-wins at the file level: a process
+			// that didn't touch some servers can drop another's just-written
+			// entries. Accepted — the TTL makes the next cold re-fetch cheap
+			// (~1.7s for the full set) and concurrent cold boots are rare.
 			const tmp = `${CACHE_FILE}.${process.pid}.tmp`
 			await fs.writeFile(tmp, JSON.stringify(this.diskCache), "utf8")
 			await fs.rename(tmp, CACHE_FILE) // atomic
@@ -296,6 +301,30 @@ class McpClientManager {
 	invalidateToolCache(serverId?: string): void {
 		if (serverId) this.tools.delete(serverId)
 		else this.tools.clear()
+		// Also purge the disk cache, otherwise the next fetchTools would re-serve
+		// the stale on-disk entry (fresh within its TTL) and the invalidation
+		// would be a no-op for up to 24h. Best-effort / fire-and-forget: the
+		// in-memory clear above already took effect synchronously.
+		void this.purgeDiskCache(serverId)
+	}
+
+	private async purgeDiskCache(serverId?: string): Promise<void> {
+		if (CACHE_DISABLED) return
+		try {
+			const disk = await this.loadDiskCache()
+			if (serverId) {
+				if (disk[serverId]) {
+					delete disk[serverId]
+					this.diskCacheDirty = true
+				}
+			} else if (Object.keys(disk).length > 0) {
+				this.diskCache = {}
+				this.diskCacheDirty = true
+			}
+			await this.persistDiskCacheIfDirty()
+		} catch (err) {
+			Logger.warn("MCP: failed to purge tool cache:", err)
+		}
 	}
 
 	/**
