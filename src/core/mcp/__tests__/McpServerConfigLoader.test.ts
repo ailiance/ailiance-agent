@@ -89,6 +89,27 @@ describe("McpServerConfigLoader", () => {
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
 	})
 
+	it("dedupes the same server id across plugins (first plugin wins)", async () => {
+		const pluginA = await createFakePlugin(tmpDir, "owner", "plugin-a", "1.0.0", { name: "plugin-a" })
+		const pluginB = await createFakePlugin(tmpDir, "owner", "plugin-b", "1.0.0", { name: "plugin-b" })
+		const mkMcp = (pkg: string) => ({
+			mcpServers: { context7: { type: "stdio", command: "npx", args: ["-y", pkg] } },
+		})
+		await fs.writeFile(path.join(pluginA.rootDir, ".mcp.json"), JSON.stringify(mkMcp("@upstash/context7-mcp@2.1.4")))
+		await fs.writeFile(path.join(pluginB.rootDir, ".mcp.json"), JSON.stringify(mkMcp("@upstash/context7-mcp")))
+
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [pluginA, pluginB]
+
+		const { loadMcpConfigsFromPlugins } = loaderModule
+		const result = await loadMcpConfigsFromPlugins()
+		const context7s = result.filter((c) => c.id === "context7")
+		expect(context7s).to.have.length(1)
+		expect(context7s[0].pluginName).to.equal("plugin-a") // first declarer wins
+		expect(context7s[0].args).to.deep.equal(["-y", "@upstash/context7-mcp@2.1.4"])
+
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+	})
+
 	it("expands ${CLAUDE_PLUGIN_ROOT} in command and args", async () => {
 		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-expand", "1.0.0", {
 			name: "plugin-expand",

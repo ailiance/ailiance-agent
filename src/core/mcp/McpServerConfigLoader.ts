@@ -24,6 +24,11 @@ function expandPluginRoot(value: string, pluginRoot: string): string {
 export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 	const plugins = await pluginDiscoveryService.discover()
 	const configs: McpServerConfig[] = []
+	// Dedupe by server id across plugins: several plugins ship the same MCP
+	// server (e.g. context7 + sequential-thinking from both ecc and
+	// oh-my-claude). Loading both spawns duplicate processes and double-counts
+	// their tools in the agent prompt. First plugin to declare it wins.
+	const seenServers = new Map<string, string>()
 
 	for (const plugin of plugins) {
 		const mcpJsonPath = path.join(plugin.rootDir, ".mcp.json")
@@ -51,6 +56,15 @@ export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 				Logger.warn(`[mcp] Server "${serverId}" in plugin ${plugin.manifest.name} has no command, skipping`)
 				continue
 			}
+
+			const dupOwner = seenServers.get(serverId)
+			if (dupOwner !== undefined) {
+				Logger.warn(
+					`[mcp] Duplicate server "${serverId}" from plugin ${plugin.manifest.name} ignored (already provided by ${dupOwner})`,
+				)
+				continue
+			}
+			seenServers.set(serverId, plugin.manifest.name)
 
 			const pluginRoot = plugin.rootDir
 			configs.push({
