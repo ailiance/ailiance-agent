@@ -1,5 +1,6 @@
 import { Text } from "ink"
 import { render } from "ink-testing-library"
+// biome-ignore lint/correctness/noUnusedImports: required in scope for the classic JSX runtime (tsconfig jsx: "react")
 import React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { StdinProvider } from "./StdinContext"
