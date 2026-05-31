@@ -27,11 +27,13 @@ import { StateManager } from "./StateManager"
  * @param filePath - The target file path
  * @param data - The data to write
  */
-async function atomicWriteFile(filePath: string, data: string): Promise<void> {
+async function atomicWriteFile(filePath: string, data: string, mode?: number): Promise<void> {
 	const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${randomUUID()}`
 	try {
-		// Write to temporary file first
-		await fs.writeFile(tmpPath, data, "utf8")
+		// Write to temporary file first. When a mode is given, create the temp
+		// file with it so the renamed target inherits restrictive permissions
+		// (used for files that may hold conversation secrets).
+		await fs.writeFile(tmpPath, data, mode !== undefined ? { encoding: "utf8", mode } : "utf8")
 		// Rename temp file to target (atomic in most cases)
 		await fs.rename(tmpPath, filePath)
 	} catch (error) {
@@ -243,7 +245,11 @@ export async function saveApiConversationHistory(taskId: string, apiConversation
 			syncWorker().enqueue(taskId, fileName, data)
 			// Store locally
 			const filePath = path.join(await ensureTaskDirectoryExists(taskId), fileName)
-			await atomicWriteFile(filePath, data)
+			// 0600: the conversation history is a plaintext copy of the full LLM
+			// exchange and may contain secrets the user/tools pasted. It is replayed
+			// to resume a task, so it is deliberately NOT scrubbed — restrict it to
+			// the owner instead.
+			await atomicWriteFile(filePath, data, 0o600)
 		}
 	} catch (error) {
 		// in the off chance this fails, we don't want to stop the task
