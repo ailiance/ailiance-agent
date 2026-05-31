@@ -1,6 +1,19 @@
 import { ApiFormat } from "./proto/dirac/models"
 import type { ApiHandlerSettings } from "./storage/state-keys"
 
+/**
+ * Strips the OpenRouter preset suffix from a model ID.
+ * Example: "anthropic/claude-3.5-sonnet@preset/my-preset" -> "anthropic/claude-3.5-sonnet"
+ * Example: "@preset/my-preset" -> ""
+ */
+export function stripOpenRouterPreset(modelId: string): string {
+	const index = modelId.indexOf("@preset/")
+	if (index !== -1) {
+		return modelId.substring(0, index)
+	}
+	return modelId
+}
+
 export type ApiProvider =
 	| "anthropic"
 	| "claude-code"
@@ -132,6 +145,8 @@ export interface ModelInfo {
 	}[]
 	temperature?: number
 	supportsTools?: boolean
+
+	supportsStrictTools?: boolean
 
 	apiFormat?: ApiFormat // The API format used by this model
 }
@@ -891,11 +906,12 @@ export const vertexGlobalModels: Record<string, ModelInfo> = Object.fromEntries(
 
 export const openAiModelInfoSaneDefaults: OpenAiCompatibleModelInfo = {
 	maxTokens: -1,
-	contextWindow: 128_000,
+	contextWindow: 256_000,
 	supportsImages: true,
 	supportsPromptCache: false,
 	supportsTools: true,
 	supportsReasoning: true,
+	supportsStrictTools: false,
 	isR1FormatRequired: false,
 	inputPrice: 0,
 	outputPrice: 0,
@@ -2370,9 +2386,10 @@ export const ALL_MODEL_MAPS: [ApiProvider, Record<string, ModelInfo>][] = [
  * Gets the provider for a given model ID based on hardcoded model maps.
  */
 export function getProviderForModel(modelId: string): ApiProvider | undefined {
+	const baseModelId = stripOpenRouterPreset(modelId)
 	for (const [provider, map] of ALL_MODEL_MAPS) {
-		if (modelId && modelId in map) {
-			return provider
+		if (baseModelId && baseModelId in map) {
+			return provider as ApiProvider
 		}
 	}
 	return undefined
@@ -2383,9 +2400,10 @@ export function getProviderForModel(modelId: string): ApiProvider | undefined {
  * Gets the model info for a given model ID based on hardcoded model maps.
  */
 export function getModelInfo(modelId: string): ModelInfo | undefined {
+	const baseModelId = stripOpenRouterPreset(modelId)
 	for (const [_, map] of ALL_MODEL_MAPS) {
-		if (modelId && modelId in map) {
-			return map[modelId]
+		if (baseModelId && baseModelId in map) {
+			return map[baseModelId]
 		}
 	}
 	return undefined

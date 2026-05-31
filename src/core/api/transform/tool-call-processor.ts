@@ -2,9 +2,9 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionToolChoiceOption,
 	ChatCompletionTool as OpenAITool,
-} from "openai/resources/chat/completions"
-import { Logger } from "@/shared/services/Logger"
-import type { ApiStreamToolCallsChunk } from "./stream"
+} from "openai/resources/chat/completions";
+import { Logger } from "@/shared/services/Logger";
+import type { ApiStreamToolCallsChunk } from "./stream";
 
 /**
  * Helper class to process tool call deltas from OpenAI-compatible streaming responses.

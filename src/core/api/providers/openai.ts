@@ -240,7 +240,7 @@ export class OpenAiHandler implements ApiHandler {
 			reasoning_effort: reasoningEffort,
 			stream: true,
 			stream_options: { include_usage: true },
-			...getOpenAIToolParams(finalTools),
+			...getOpenAIToolParams(finalTools, false),
 		})
 
 		const toolCallProcessor = new ToolCallProcessor()
