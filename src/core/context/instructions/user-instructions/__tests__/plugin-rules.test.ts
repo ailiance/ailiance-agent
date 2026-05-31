@@ -16,7 +16,7 @@ describe("getGlobalDiracRules — plugin CLAUDE.md injection", () => {
 	let stateManagerStub: sinon.SinonStub
 
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-plugin-rules-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-plugin-rules-"))
 		sandbox = sinon.createSandbox()
 
 		// Stub StateManager.get() to avoid singleton issues in tests

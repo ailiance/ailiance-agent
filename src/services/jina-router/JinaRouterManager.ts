@@ -40,11 +40,11 @@ const DEFAULT_ROUTES = {
 
 export class JinaRouterManager {
 	static readonly DEFAULT_PORT = 5050
-	static readonly VENV_PATH = path.join(os.homedir(), ".aki", "jina-router-venv")
-	static readonly SCRIPT_PATH = path.join(os.homedir(), ".aki", "jina-router", "server.py")
-	static readonly ROUTES_PATH = path.join(os.homedir(), ".aki", "jina-router", "routes.json")
-	static readonly PID_FILE = path.join(os.homedir(), ".aki", "jina-router.pid")
-	static readonly LOG_FILE = path.join(os.homedir(), ".aki", "jina-router.log")
+	static readonly VENV_PATH = path.join(os.homedir(), ".isaac", "jina-router-venv")
+	static readonly SCRIPT_PATH = path.join(os.homedir(), ".isaac", "jina-router", "server.py")
+	static readonly ROUTES_PATH = path.join(os.homedir(), ".isaac", "jina-router", "routes.json")
+	static readonly PID_FILE = path.join(os.homedir(), ".isaac", "jina-router.pid")
+	static readonly LOG_FILE = path.join(os.homedir(), ".isaac", "jina-router.log")
 
 	private async findUv(): Promise<string | null> {
 		for (const candidate of ["/opt/homebrew/bin/uv", "/usr/local/bin/uv"]) {
@@ -188,7 +188,7 @@ export class JinaRouterManager {
 			return { ok: false, msg: `Failed to install dependencies: ${(err as Error).message}` }
 		}
 
-		// Copy server.py to ~/.aki/jina-router/server.py
+		// Copy server.py to ~/.isaac/jina-router/server.py
 		try {
 			const srcScript = this.resolveScriptSource()
 			await fs.copyFile(srcScript, JinaRouterManager.SCRIPT_PATH)
@@ -227,12 +227,12 @@ export class JinaRouterManager {
 		try {
 			await fs.access(venvPython)
 		} catch {
-			return { ok: false, msg: "Router not installed — run: aki router install" }
+			return { ok: false, msg: "Router not installed — run: isaac router install" }
 		}
 		try {
 			await fs.access(JinaRouterManager.SCRIPT_PATH)
 		} catch {
-			return { ok: false, msg: "Router not installed — run: aki router install" }
+			return { ok: false, msg: "Router not installed — run: isaac router install" }
 		}
 
 		// Ensure log dir
@@ -265,7 +265,7 @@ export class JinaRouterManager {
 		if (!healthy) {
 			return {
 				ok: false,
-				msg: "Router started but health check timed out after 60s — check ~/.aki/jina-router.log (first run downloads ~80 MB model)",
+				msg: "Router started but health check timed out after 60s — check ~/.isaac/jina-router.log (first run downloads ~80 MB model)",
 			}
 		}
 

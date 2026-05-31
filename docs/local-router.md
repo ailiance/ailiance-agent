@@ -11,7 +11,7 @@ worker access. Provides:
 
 ## Activation
 
-In your aki settings (e.g. `~/.dirac/data/globalState.json`):
+In your isaac settings (e.g. `~/.dirac/data/globalState.json`):
 
 ```json
 {
@@ -67,8 +67,8 @@ shows `→ tower-gemma · code · ~3500 tok` (with `· cache` if cache hit).
 |---|---|---|
 | RAM overhead | ~10 MB | ~300 MB |
 | Latency overhead | <5 ms | +50-150 ms |
-| Cold start | 0 (embedded) | `aki proxy install/start` (~30s) |
-| Failure modes | None (in-process) | Proxy crash → aki cascading failure |
+| Cold start | 0 (embedded) | `isaac proxy install/start` (~30s) |
+| Failure modes | None (in-process) | Proxy crash → isaac cascading failure |
 | Provider list | hand-maintained, EU workers focus | 100+ from upstream |
 
 LocalRouter = "fast path for trusted EU workers".

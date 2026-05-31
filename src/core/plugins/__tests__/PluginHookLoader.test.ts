@@ -13,7 +13,7 @@ describe("PluginHookLoader", () => {
 	let sandbox: sinon.SinonSandbox
 
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-plugin-hooks-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-plugin-hooks-"))
 		sandbox = sinon.createSandbox()
 	})
 

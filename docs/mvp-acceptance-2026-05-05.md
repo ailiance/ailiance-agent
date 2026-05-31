@@ -41,8 +41,8 @@ d72b95a chore(brand): rebrand Dirac fork to ailiance-agent
 | Check | Result | Notes |
 |-------|--------|-------|
 | Build green (`cd cli && npm run build`) | ✅ | `cli/dist/cli.mjs` produced |
-| `aki --version` | ✅ | `0.1.0` |
-| `aki --help` mentions `aki` not `dirac` | ✅ | banner rebranded |
+| `isaac --version` | ✅ | `0.1.0` |
+| `isaac --help` mentions `isaac` not `dirac` | ✅ | banner rebranded |
 | Tests pass (Vitest) | ✅ | 356 / 51 fail (51 pre-existing UI display, not regressions) |
 | Tracing tests (28 cases) | ✅ | 28/28 pass |
 | Telemetry phone-home | ✅ disabled | `dirac-telemetry-config.ts` neutralized + test |
@@ -56,12 +56,12 @@ d72b95a chore(brand): rebrand Dirac fork to ailiance-agent
 | `.ailiance-agent/` in `.gitignore` | ✅ | prevents accidental commits |
 | Connectivity to ailiance gateway | ✅ | `/v1/models` + `/v1/chat/completions` 200 OK via `http://100.116.92.12:9300/v1` |
 | ailiance LoRA adapter wrap fix | ✅ | `ailiance:1ed24b8` — `linear_to_lora_layers` + inferred config |
-| End-to-end agent task convergence (`aki "task"` → `finish`) | ❌ | Backend gap (see below) |
+| End-to-end agent task convergence (`isaac "task"` → `finish`) | ❌ | Backend gap (see below) |
 | `v0.1.0` tag | ⏳ | pending this commit |
 
 ## Live test (SCRATCH-Rust acceptance)
 
-- `aki task --yolo --model ailiance-devstral "Create a minimal TOML parser in Rust"` against `http://100.116.92.12:9300/v1`
+- `isaac task --yolo --model ailiance-devstral "Create a minimal TOML parser in Rust"` against `http://100.116.92.12:9300/v1`
 - 5 API requests in 13s
 - Result: `[YOLO MODE] Task failed: Too many consecutive mistakes (5)`
 - Tracing: `meta.json` + 5 lines in `trace.jsonl`, all with `planner_response.raw == ""`

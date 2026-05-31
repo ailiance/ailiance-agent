@@ -98,7 +98,7 @@ export const HelpPanelContent: React.FC<HelpPanelContentProps> = ({ onClose }) =
 				</Box>
 
 				<Text>
-					For more help: <Text color={COLORS.primaryBlue}>https://github.com/ailiance/ailiance-agent</Text>
+					For more help: <Text color={COLORS.primaryBlue}>https://github.com/ailiance/isaac-cli</Text>
 				</Text>
 			</Box>
 		</Panel>

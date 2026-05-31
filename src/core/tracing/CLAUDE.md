@@ -20,7 +20,7 @@ consomme `JsonlTracer` via `src/core/tracing` (les tests vivent côté `cli/test
 - `meta.json` — `RunMeta` réécrit atomiquement (write tmp + rename) à chaque update
 - `trace.jsonl` — append-only, une `TraceLine` par turn
 
-NB : pas `.aki/traces/` — c'est `.ailiance-agent/runs/<taskId>/` (constante `TRACING_DIR_NAME`).
+NB : pas `.isaac/traces/` — c'est `.ailiance-agent/runs/<taskId>/` (constante `TRACING_DIR_NAME`).
 `taskId` est strictement validé `^[a-zA-Z0-9_-]+$` (throw sinon — anti path-escape).
 
 ## Schema (snake_case sur disque)

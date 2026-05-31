@@ -80,7 +80,7 @@ describe("JinaRouterManager", () => {
 			const result = await manager.start()
 
 			assert.strictEqual(result.ok, false)
-			assert.ok(result.msg.includes("aki router install"), `msg should reference aki router install, got: ${result.msg}`)
+			assert.ok(result.msg.includes("isaac router install"), `msg should reference isaac router install, got: ${result.msg}`)
 		})
 	})
 })

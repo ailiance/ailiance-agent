@@ -79,7 +79,7 @@ describe("LiteLLMProxyManager", () => {
 			const result = await manager.start()
 
 			assert.strictEqual(result.ok, false)
-			assert.ok(result.msg.includes("aki proxy install"), `msg should reference aki proxy install, got: ${result.msg}`)
+			assert.ok(result.msg.includes("isaac proxy install"), `msg should reference isaac proxy install, got: ${result.msg}`)
 		})
 	})
 })

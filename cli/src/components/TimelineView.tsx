@@ -29,7 +29,7 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 		return (
 			<Box flexDirection="column" padding={1}>
 				<Text color="yellow">No tasks found in ~/.dirac/data/state/taskHistory.json</Text>
-				<Text dimColor>Run aki and create a task to populate the timeline.</Text>
+				<Text dimColor>Run isaac and create a task to populate the timeline.</Text>
 			</Box>
 		)
 	}

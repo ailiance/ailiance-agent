@@ -6,11 +6,11 @@ import { WebuiServer } from "../WebuiServer"
 
 describe("WebuiServer", () => {
 	afterEach(() => {
-		delete process.env.AKI_WEBUI_URL
+		delete process.env.ISAAC_WEBUI_URL
 	})
 
-	it("returns external mode when AKI_WEBUI_URL is set", async () => {
-		process.env.AKI_WEBUI_URL = "http://localhost:3000"
+	it("returns external mode when ISAAC_WEBUI_URL is set", async () => {
+		process.env.ISAAC_WEBUI_URL = "http://localhost:3000"
 		const server = new WebuiServer()
 		const status = await server.start()
 		expect(status.running).to.equal(true)
@@ -19,7 +19,7 @@ describe("WebuiServer", () => {
 	})
 
 	it("starts local server even when no webview-ui build dir", async () => {
-		// No AKI_WEBUI_URL, no webview-ui/build — landing should still be served
+		// No ISAAC_WEBUI_URL, no webview-ui/build — landing should still be served
 		const server = new WebuiServer()
 		const status = await server.start()
 		expect(status.running).to.equal(true)
@@ -43,8 +43,8 @@ describe("WebuiServer", () => {
 		expect(s.external).to.equal(false)
 	})
 
-	it("status() returns external url after start() with AKI_WEBUI_URL", async () => {
-		process.env.AKI_WEBUI_URL = "http://example.com:4000"
+	it("status() returns external url after start() with ISAAC_WEBUI_URL", async () => {
+		process.env.ISAAC_WEBUI_URL = "http://example.com:4000"
 		const server = new WebuiServer()
 		await server.start()
 		const s = server.status()

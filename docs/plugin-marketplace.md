@@ -6,30 +6,30 @@ ailiance-agent supports the Claude Code plugin format. You can install plugins f
 
 ```bash
 # Short github form
-aki plugin install obra/superpowers
-aki plugin install TechDufus/oh-my-claude
-aki plugin install affaan-m/everything-claude-code
+isaac plugin install obra/superpowers
+isaac plugin install TechDufus/oh-my-claude
+isaac plugin install affaan-m/everything-claude-code
 
 # Full URL
-aki plugin install https://github.com/foo/bar.git
+isaac plugin install https://github.com/foo/bar.git
 
 # Specific branch or tag
-aki plugin install user/repo@v1.0.0
+isaac plugin install user/repo@v1.0.0
 
 # Specific commit
-aki plugin install user/repo#abc123def
+isaac plugin install user/repo#abc123def
 
 # List installed plugins
-aki plugin list
+isaac plugin list
 
 # Update all plugins
-aki plugin update
+isaac plugin update
 
 # Update a specific plugin
-aki plugin update superpowers
+isaac plugin update superpowers
 
 # Remove a plugin
-aki plugin remove superpowers
+isaac plugin remove superpowers
 ```
 
 ## Expected plugin format
@@ -62,14 +62,14 @@ See [docs/local-stack.md](./local-stack.md) for full Claude Code compatibility d
 
 Plugins are installed in `~/.claude/plugins/cache/<owner>/<repo>/latest/`.
 
-This directory is shared with Claude Code — plugins installed via `aki plugin install`
+This directory is shared with Claude Code — plugins installed via `isaac plugin install`
 are auto-discovered when either tool starts.
 
 ## How it works
 
-1. `aki plugin install <target>` clones the repo into the cache directory
+1. `isaac plugin install <target>` clones the repo into the cache directory
 2. Validates `.claude-plugin/plugin.json` (must have a `name` field)
-3. On next aki start, `PluginDiscoveryService` finds the plugin automatically
+3. On next isaac start, `PluginDiscoveryService` finds the plugin automatically
 4. Skills, commands, agents, and MCP servers from the plugin are loaded
 
 If validation fails (missing or invalid manifest), the cloned directory is removed.
@@ -78,10 +78,10 @@ If validation fails (missing or invalid manifest), the cloned directory is remov
 
 | Plugin | Install | What it adds |
 |--------|---------|-------------|
-| obra/superpowers | `aki plugin install obra/superpowers` | Framework skills + agents (14 skills) |
-| TechDufus/oh-my-claude | `aki plugin install TechDufus/oh-my-claude` | Context protection, magic keywords (11 skills) |
-| affaan-m/everything-claude-code | `aki plugin install affaan-m/everything-claude-code` | Mega-collection (156 skills, 72 commands, 38 agents) |
-| thedotmack/claude-mem | `aki plugin install thedotmack/claude-mem` | Persistent memory via MCP |
+| obra/superpowers | `isaac plugin install obra/superpowers` | Framework skills + agents (14 skills) |
+| TechDufus/oh-my-claude | `isaac plugin install TechDufus/oh-my-claude` | Context protection, magic keywords (11 skills) |
+| affaan-m/everything-claude-code | `isaac plugin install affaan-m/everything-claude-code` | Mega-collection (156 skills, 72 commands, 38 agents) |
+| thedotmack/claude-mem | `isaac plugin install thedotmack/claude-mem` | Persistent memory via MCP |
 
 ## Requirements
 

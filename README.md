@@ -1,6 +1,6 @@
 <div align="center">
 
-# ailiance-agent
+# ISAAC
 
 ### Agent de code souverain — extension VS Code + CLI Ink, audit JSONL EU AI Act, branché sur la passerelle ailiance par défaut
 
@@ -11,7 +11,7 @@
 [![tracing](https://img.shields.io/badge/tracing-EU%20AI%20Act%20JSONL-success)](src/core/tracing/JsonlTracer.ts)
 [![backend](https://img.shields.io/badge/backend-eu--kiki-7e3af2)](https://github.com/ailiance/ailiance)
 
-CLI : **`aki`** (alias `ailiance-agent`) · Extension VS Code · UI webview React · Provider par défaut : passerelle [ailiance](https://github.com/ailiance/ailiance) (`http://studio:9300`)
+CLI : **`isaac`** · Extension VS Code · UI webview React · Provider par défaut : passerelle [ailiance](https://github.com/ailiance/ailiance) (`http://studio:9300`)
 
 </div>
 
@@ -32,7 +32,7 @@ flowchart TB
     user([👤 Utilisateur])
 
     subgraph clients["Clients"]
-        cli["CLI Ink<br/><code>aki</code> (alias <code>ailiance-agent</code>)"]
+        cli["CLI Ink<br/><code>isaac</code> "]
         vscode["Extension VS Code<br/>+ webview React"]
     end
 
@@ -70,7 +70,7 @@ flowchart TB
 
 ## v0.5.0-beta — Universal tool calling
 
-ailiance-agent now ships a full agentic loop with tool emulation that works
+isaac now ships a full agentic loop with tool emulation that works
 across **every** EU-sovereign worker on the cluster:
 
 - **Qwen 32B AWQ** (primary, vLLM native function calling)
@@ -79,7 +79,7 @@ across **every** EU-sovereign worker on the cluster:
 
 The gateway force-routes any request with `tools[]` to the most reliable
 worker, so file editing (`write_to_file`, `edit_file`, `read_file`) and
-command execution (`execute_command`) work end-to-end with `aki` running
+command execution (`execute_command`) work end-to-end with `isaac` running
 against your local stack.
 
 See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHANGELOG.md) for details.
@@ -90,7 +90,7 @@ See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHAN
   ` ```tool `, ` ```json `, ` ```bash `, ` ```tool_code `, plain `read_file("...")`)
 - **Force-route to tool-capable workers** — requests with `tools[]` prioritize
   `supportsTools:true` workers automatically
-- **`aki timeline`** — Ink CLI view of task history grouped by day with emoji
+- **`isaac timeline`** — Ink CLI view of task history grouped by day with emoji
   classification and cursor navigation
 - **Anti-hallucination guard** — "TOOL CONSTRAINTS" section in system prompt
   prevents workers from inventing tool names (`digikey:`, `bom:`, `kicad:` etc.)
@@ -102,11 +102,11 @@ See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHAN
 
 ## v0.4 highlights
 
-- **Plugin marketplace**: `aki plugin install <github-url>` to install Claude Code plugins
+- **Plugin marketplace**: `isaac plugin install <github-url>` to install Claude Code plugins
 - **MCP integration**: discover and use MCP servers from installed plugins
 - **LocalRouter** (in-process LLM router): cache, health monitoring, ctx-aware skip,
   SSE streaming. See [docs/local-router.md](./docs/local-router.md).
-- **Local stack** (`aki stack {start,stop,status}`): managed LiteLLM proxy + Jina
+- **Local stack** (`isaac stack {start,stop,status}`): managed LiteLLM proxy + Jina
   semantic router. See [docs/local-stack.md](./docs/local-stack.md).
 - **Auto plan/act mode** (opt-in): `autoModeFromPrompt: true` to choose mode
   from prompt content. See [docs/auto-mode.md](./docs/auto-mode.md).
@@ -119,41 +119,41 @@ See [`docs/local-router.md`](./docs/local-router.md) and [`CHANGELOG.md`](./CHAN
 
 ```bash
 # Installation globale (Node 20 / 22 / 24 — pas Node 25)
-npm install -g ailiance-agent
+npm install -g isaac
 
 # Premier prompt — passerelle ailiance par défaut (https://gateway.ailiance.fr/v1)
-aki "résume-moi ce dépôt en 5 puces"
+isaac "résume-moi ce dépôt en 5 puces"
 
 # Provider explicite
-aki --provider anthropic --model claude-opus-4-7 "ajoute un test pour foo()"
+isaac --provider anthropic --model claude-opus-4-7 "ajoute un test pour foo()"
 
 # Mode plan (réfléchit avant d'agir)
-aki -p "refactor le module bar/ en deux modules"
+isaac -p "refactor le module bar/ en deux modules"
 ```
 
 ### Modes de lancement
 
 | Commande | Comportement |
 |----------|--------------|
-| `ailiance-agent` (ou `aki`) sans argument | TUI interactive (Ink/React). **Requiert un vrai TTY** (Warp / iTerm / zellij / tmux). Bail clair si lancé en pipe / subprocess / CI. |
-| `ailiance-agent "<task>"` | Run one-shot avec le prompt positionnel. Pas besoin de TTY. |
-| `echo "<task>" \| ailiance-agent` | Run one-shot via stdin pipé. Le contenu pipé devient le prompt. |
-| `cat file.md \| ailiance-agent "résume"` | Stdin pipé prepend au prompt positionnel. |
-| `ailiance-agent --continue` | Reprend la dernière task du `cwd` courant. |
-| `ailiance-agent --acp` | Mode Agent Client Protocol pour intégration éditeur (Zed, etc.). |
-| `ailiance-agent t -y "<task>"` | Sous-commande `task` (alias `t`) avec yolo mode (auto-approve actions). |
+| `isaac` (ou `isaac`) sans argument | TUI interactive (Ink/React). **Requiert un vrai TTY** (Warp / iTerm / zellij / tmux). Bail clair si lancé en pipe / subprocess / CI. |
+| `isaac "<task>"` | Run one-shot avec le prompt positionnel. Pas besoin de TTY. |
+| `echo "<task>" \| isaac` | Run one-shot via stdin pipé. Le contenu pipé devient le prompt. |
+| `cat file.md \| isaac "résume"` | Stdin pipé prepend au prompt positionnel. |
+| `isaac --continue` | Reprend la dernière task du `cwd` courant. |
+| `isaac --acp` | Mode Agent Client Protocol pour intégration éditeur (Zed, etc.). |
+| `isaac t -y "<task>"` | Sous-commande `task` (alias `t`) avec yolo mode (auto-approve actions). |
 
 Override de la passerelle (par exemple en mobilité / on-tailnet) :
 
 ```bash
 # On-tailnet, moins de latence (skip Cloudflare hop)
-AILIANCE_GATEWAY="http://electron-server:9300/v1" aki "..."
+AILIANCE_GATEWAY="http://electron-server:9300/v1" isaac "..."
 
 # Endpoint custom (OpenAI-compatible)
-AILIANCE_GATEWAY="https://my-proxy.example.com/v1" aki "..."
+AILIANCE_GATEWAY="https://my-proxy.example.com/v1" isaac "..."
 ```
 
-L'extension VS Code s'installe via le `.vsix` du repo (paquet `ailiance-agent-0.3.1.vsix`).
+L'extension VS Code s'installe via le `.vsix` du repo (paquet `isaac-0.3.1.vsix`).
 
 ## Outils de l'agent — read / write / bash
 
@@ -244,16 +244,16 @@ Le CLI parse ces blocs en `ToolUse` synthétiques (cf. `src/utils/parse-hallucin
 
 ## Extension VS Code
 
-[![Install in VS Code](https://img.shields.io/badge/Install-VS%20Code-007ACC?logo=visualstudiocode)](https://github.com/ailiance/ailiance-agent/releases) [![VSIX](https://img.shields.io/badge/.vsix-agent--kiki--0.3.1-005a8b)](https://github.com/ailiance/ailiance-agent/releases)
+[![Install in VS Code](https://img.shields.io/badge/Install-VS%20Code-007ACC?logo=visualstudiocode)](https://github.com/ailiance/isaac-cli/releases) [![VSIX](https://img.shields.io/badge/.vsix-agent--kiki--0.3.1-005a8b)](https://github.com/ailiance/isaac-cli/releases)
 
 ```bash
-code --install-extension ailiance-agent-0.3.1.vsix
+code --install-extension isaac-0.3.1.vsix
 ```
 
 Une fois installée, l'extension ajoute :
 
-- **Activity bar** — icône ailiance-agent ouvrant le panneau chat (webview React).
-- **Walkthrough** — `ailiance-agent, the EU-sovereign autonomous coding agent` (Hash-anchored edits, AST precision, minimal roundtrips, speed).
+- **Activity bar** — icône isaac ouvrant le panneau chat (webview React).
+- **Walkthrough** — `isaac, the EU-sovereign autonomous coding agent` (Hash-anchored edits, AST precision, minimal roundtrips, speed).
 - **Context menus** — clic droit sur sélection / terminal / commit / Jupyter cell.
 - **Commit messages** — génération automatique sur le bouton de SCM Git.
 
@@ -296,10 +296,10 @@ flowchart LR
 | `New Task` | nouveau dialogue agent |
 | `History` | historique des tâches |
 | `Settings` | panneau de configuration (provider, modèles, MCP, hooks) |
-| `Add to ailiance-agent` | ajoute la sélection ou la sortie terminale au chat |
-| `Generate Commit Message with ailiance-agent` | sur le SCM Git, génère un commit via le LLM |
-| `Explain with ailiance-agent` | explique la sélection |
-| `Improve with ailiance-agent` | propose une amélioration |
+| `Add to isaac` | ajoute la sélection ou la sortie terminale au chat |
+| `Generate Commit Message with isaac` | sur le SCM Git, génère un commit via le LLM |
+| `Explain with isaac` | explique la sélection |
+| `Improve with isaac` | propose une amélioration |
 | `Generate / Explain / Improve Jupyter Cell` | équivalents notebook |
 | `Open Walkthrough` | (re)lance le tutoriel d'accueil |
 | `Reconstruct Task History` | reconstruit l'historique depuis les traces JSONL |
@@ -309,9 +309,9 @@ flowchart LR
 
 | Touche | Action | Quand |
 |---|---|---|
-| **`⌘'` / `Ctrl+'`** | `Add to ailiance-agent` | sélection active dans l'éditeur |
+| **`⌘'` / `Ctrl+'`** | `Add to isaac` | sélection active dans l'éditeur |
 | **`⌘'` / `Ctrl+'`** | `Jump to Chat Input` | sans sélection |
-| **`?`** | `Generate Commit Message with ailiance-agent` | dans la vue SCM Git |
+| **`?`** | `Generate Commit Message with isaac` | dans la vue SCM Git |
 | **`Enter`** | Reply (review comment) | dans un comment editor `dirac-ai-review` |
 
 ### Configuration via le panneau Settings
@@ -338,11 +338,11 @@ Toute l'activité de la tâche est tracée localement dans `<workspace>/.ailianc
 Inspirée de Claude Code. Visible en bas de la chat view :
 
 ```
- ▸ ~/Documents/Projets/ailiance-agent   master
+ ▸ ~/Documents/Projets/isaac   master
   devstral-24b      ◉ 73%    ⏱ 11:09:42
  / pour commandes · @ pour fichiers · Shift+↓ pour multi-ligne     ● Plan ○ Act (Tab)
  devstral-24b ███░░░░░░░ (12 345) | 0,082 €
- ailiance-agent (master) | 3 fichiers +120 -45
+ isaac (master) | 3 fichiers +120 -45
  ⏵⏵ Auto-approve all enabled (Shift+Tab)
 ```
 
@@ -351,13 +351,13 @@ Inspirée de Claude Code. Visible en bas de la chat view :
 
 ## Ce qui distingue ce fork
 
-| | ailiance-agent | Dirac upstream |
+| | isaac | Dirac upstream |
 |---|---|---|
 | **Provider par défaut** | ailiance gateway (5 modèles EU/CH/Asie souverains) | OpenAI |
 | **Télémétrie** | aucune (PostHog désactivé) | events vers `dirac.run` |
 | **Audit** | trace JSONL secret-scrubée par tâche, prête pour EU AI Act Annex IV | logs upstream classiques |
 | **Routage local** | auto-detect Jina :5050 / LiteLLM :4000 si `useLocalStack` | absent |
-| **Branding CLI** | `aki` (court) + statusline 2 lignes | `dirac` |
+| **Branding CLI** | `isaac` (court) + statusline 2 lignes | `dirac` |
 | **Plugin hooks** | `PreToolUse` / `PostToolUse` câblés au runtime | upstream |
 | **Filtrage MCP** | `enabledMcpServers` + `mcpToolDenylist` + `mcpToolAllowlist` | upstream |
 
@@ -431,7 +431,7 @@ flowchart LR
         LL["LiteLLM :4000<br/>(auto)"]
     end
 
-    cli([aki / ailiance-agent])
+    cli([isaac / isaac])
     cli --> EU
     cli -.-> cloud
     cli -.-> local
@@ -444,7 +444,7 @@ flowchart LR
     class local lo
 ```
 
-Switch : `aki --provider <nom> --model <id>` ou via le panneau de config. La liste complète : `src/core/api/providers/` (un fichier par backend). 42 providers. Configurations stockées chiffrées dans `~/.dirac/`.
+Switch : `isaac --provider <nom> --model <id>` ou via le panneau de config. La liste complète : `src/core/api/providers/` (un fichier par backend). 42 providers. Configurations stockées chiffrées dans `~/.dirac/`.
 
 ## Stack local auto-detect (v0.3)
 
@@ -476,8 +476,8 @@ Cache 30 s pour ne pas pinger les ports à chaque requête (`src/services/local-
 ## Démarrage rapide (dev)
 
 ```bash
-git clone https://github.com/ailiance/ailiance-agent.git
-cd ailiance-agent
+git clone https://github.com/ailiance/isaac-cli.git
+cd isaac
 npm run install:all   # bootstrap monorepo (root + cli + webview-ui)
 npm run protos        # génère src/generated/ + src/shared/proto/ — REQUIS avant build
 npm run build
@@ -490,7 +490,7 @@ Workspaces :
 | Path | Rôle |
 |------|------|
 | `src/` | Extension VS Code + cœur agent (TS strict) |
-| `cli/` | CLI Ink (binaire `aki`, build esbuild → `dist/cli.mjs`) |
+| `cli/` | CLI Ink (binaire `isaac`, build esbuild → `dist/cli.mjs`) |
 | `webview-ui/` | Frontend React (Vite + Storybook) |
 | `proto/` | Protobuf (gRPC entre host / webview / CLI) |
 | `agent-registry/`, `evals/`, `walkthrough/`, `locales/` | Assets non-code |

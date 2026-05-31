@@ -25,8 +25,8 @@ export class LocalStackManager {
 		// 2. start router
 		const r = await jinaRouterManager.start()
 		if (!r.ok) {
-			// leave proxy up — user can clean via aki proxy stop
-			return { ok: false, msg: `router start failed (proxy is up, run aki proxy stop to clean): ${r.msg}` }
+			// leave proxy up — user can clean via isaac proxy stop
+			return { ok: false, msg: `router start failed (proxy is up, run isaac proxy stop to clean): ${r.msg}` }
 		}
 		const status = await this.status()
 		return { ok: true, msg: "stack ready", status }

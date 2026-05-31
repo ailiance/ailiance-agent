@@ -5,7 +5,7 @@ import { Empty } from "@shared/proto/dirac/common"
 import { UpdateJinaRoutesRequest } from "@shared/proto/dirac/stack"
 import type { Controller } from "../index"
 
-const ROUTES_PATH = path.join(os.homedir(), ".aki", "jina-router", "routes.json")
+const ROUTES_PATH = path.join(os.homedir(), ".isaac", "jina-router", "routes.json")
 
 /**
  * Writes updated Jina router route definitions to the routes.json config file.

@@ -69,10 +69,10 @@ export class LiteLLMProxyManager {
 	private startedAt: Date | null = null
 
 	static readonly DEFAULT_PORT = 4000
-	static readonly VENV_PATH = path.join(os.homedir(), ".aki", "litellm-venv")
-	static readonly CONFIG_PATH = path.join(os.homedir(), ".aki", "litellm", "config.yaml")
-	static readonly PID_FILE = path.join(os.homedir(), ".aki", "litellm.pid")
-	static readonly LOG_FILE = path.join(os.homedir(), ".aki", "litellm.log")
+	static readonly VENV_PATH = path.join(os.homedir(), ".isaac", "litellm-venv")
+	static readonly CONFIG_PATH = path.join(os.homedir(), ".isaac", "litellm", "config.yaml")
+	static readonly PID_FILE = path.join(os.homedir(), ".isaac", "litellm.pid")
+	static readonly LOG_FILE = path.join(os.homedir(), ".isaac", "litellm.log")
 
 	private async findUv(): Promise<string | null> {
 		for (const candidate of ["/opt/homebrew/bin/uv", "/usr/local/bin/uv"]) {
@@ -237,12 +237,12 @@ export class LiteLLMProxyManager {
 		try {
 			await fs.access(litellmBin)
 		} catch {
-			return { ok: false, msg: "LiteLLM not installed — run: aki proxy install" }
+			return { ok: false, msg: "LiteLLM not installed — run: isaac proxy install" }
 		}
 		try {
 			await fs.access(LiteLLMProxyManager.CONFIG_PATH)
 		} catch {
-			return { ok: false, msg: "Config not found — run: aki proxy install" }
+			return { ok: false, msg: "Config not found — run: isaac proxy install" }
 		}
 
 		// Ensure log dir
@@ -272,7 +272,7 @@ export class LiteLLMProxyManager {
 		// Health check
 		const healthy = await this.healthCheck(port)
 		if (!healthy) {
-			return { ok: false, msg: "Proxy started but health check timed out after 30s — check ~/.aki/litellm.log" }
+			return { ok: false, msg: "Proxy started but health check timed out after 30s — check ~/.isaac/litellm.log" }
 		}
 
 		const url = `http://127.0.0.1:${port}`

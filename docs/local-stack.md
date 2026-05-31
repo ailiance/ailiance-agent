@@ -3,30 +3,30 @@
 ailiance-agent can run a local stack that routes LLM requests intelligently:
 
 ```
-aki  →  Jina router (:5050)  →  LiteLLM proxy (:4000)  →  endpoints
+isaac  →  Jina router (:5050)  →  LiteLLM proxy (:4000)  →  endpoints
 ```
 
 ## Quick start
 
 ```bash
-# 1. Install (creates Python venvs in ~/.aki/)
-aki stack install
+# 1. Install (creates Python venvs in ~/.isaac/)
+isaac stack install
 
 # 2. Start
-aki stack start
+isaac stack start
 
-# 3. Configure aki to use the local stack
-# Edit your aki settings (or pass via VS Code config):
+# 3. Configure isaac to use the local stack
+# Edit your isaac settings (or pass via VS Code config):
 #   apiProvider: "litellm"
 #   liteLlmBaseUrl: "http://127.0.0.1:5050"
-#   liteLlmApiKey: "sk-aki-local-master-key"
+#   liteLlmApiKey: "sk-isaac-local-master-key"
 #   liteLlmModelId: "auto"   # let the router pick
 
 # 4. Verify
-aki stack status
+isaac stack status
 
 # 5. Stop when done
-aki stack stop
+isaac stack stop
 ```
 
 ## Architecture
@@ -35,7 +35,7 @@ aki stack stop
 
 - Multiplexing across providers (Anthropic, OpenAI, Ollama, ailiance workers)
 - Native fallback, retry, cost tracking, response cache
-- Config: `~/.aki/litellm/config.yaml`
+- Config: `~/.isaac/litellm/config.yaml`
 - RAM: ~300 MB
 - Edit the config to add/remove models. Required env vars: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.
 
@@ -45,14 +45,14 @@ aki stack stop
 - Classifies intent into: `code`, `chat`, `search`, `agent`
 - Picks the preferred model per category (configurable)
 - Forwards to LiteLLM with the chosen model
-- Routes config: `~/.aki/jina-router/routes.json`
+- Routes config: `~/.isaac/jina-router/routes.json`
 - RAM: ~150 MB
 
 Total local RAM: **~450 MB**.
 
 ## Custom routes
 
-Edit `~/.aki/jina-router/routes.json`:
+Edit `~/.isaac/jina-router/routes.json`:
 
 ```json
 {
@@ -74,13 +74,13 @@ The router computes the centroid embedding per category and picks the closest on
 If you don't want semantic routing:
 
 ```bash
-aki proxy start                    # only the LiteLLM proxy
+isaac proxy start                    # only the LiteLLM proxy
 # liteLlmBaseUrl: "http://127.0.0.1:4000"
 ```
 
 ## Filtering MCP servers and tools
 
-Edit your aki `settings.json` (workspace or global):
+Edit your isaac `settings.json` (workspace or global):
 
 ```json
 {
@@ -97,7 +97,7 @@ All three settings are optional. Without them, all plugin MCP servers and all th
 
 ## Auto-detect (zero-config)
 
-Once you've started the stack with `aki stack start`, enable auto-detect in your settings:
+Once you've started the stack with `isaac stack start`, enable auto-detect in your settings:
 
 ```json
 {
@@ -105,20 +105,20 @@ Once you've started the stack with `aki stack start`, enable auto-detect in your
 }
 ```
 
-Now whenever the LiteLLM provider is used, aki will:
+Now whenever the LiteLLM provider is used, isaac will:
 1. Check if the local stack is running
 2. If yes → route via the Jina router (port 5050) automatically
 3. If no → fall back to your `liteLlmBaseUrl` setting
 
 You don't need to update `liteLlmBaseUrl` to switch between local stack mode and remote LiteLLM mode.
 
-To disable, set `useLocalStack: false` (or omit) and aki uses `liteLlmBaseUrl` as before.
+To disable, set `useLocalStack: false` (or omit) and isaac uses `liteLlmBaseUrl` as before.
 
 > Detection results are cached for 30 seconds — no per-request port scan overhead.
 
 ## Mode "speed" : LocalRouter natif
 
-Au lieu de passer par le stack Python (LiteLLM proxy + Jina router), aki
+Au lieu de passer par le stack Python (LiteLLM proxy + Jina router), isaac
 embed un mini-routeur in-process qui :
 - Cache les réponses LLM (LRU 100 entries, TTL 1h)
 - Ping les workers en arrière-plan toutes les 30s (skip ceux DOWN)
@@ -133,7 +133,7 @@ Activation :
 }
 ```
 
-Pas besoin de `aki stack install/start` — le LocalRouter est embarqué.
+Pas besoin de `isaac stack install/start` — le LocalRouter est embarqué.
 
 Pour configurer tes propres workers :
 
@@ -159,14 +159,14 @@ PR3 ajoutera le streaming via LocalRouter si demandé.
 
 ## Troubleshooting
 
-- **`aki stack install` fails on Python**: install via `brew install uv` (recommended) or `brew install python@3.11`
+- **`isaac stack install` fails on Python**: install via `brew install uv` (recommended) or `brew install python@3.11`
 - **Slow first start of router**: it downloads the embeddings model from Hugging Face (~80 MB). Subsequent starts are instant.
-- **Provider returns 401**: set `liteLlmApiKey` in aki to match the master key in `~/.aki/litellm/config.yaml`
-- **Logs**: `~/.aki/litellm.log` and `~/.aki/jina-router.log`
+- **Provider returns 401**: set `liteLlmApiKey` in isaac to match the master key in `~/.isaac/litellm/config.yaml`
+- **Logs**: `~/.isaac/litellm.log` and `~/.isaac/jina-router.log`
 
 ## Alternative: in-process LocalRouter
 
-For most users, `aki` ships with an **in-process LocalRouter** that
+For most users, `isaac` ships with an **in-process LocalRouter** that
 provides similar features (multi-worker dispatch, cache, health monitoring)
 without requiring Python sub-processes. See [docs/local-router.md](./local-router.md)
 for details.

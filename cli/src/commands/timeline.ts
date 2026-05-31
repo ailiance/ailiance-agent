@@ -1,5 +1,5 @@
 /**
- * aki timeline — show recent tasks grouped by day
+ * isaac timeline — show recent tasks grouped by day
  */
 export async function runTimeline(options: { days?: string | number; limit?: string | number }) {
 	const days = typeof options.days === "string" ? Number.parseInt(options.days, 10) : (options.days ?? 30)

@@ -33,7 +33,7 @@ describe("McpServerConfigLoader", () => {
 	let loaderModule: typeof import("../McpServerConfigLoader")
 
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-mcp-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-mcp-test-"))
 		pluginDiscoveryModule = await import("../../plugins/PluginDiscoveryService")
 		loaderModule = await import("../McpServerConfigLoader")
 	})
