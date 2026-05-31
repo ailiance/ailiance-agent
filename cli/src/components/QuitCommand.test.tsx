@@ -13,10 +13,14 @@ vi.mock("ink", async (importOriginal) => {
 	}
 })
 
-// Mock child_process
+// Mock child_process — must expose every named import used across the
+// transitively-loaded module graph (e.g. JinaRouterManager → execFile),
+// otherwise the suite fails at import time even when its tests are skipped.
 vi.mock("child_process", () => ({
 	execSync: vi.fn().mockReturnValue(""),
 	exec: vi.fn(),
+	execFile: vi.fn(),
+	spawn: vi.fn(),
 }))
 
 // Mock dependencies
