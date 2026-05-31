@@ -1,8 +1,8 @@
 import { expect } from "chai"
 import fs from "fs/promises"
-import { afterEach, beforeEach, describe, it } from "vitest"
 import os from "os"
 import path from "path"
+import { afterEach, beforeEach, describe, it } from "vitest"
 
 import type { DiscoveredPlugin } from "../../plugins/PluginDiscoveryService"
 
@@ -194,5 +194,55 @@ describe("McpServerConfigLoader", () => {
 		expect(result).to.deep.equal([])
 
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+	})
+
+	it("injects Authorization: Bearer from ISAAC_MCP_<ID>_TOKEN for http servers", async () => {
+		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-supabase", "1.0.0", { name: "plugin-supabase" })
+		await fs.writeFile(
+			path.join(fakePlugin.rootDir, ".mcp.json"),
+			JSON.stringify({ mcpServers: { supabase: { type: "http", url: "https://mcp.supabase.com/mcp" } } }),
+		)
+
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
+
+		process.env.ISAAC_MCP_SUPABASE_TOKEN = "sbp_secrettoken"
+		try {
+			const { loadMcpConfigsFromPlugins } = loaderModule
+			const result = await loadMcpConfigsFromPlugins()
+			expect(result).to.have.length(1)
+			expect((result[0] as { headers?: Record<string, string> }).headers).to.deep.equal({
+				Authorization: "Bearer sbp_secrettoken",
+			})
+		} finally {
+			delete process.env.ISAAC_MCP_SUPABASE_TOKEN
+			;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+		}
+	})
+
+	it("expands ${ENV} placeholders in http url and headers", async () => {
+		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-env", "1.0.0", { name: "plugin-env" })
+		await fs.writeFile(
+			path.join(fakePlugin.rootDir, ".mcp.json"),
+			JSON.stringify({
+				mcpServers: {
+					svc: { type: "http", url: "https://${MCP_HOST}/mcp", headers: { "X-Key": "${MCP_KEY}" } },
+				},
+			}),
+		)
+
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
+
+		process.env.MCP_HOST = "example.test"
+		process.env.MCP_KEY = "k-123"
+		try {
+			const { loadMcpConfigsFromPlugins } = loaderModule
+			const result = await loadMcpConfigsFromPlugins()
+			expect((result[0] as { url?: string }).url).to.equal("https://example.test/mcp")
+			expect((result[0] as { headers?: Record<string, string> }).headers).to.deep.equal({ "X-Key": "k-123" })
+		} finally {
+			delete process.env.MCP_HOST
+			delete process.env.MCP_KEY
+			;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+		}
 	})
 })

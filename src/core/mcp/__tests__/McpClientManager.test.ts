@@ -1,6 +1,6 @@
 import { expect } from "chai"
-import { afterEach, beforeEach, describe, it } from "vitest"
 import sinon from "sinon"
+import { afterEach, beforeEach, describe, it } from "vitest"
 
 import { McpServerConfig, makeQualifiedToolName } from "../types"
 

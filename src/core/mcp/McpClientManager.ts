@@ -59,7 +59,6 @@ function configHash(cfg: McpServerConfig): string {
 	return createHash("sha1").update(basis).digest("hex").slice(0, 16)
 }
 
-
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
 	return new Promise<T>((resolve, reject) => {
 		const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)

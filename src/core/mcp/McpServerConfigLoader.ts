@@ -23,6 +23,36 @@ function expandPluginRoot(value: string, pluginRoot: string): string {
 	return value.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginRoot)
 }
 
+// Expand ${ENV_VAR} references from the environment (used in http url + headers so
+// a plugin or the user can inject secrets without writing them into .mcp.json).
+function expandEnvVars(value: string): string {
+	return value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_m, name) => process.env[name] ?? "")
+}
+
+// Env var that carries a bearer token for an http MCP server, e.g.
+// supabase -> ISAAC_MCP_SUPABASE_TOKEN, mcp-search -> ISAAC_MCP_MCP_SEARCH_TOKEN.
+function serverTokenEnv(serverId: string): string {
+	return `ISAAC_MCP_${serverId.replace(/[^A-Za-z0-9]/g, "_").toUpperCase()}_TOKEN`
+}
+
+// Resolve the headers for an http server: expand ${ENV} in every value, then —
+// as a convenience for OAuth-bearer servers like supabase — inject
+// `Authorization: Bearer <token>` from ISAAC_MCP_<ID>_TOKEN when set and no
+// Authorization header was declared. The token is never persisted (the tool
+// cache stores only a config hash + the tool list).
+function resolveHttpHeaders(serverId: string, raw?: Record<string, string>): Record<string, string> | undefined {
+	const headers: Record<string, string> = {}
+	for (const [k, v] of Object.entries(raw ?? {})) {
+		headers[k] = expandEnvVars(v)
+	}
+	const token = process.env[serverTokenEnv(serverId)]?.trim()
+	const hasAuth = Object.keys(headers).some((k) => k.toLowerCase() === "authorization")
+	if (token && !hasAuth) {
+		headers.Authorization = `Bearer ${token}`
+	}
+	return Object.keys(headers).length > 0 ? headers : undefined
+}
+
 export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 	const plugins = await pluginDiscoveryService.discover()
 	const configs: McpServerConfig[] = []
@@ -83,8 +113,8 @@ export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 					pluginName: plugin.manifest.name,
 					pluginRoot,
 					type: "http",
-					url: server.url!,
-					headers: server.headers,
+					url: expandEnvVars(server.url!),
+					headers: resolveHttpHeaders(serverId, server.headers),
 				})
 			} else {
 				configs.push({
