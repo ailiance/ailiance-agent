@@ -190,19 +190,47 @@ export class LocalRouter {
 
 		const url = worker.url.replace(/\/$/, "")
 		const body = { ...req, model: worker.modelId, stream: false }
-		const res = await fetch(`${url}/chat/completions`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(body),
-		})
-		if (!res.ok) {
-			const text = await res.text().catch(() => "")
-			throw new Error(`[LocalRouter] worker ${worker.id} returned ${res.status}: ${text.slice(0, 200)}`)
+
+		// Wall-clock guard. The streaming path has both total + idle timers, but
+		// the non-streaming path produces no chunks, so only `total` applies here.
+		// Without it a worker that accepts the POST and never answers hangs the
+		// agent forever (this was the missing guard vs chatStream).
+		const totalTimeoutMs = sanitizeTimeout(req.timeoutMs, DEFAULT_LOCAL_ROUTER_TOTAL_TIMEOUT_MS)
+		const { controller, dispose: detachSignals } = combineAbortSignals([req.signal])
+		let timedOut = false
+		const totalTimer = setTimeout(() => {
+			timedOut = true
+			controller.abort(new LocalRouterTimeoutError("total", worker.id, totalTimeoutMs))
+		}, totalTimeoutMs)
+		const cleanup = () => {
+			clearTimeout(totalTimer)
+			detachSignals()
+			if (!controller.signal.aborted) controller.abort()
 		}
-		const data = (await res.json()) as ChatResponse
-		this.cache.set(cacheKey, data)
-		routingObserver.emit({ ts: Date.now(), category, workerId: worker.id, cacheHit: false, estTokens })
-		return data
+
+		try {
+			const res = await fetch(`${url}/chat/completions`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+				signal: controller.signal,
+			})
+			if (!res.ok) {
+				const text = await res.text().catch(() => "")
+				throw new Error(`[LocalRouter] worker ${worker.id} returned ${res.status}: ${text.slice(0, 200)}`)
+			}
+			const data = (await res.json()) as ChatResponse
+			this.cache.set(cacheKey, data)
+			routingObserver.emit({ ts: Date.now(), category, workerId: worker.id, cacheHit: false, estTokens })
+			return data
+		} catch (err) {
+			// Surface the timeout as the typed error so callers can fall back on it,
+			// rather than a raw AbortError.
+			if (timedOut) throw new LocalRouterTimeoutError("total", worker.id, totalTimeoutMs)
+			throw err
+		} finally {
+			cleanup()
+		}
 	}
 
 	/**
