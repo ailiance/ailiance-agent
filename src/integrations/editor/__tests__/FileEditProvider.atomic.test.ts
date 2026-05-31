@@ -31,7 +31,7 @@ describe("FileEditProvider – atomic save integration", () => {
 	let tmpDir: string
 
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-fileedit-atomic-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-fileedit-atomic-"))
 	})
 
 	afterEach(async () => {

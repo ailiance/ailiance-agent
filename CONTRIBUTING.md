@@ -1,22 +1,22 @@
-# Contributing to ailiance-agent
+# Contributing to isaac
 
-ailiance-agent is a fork of [Dirac](https://github.com/dirac-run/dirac) (itself based on Cline) re-focused on EU sovereignty and routed to the [ailiance](https://github.com/ailiance/ailiance) gateway by default. We're thrilled you're interested in contributing. Whether you're fixing a bug, adding a feature, or improving our docs, every contribution makes ailiance-agent smarter! To keep our community vibrant and welcoming, all members must adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+isaac is a fork of [Dirac](https://github.com/dirac-run/dirac) (itself based on Cline) re-focused on EU sovereignty and routed to the [ailiance](https://github.com/ailiance/ailiance) gateway by default. We're thrilled you're interested in contributing. Whether you're fixing a bug, adding a feature, or improving our docs, every contribution makes isaac smarter! To keep our community vibrant and welcoming, all members must adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting Bugs or Issues
 
-Bug reports help make ailiance-agent better for everyone! Before creating a new issue, please [search existing ones](https://github.com/ailiance/ailiance-agent/issues) to avoid duplicates. When you're ready to report a bug, head over to our [issues page](https://github.com/ailiance/ailiance-agent/issues/new/choose) where you'll find a template to help you with filling out the relevant information.
+Bug reports help make isaac better for everyone! Before creating a new issue, please [search existing ones](https://github.com/ailiance/isaac-cli/issues) to avoid duplicates. When you're ready to report a bug, head over to our [issues page](https://github.com/ailiance/isaac-cli/issues/new/choose) where you'll find a template to help you with filling out the relevant information.
 
 <blockquote class='warning-note'>
-     🔐 <b>Important:</b> If you discover a security vulnerability, please use the <a href="https://github.com/ailiance/ailiance-agent/security/advisories/new">Github security tool to report it privately</a>.
+     🔐 <b>Important:</b> If you discover a security vulnerability, please use the <a href="https://github.com/ailiance/isaac-cli/security/advisories/new">Github security tool to report it privately</a>.
 </blockquote>
 
 ## Deciding What to Work On
 
-Looking for a good first contribution? Check out issues labeled ["good first issue"](https://github.com/ailiance/ailiance-agent/labels/good%20first%20issue) or ["help wanted"](https://github.com/ailiance/ailiance-agent/labels/help%20wanted). These are specifically curated for new contributors and areas where we'd love some help!
+Looking for a good first contribution? Check out issues labeled ["good first issue"](https://github.com/ailiance/isaac-cli/labels/good%20first%20issue) or ["help wanted"](https://github.com/ailiance/isaac-cli/labels/help%20wanted). These are specifically curated for new contributors and areas where we'd love some help!
 
-We also welcome contributions to our [documentation](https://github.com/ailiance/ailiance-agent/tree/main/docs)! Whether it's fixing typos, improving existing guides, or creating new educational content - we'd love to build a community-driven repository of resources that helps everyone get the most out of ailiance-agent. You can start by diving into `/docs` and looking for areas that need improvement.
+We also welcome contributions to our [documentation](https://github.com/ailiance/isaac-cli/tree/main/docs)! Whether it's fixing typos, improving existing guides, or creating new educational content - we'd love to build a community-driven repository of resources that helps everyone get the most out of isaac. You can start by diving into `/docs` and looking for areas that need improvement.
 
-If you plan to work on a larger feature, please first create a [feature request](https://github.com/ailiance/ailiance-agent/discussions/categories/feature-requests) so we can discuss if it aligns with ailiance-agent's vision.
+If you plan to work on a larger feature, please first create a [feature request](https://github.com/ailiance/isaac-cli/discussions/categories/feature-requests) so we can discuss if it aligns with isaac's vision.
 
 ## Development Setup
 
@@ -28,7 +28,7 @@ If you plan to work on a larger feature, please first create a [feature request]
 ### 2. Local Development
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ailiance/ailiance-agent.git
+   git clone https://github.com/ailiance/isaac-cli.git
    ```
 2. Install dependencies for the extension and webview:
    ```bash
@@ -42,7 +42,7 @@ If you plan to work on a larger feature, please first create a [feature request]
 
 ## Writing and Submitting Code
 
-Anyone can contribute code to ailiance-agent, but we ask that you follow these guidelines to ensure your contributions can be smoothly integrated:
+Anyone can contribute code to isaac, but we ask that you follow these guidelines to ensure your contributions can be smoothly integrated:
 
 ### 1. Keep Pull Requests Focused
 - Limit PRs to a single feature or bug fix.

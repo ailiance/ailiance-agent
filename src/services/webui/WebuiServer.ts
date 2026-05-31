@@ -64,7 +64,7 @@ export interface WebuiServerStatus {
 	running: boolean
 	url?: string
 	port?: number
-	external: boolean // true if AKI_WEBUI_URL set, no in-process server
+	external: boolean // true if ISAAC_WEBUI_URL set, no in-process server
 }
 
 export class WebuiServer {
@@ -74,14 +74,14 @@ export class WebuiServer {
 
 	/**
 	 * Resolve the webui URL.
-	 * - If AKI_WEBUI_URL env var is set → use it (no spawn)
+	 * - If ISAAC_WEBUI_URL env var is set → use it (no spawn)
 	 * - Else → start an in-process static HTTP server on a free port (>=25463)
 	 *   serving webview-ui/build/. SPA fallback: any non-existent path → index.html.
 	 *   Server runs in this same Node process (no child spawn) for reliability.
 	 *   stop() closes it cleanly at exit.
 	 */
 	async start(): Promise<WebuiServerStatus> {
-		const fromEnv = process.env.AKI_WEBUI_URL?.trim()
+		const fromEnv = process.env.ISAAC_WEBUI_URL?.trim()
 		if (fromEnv) {
 			this.externalUrl = fromEnv
 			return { running: true, url: fromEnv, external: true }

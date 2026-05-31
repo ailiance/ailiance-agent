@@ -15,9 +15,9 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 LITELLM_URL = os.environ.get("LITELLM_URL", "http://127.0.0.1:4000")
-LITELLM_API_KEY = os.environ.get("LITELLM_API_KEY", "sk-aki-local-master-key")
+LITELLM_API_KEY = os.environ.get("LITELLM_API_KEY", "sk-isaac-local-master-key")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "jinaai/jina-embeddings-v2-small-en")
-ROUTES_FILE = os.environ.get("ROUTES_FILE", os.path.expanduser("~/.aki/jina-router/routes.json"))
+ROUTES_FILE = os.environ.get("ROUTES_FILE", os.path.expanduser("~/.isaac/jina-router/routes.json"))
 
 # Categories with example queries — embedded once at startup
 DEFAULT_ROUTES = {

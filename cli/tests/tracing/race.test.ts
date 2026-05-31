@@ -11,7 +11,7 @@ import { JsonlTracer } from "@core/tracing"
 let tmpDir: string
 
 beforeEach(() => {
-	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aki-race-"))
+	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "isaac-race-"))
 })
 
 afterEach(() => {

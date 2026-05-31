@@ -9,7 +9,7 @@ import { JsonlTracer, scrubSecrets, TRACING_DIR_NAME, TRACING_SCHEMA_VERSION } f
 let tmpDir: string
 
 beforeEach(() => {
-	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aki-trace-"))
+	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "isaac-trace-"))
 })
 
 afterEach(() => {

@@ -9,7 +9,7 @@ export function ModelsList() {
 	if (models.length === 0) {
 		return (
 			<p className="text-xs text-vscode-descriptionForeground italic">
-				No models found. Ensure the LiteLLM proxy is configured (~/.aki/litellm/config.yaml).
+				No models found. Ensure the LiteLLM proxy is configured (~/.isaac/litellm/config.yaml).
 			</p>
 		)
 	}

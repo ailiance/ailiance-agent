@@ -1,14 +1,15 @@
 # ailiance-agent
 
 Coding agent (fork de Dirac/Cline) — extension VS Code + CLI Ink, orchestrateur multi-LLM.
-Branding "aki" / kiki, packaging `ailiance-agent-0.x.0.vsix`.
+Branding **ISAAC** (Intelligence Souveraine Ailiance Agent Codeur) — binaire `isaac`,
+packaging `isaac-0.x.0.vsix`. Repo & marque parente restent `ailiance`.
 
 ## Workspaces
 
 | Path | Rôle |
 |------|------|
 | `src/` | Extension VS Code + core agent (TS) |
-| `cli/` | CLI Ink (binaire `aki`) |
+| `cli/` | CLI Ink (binaire `isaac`) |
 | `webview-ui/` | Frontend React (Vite + Storybook) |
 | `proto/` | Protobuf (gRPC entre host/webview/CLI) |
 | `evals/`, `agent-registry/`, `walkthrough/`, `locales/` | Assets non-code |

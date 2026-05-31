@@ -61,7 +61,7 @@ describe("PluginInstaller.install", () => {
 	beforeEach(async () => {
 		installer = new PluginInstaller()
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-plugin-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-plugin-test-"))
 		// Override PLUGINS_DIR by monkey-patching the private field via the prototype chain
 		// We stub fs.mkdir, fs.access, fs.readFile, fs.rm and child_process.execFile
 	})

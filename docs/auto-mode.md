@@ -1,6 +1,6 @@
 # Auto Plan/Act Mode
 
-When `autoModeFromPrompt: true` is set in aki settings, the mode (Plan or
+When `autoModeFromPrompt: true` is set in isaac settings, the mode (Plan or
 Act) is automatically chosen based on the user prompt at each task start.
 
 ## Activation

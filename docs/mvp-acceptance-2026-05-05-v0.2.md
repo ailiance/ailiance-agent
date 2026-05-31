@@ -24,7 +24,7 @@ a74dba4 feat(worker): add function-calling shim module
 
 ## Live test (canonical Phase 14 Step 2)
 
-`aki task --yolo --model ailiance-devstral "Create a minimal TOML parser
+`isaac task --yolo --model ailiance-devstral "Create a minimal TOML parser
 in Rust with one unit test"` against `http://100.116.92.12:9300/v1`.
 
 **Outcome:**
@@ -66,7 +66,7 @@ in Rust with one unit test"` against `http://100.116.92.12:9300/v1`.
   or merged adapter sets.
 - **Steps 3-7 of the canonical Phase 14 acceptance** (EDIT life-core,
   KiCad SCRATCH, trace round-trip script, hard-deny `rm -rf`,
-  `aki-export-dataset`) — can be exercised on demand; Step 2 is the
+  `isaac-export-dataset`) — can be exercised on demand; Step 2 is the
   load-bearing one (planner + coder + tool dispatch + tracing all
   active in one task).
 

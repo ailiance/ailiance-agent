@@ -8,7 +8,7 @@ This product includes software developed at:
     Apache License 2.0
 
 Modifications by Ailiance since 2026-05-04:
-  - Rebrand to ailiance-agent / aki CLI binary
+  - Rebrand to ailiance-agent / isaac CLI binary
   - Default provider routed to ailiance (EU-sovereign multi-model gateway)
   - JSONL trace per task (EU AI Act Article 53 audit support)
   - Telemetry to dirac.run / PostHog disabled

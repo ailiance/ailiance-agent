@@ -1,3 +1,17 @@
+## [Unreleased] — Rebrand → ISAAC
+
+### Changed
+- **Product rebrand `aki` → `ISAAC`** (Intelligence Souveraine Ailiance Agent
+  Codeur). The CLI command is now `isaac` (the `aki` and `ailiance-agent` bin
+  names are dropped — no alias). npm package `ailiance-agent` → `isaac`,
+  `ailiance-agent-cli` → `isaac-cli`, VS Code `displayName`/command categories →
+  `ISAAC`. Env vars `AKI_STRICT_PROVIDER`/`AKI_WEBUI_URL` → `ISAAC_*`. Stack dir
+  `~/.aki/` → `~/.isaac/`. New 3D-extruded ASCII wordmark on the welcome banner.
+- **Kept (parent brand / compat):** the `ailiance` brand everywhere (org, gateway,
+  `AILIANCE_*` env — it is the "A" in ISAAC), the legacy `dirac.*` VS Code command
+  IDs, the `~/.dirac` storage and `.ailiance-agent/runs` + `~/.ailiance-agent/memory`
+  data directories, and the `ailiance/isaac-cli` repository URLs.
+
 ## [0.9.1-beta] — 2026-05-12
 
 ### Added

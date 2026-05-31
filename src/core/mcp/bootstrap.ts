@@ -99,7 +99,7 @@ function readMcpSettings(): {
 	noMcp: boolean
 } {
 	// Per-run CLI overrides via env take precedence over persisted settings,
-	// so `aki --no-mcp` / `aki --mcp github,context7` can trim the (often
+	// so `isaac --no-mcp` / `isaac --mcp github,context7` can trim the (often
 	// large) inherited Claude-Code plugin MCP set without touching global
 	// config. AILIANCE_MCP_SERVERS="" (empty) is treated as "no servers".
 	const envServersRaw = process.env.AILIANCE_MCP_SERVERS

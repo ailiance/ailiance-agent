@@ -35,7 +35,7 @@ async function tailFile(filePath: string, n: number): Promise<string[]> {
 /** Fetch model names from the proxy and check each for reachability. */
 async function fetchModels(): Promise<StackModel[]> {
 	// Read model names from config (reliable, no network needed)
-	const configPath = path.join(os.homedir(), ".aki", "litellm", "config.yaml")
+	const configPath = path.join(os.homedir(), ".isaac", "litellm", "config.yaml")
 	const modelNames: string[] = []
 	try {
 		const yaml = await fs.readFile(configPath, "utf8")
@@ -71,7 +71,7 @@ async function fetchModels(): Promise<StackModel[]> {
 
 /** Read Jina router routes.json */
 async function fetchRoutes(): Promise<JinaRoute[]> {
-	const routesPath = path.join(os.homedir(), ".aki", "jina-router", "routes.json")
+	const routesPath = path.join(os.homedir(), ".isaac", "jina-router", "routes.json")
 	try {
 		const raw = await fs.readFile(routesPath, "utf8")
 		const data = JSON.parse(raw) as Record<string, { examples?: string[]; preferred_model?: string }>
@@ -156,8 +156,8 @@ export class StackMonitor {
 			fetchRoutes(),
 			fetchMcpServers(enabledMcpServers),
 			fetchPlugins(),
-			tailFile(path.join(os.homedir(), ".aki", "litellm.log"), TAIL_LINES),
-			tailFile(path.join(os.homedir(), ".aki", "jina-router.log"), TAIL_LINES),
+			tailFile(path.join(os.homedir(), ".isaac", "litellm.log"), TAIL_LINES),
+			tailFile(path.join(os.homedir(), ".isaac", "jina-router.log"), TAIL_LINES),
 		])
 
 		const proxyStatus = stackStatus.proxyStatus

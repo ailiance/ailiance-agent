@@ -1,5 +1,5 @@
 {
-	"name": "ailiance-agent-cli",
+	"name": "isaac-cli",
 	"version": "0.9.1-beta",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
 	"files": [
@@ -8,8 +8,7 @@
 	"main": "dist/lib.mjs",
 	"types": "dist/lib.d.ts",
 	"bin": {
-		"aki": "./dist/cli.mjs",
-		"ailiance-agent": "./dist/cli.mjs"
+		"isaac": "./dist/cli.mjs"
 	},
 	"exports": {
 		".": {
@@ -44,12 +43,12 @@
 		"clean": "rimraf dist",
 		"typecheck": "npx tsc --noEmit",
 		"link": "npm run build && npm link",
-		"unlink": "npm unlink -g ailiance-agent-cli",
+		"unlink": "npm unlink -g isaac-cli",
 		"test": "vitest",
 		"test:run": "vitest run"
 	},
 	"keywords": [
-		"ailiance-agent",
+		"isaac",
 		"ailiance",
 		"dirac",
 		"claude",
@@ -70,11 +69,11 @@
 	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ailiance/ailiance-agent.git"
+		"url": "git+https://github.com/ailiance/isaac-cli.git"
 	},
-	"homepage": "https://github.com/ailiance/ailiance-agent",
+	"homepage": "https://github.com/ailiance/isaac-cli",
 	"bugs": {
-		"url": "https://github.com/ailiance/ailiance-agent/issues"
+		"url": "https://github.com/ailiance/isaac-cli/issues"
 	},
 	"devDependencies": {
 		"@types/marked": "^5.0.2",

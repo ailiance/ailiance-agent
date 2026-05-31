@@ -19,4 +19,4 @@ Documentation versionnée : notes acceptance MVP, comparaisons providers, journa
 
 - Ne pas mettre de procédures projet ici → root `CLAUDE.md` ou `CONTRIBUTING.md`.
 - Ne pas dupliquer `README.md` — les docs sont incrémentales / historiques.
-- Ne pas commit des outputs eval-harness bruts (gros) — résumer + lien vers `.aki/traces/`.
+- Ne pas commit des outputs eval-harness bruts (gros) — résumer + lien vers `.isaac/traces/`.

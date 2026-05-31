@@ -1,8 +1,8 @@
-// ailiance-agent fork: `aki trace` subcommand.
+// ailiance-agent fork: `isaac trace` subcommand.
 //
 // Subcommands:
-//   - aki trace list                    : list all run directories
-//   - aki trace prune [--max-age N]     : apply rotation policy now
+//   - isaac trace list                    : list all run directories
+//   - isaac trace prune [--max-age N]     : apply rotation policy now
 //                     [--max-size 1G]
 //
 // The prune policy lives in src/core/tracing/pruner.ts; this file is

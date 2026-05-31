@@ -1,6 +1,6 @@
-# ailiance-agent CLI (`aki`) — v0.3.0
+# ailiance-agent CLI (`isaac`) — v0.3.0
 
-> Fork of Dirac/Cline. Binary `aki` (alias `ailiance-agent`). Defaults to
+> Fork of Dirac/Cline. Binary `isaac` (alias `ailiance-agent`). Defaults to
 > the [ailiance](https://github.com/ailiance/ailiance) gateway at
 > `http://studio:9300/v1`. See the root [`README.md`](../README.md)
 > and [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) for the full

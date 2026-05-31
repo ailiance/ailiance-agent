@@ -8,7 +8,7 @@ import { prune } from "@core/tracing/pruner"
 let runsDir: string
 
 beforeEach(() => {
-	runsDir = fs.mkdtempSync(path.join(os.tmpdir(), "aki-prune-"))
+	runsDir = fs.mkdtempSync(path.join(os.tmpdir(), "isaac-prune-"))
 })
 
 afterEach(() => {

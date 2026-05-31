@@ -11,7 +11,7 @@ describe("PluginDiscoveryService", () => {
 	let service: PluginDiscoveryService
 
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "aki-plugins-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-plugins-test-"))
 		service = new PluginDiscoveryService()
 		// Override homedir resolution by monkey-patching the baseDir via the OS module
 		// We inject via the service's discover method by creating the full cache path structure

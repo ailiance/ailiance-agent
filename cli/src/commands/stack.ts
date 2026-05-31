@@ -22,7 +22,7 @@ export async function runStackStart() {
 		console.log(`  proxy:  ${r.status.proxy.url}`)
 		console.log(`  router: ${r.status.router.url}`)
 		console.log(``)
-		console.log(`Configure aki provider:`)
+		console.log(`Configure isaac provider:`)
 		console.log(`  apiProvider: "litellm"`)
 		console.log(`  liteLlmBaseUrl: "${r.status.router.url}"`)
 	} else {

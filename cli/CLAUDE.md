@@ -1,6 +1,6 @@
 # cli/
 
-Binaire `aki` (alias `ailiance-agent`) — CLI Ink/React, fork de Dirac. Entry point :
+Binaire `isaac` — CLI Ink/React, fork de Dirac. Entry point :
 `src/index.ts` (utilise `commander`). Build esbuild → `dist/cli.mjs` (bin) et
 `dist/lib.mjs` (lib programmatique). Réutilise le core de l'extension via alias
 `@/`, `@core/`, `@shared/`, … résolus par `aliasResolverPlugin` (esbuild.mts).
@@ -9,7 +9,7 @@ Binaire `aki` (alias `ailiance-agent`) — CLI Ink/React, fork de Dirac. Entry p
 
 - **ink** `npm:@jrichman/ink@7.0.0` (fork) + **react 19.2** + TS 5.4 strict.
 - **commander 12** (subcommands), **prompts**, **chalk**, **ora**, **marked**,
-  **pino** (logs `.aki/log/`), **@vscode/ripgrep**, **better-sqlite3**.
+  **pino** (logs `.isaac/log/`), **@vscode/ripgrep**, **better-sqlite3**.
 - **@agentclientprotocol/sdk** (ACP) pour le mode stdio.
 - Node ≥20 <25, ESM uniquement (`"type":"module"`).
 
@@ -62,7 +62,7 @@ npm run typecheck      # tsc --noEmit
 
 - **Console silencieux par défaut** : `suppressConsoleUnlessVerbose()` est appelé
   au top de `index.ts`. Pour debug, passe `-v/--verbose` ou logue via `pino`
-  (fichier dans `.aki/log/`), pas `console.log`.
+  (fichier dans `.isaac/log/`), pas `console.log`.
 - **Raw mode stdin** : géré par Ink + `StdinContext`. Ne pas toucher
   `process.stdin.setRawMode` directement, ça casse les hooks `useInput`.
 - **Backspace / Home-End** : terminaux variés → `useRawBackspaceKeys` /

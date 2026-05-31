@@ -264,7 +264,7 @@ function createHandlerForProvider(
 				`[buildApiHandler] Unknown apiProvider="${apiProvider}", ` +
 					`falling back to Anthropic. This is likely a config bug.`,
 			)
-			if (process.env.AKI_STRICT_PROVIDER === "1") {
+			if (process.env.ISAAC_STRICT_PROVIDER === "1") {
 				throw new Error(`Unknown apiProvider: ${apiProvider}`)
 			}
 			return new AnthropicHandler({

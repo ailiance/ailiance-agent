@@ -30,8 +30,8 @@ const program = new Command()
 
 // ailiance-agent fork: rebrand CLI banner
 program
-	.name("aki")
-	.description("ailiance-agent - EU-sovereign AI coding agent (fork of Dirac/Cline)")
+	.name("isaac")
+	.description("ISAAC — Intelligence Souveraine Ailiance Agent Codeur (fork of Dirac/Cline)")
 	.version(CLI_VERSION)
 
 // Enable positional options to avoid conflicts between root and subcommand options with the same name
@@ -392,7 +392,7 @@ const proxyCmd = program.command("proxy").description("Manage local LiteLLM prox
 
 proxyCmd
 	.command("install")
-	.description("Install LiteLLM in dedicated venv (~/.aki/litellm-venv)")
+	.description("Install LiteLLM in dedicated venv (~/.isaac/litellm-venv)")
 	.action(async () => {
 		const { runProxyInstall } = await import("./commands/proxy")
 		return runProxyInstall()
@@ -428,7 +428,7 @@ const routerCmd = program.command("router").description("Manage local Jina seman
 
 routerCmd
 	.command("install")
-	.description("Install Jina router in dedicated venv (~/.aki/jina-router-venv)")
+	.description("Install Jina router in dedicated venv (~/.isaac/jina-router-venv)")
 	.action(async () => {
 		const { runRouterInstall } = await import("./commands/router")
 		return runRouterInstall()

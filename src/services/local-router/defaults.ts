@@ -5,7 +5,7 @@ import type { WorkerEndpoint } from "./types"
  * Users can override via setting `localRouterWorkers` (array of WorkerEndpoint).
  *
  * ctxMax reflects the runtime context window of each worker (mesured live).
- * Values that are too small for aki's ~8k system prompt will be skipped by
+ * Values that are too small for isaac's ~8k system prompt will be skipped by
  * LocalRouter.pickWorker() to avoid "context exceeded" errors.
  */
 export const DEFAULT_WORKERS: WorkerEndpoint[] = [
@@ -31,9 +31,9 @@ export const DEFAULT_WORKERS: WorkerEndpoint[] = [
 		id: "studio-eurollm",
 		url: "http://100.116.92.12:9303/v1",
 		modelId: "eurollm-22b",
-		capabilities: ["fr"], // dropped "general" — too small for aki system prompt
+		capabilities: ["fr"], // dropped "general" — too small for isaac system prompt
 		priority: 6,
-		ctxMax: 4096, // EuroLLM 22B native — TOO SMALL for aki system prompt typically
+		ctxMax: 4096, // EuroLLM 22B native — TOO SMALL for isaac system prompt typically
 		supportsTools: true, // native function calling
 	},
 ]
