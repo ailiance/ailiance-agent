@@ -121,6 +121,10 @@ export class EditFileToolHandler implements IFullyManagedTool {
 				this.resultsCache.set(callId, this.combineResponses(fileResults))
 			}
 		}
+		// Ensure any partial messages from handlePartialBlock are removed
+		await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
+		await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
+
 
 		// Return the result for the current block (either from cache or fallback)
 		if (block.call_id && this.resultsCache.has(block.call_id)) {
@@ -213,7 +217,10 @@ export class EditFileToolHandler implements IFullyManagedTool {
 	}
 
 	private syncCache(config: TaskConfig): void {
-		// Cache is currently turn-scoped, but we could make it more persistent if needed
-		this.resultsCache.clear()
+		const currentCount = config.messageState.getApiConversationHistory().length
+		if (this.lastApiRequestCount !== currentCount) {
+			this.resultsCache.clear()
+			this.lastApiRequestCount = currentCount
+		}
 	}
 }
