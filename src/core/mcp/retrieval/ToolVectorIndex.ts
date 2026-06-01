@@ -42,13 +42,21 @@ export class ToolVectorIndex {
 		if (stale.length > 0) {
 			const vecs = await this.embedder.embed(stale.map((t) => t.text))
 			stale.forEach((t, i) => {
-				cache[t.qualifiedName] = { hash: hashText(t.text), vec: Array.from(vecs[i]) }
+				const vec = vecs[i]
+				if (!vec) {
+					return
+				}
+				cache[t.qualifiedName] = { hash: hashText(t.text), vec: Array.from(vec) }
 			})
 			this.writeCache(cache)
 		}
 		const result = new Map<string, Float32Array>()
 		for (const t of tools) {
-			result.set(t.qualifiedName, Float32Array.from(cache[t.qualifiedName].vec))
+			const entry = cache[t.qualifiedName]
+			if (!entry) {
+				continue
+			}
+			result.set(t.qualifiedName, Float32Array.from(entry.vec))
 		}
 		return result
 	}

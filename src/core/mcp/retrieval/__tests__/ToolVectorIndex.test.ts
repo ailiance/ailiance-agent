@@ -48,4 +48,11 @@ describe("ToolVectorIndex", () => {
 		await new ToolVectorIndex(embedder, cachePath).build([{ qualifiedName: "mcp__p_s__a", text: "alpha2" }])
 		embedCalls.should.equal(2)
 	})
+
+	it("does not crash when the embedder returns fewer vectors than requested", async () => {
+		const embedder = new Embedder(async () => async (_texts: string[]) => [] as Float32Array[])
+		const idx = new ToolVectorIndex(embedder, cachePath)
+		const vecs = await idx.build([{ qualifiedName: "mcp__p_s__x", text: "x" }])
+		vecs.has("mcp__p_s__x").should.equal(false)
+	})
 })
