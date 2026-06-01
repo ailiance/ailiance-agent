@@ -10,10 +10,9 @@ export function useChatMessages(messages: any[]) {
 	const displayMessages = useMemo(() => {
 		const filtered = messages.filter((m) => {
 			if (m.say === "api_req_finished") return false
-			if (m.say === "checkpoint_created") return false
-			if (m.say === "api_req_started") return false
-			if (m.say === "api_req_retried") return false
-			if (m.say === "reasoning") return false
+			// Activity journal: api_req_started, checkpoint_created, api_req_retried
+			// and reasoning are all surfaced — rendered as compact dim lines in
+			// ChatMessage so the user sees what the agent is doing.
 			return true
 		})
 		const withHooks = combineHookSequences(filtered)

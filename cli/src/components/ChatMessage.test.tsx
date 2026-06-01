@@ -104,3 +104,61 @@ describe("ChatMessage subagent rendering", () => {
 		expect(frame).toContain("5 tool uses · 28.9k tokens · $0.00")
 	})
 })
+
+describe("ChatMessage reasoning rendering", () => {
+	it("renders the reasoning (chain-of-thought) text instead of hiding it", () => {
+		const message: DiracMessage = {
+			ts: Date.now(),
+			type: "say",
+			say: "reasoning",
+			text: "Let me first inspect the failing test before editing.",
+		}
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		const frame = lastFrame() || ""
+		expect(frame).toContain("Let me first inspect the failing test before editing.")
+	})
+
+	it("renders streaming reasoning while partial", () => {
+		const message: DiracMessage = {
+			ts: Date.now(),
+			type: "say",
+			say: "reasoning",
+			text: "Thinking through the approach",
+			partial: true,
+		}
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act", isStreaming: true }))
+		expect(lastFrame() || "").toContain("Thinking through the approach")
+	})
+
+	it("renders nothing for empty reasoning", () => {
+		const message: DiracMessage = { ts: Date.now(), type: "say", say: "reasoning", text: "   " }
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect((lastFrame() || "").trim()).toBe("")
+	})
+})
+
+describe("ChatMessage activity journal", () => {
+	it("shows the queried model for api_req_started", () => {
+		const message = {
+			ts: Date.now(),
+			type: "say",
+			say: "api_req_started",
+			text: "{}",
+			modelInfo: { modelId: "ailiance-reasoning-r1" },
+		} as unknown as DiracMessage
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("querying ailiance-reasoning-r1")
+	})
+
+	it("shows a checkpoint marker", () => {
+		const message: DiracMessage = { ts: Date.now(), type: "say", say: "checkpoint_created" }
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("checkpoint saved")
+	})
+
+	it("shows a retry marker", () => {
+		const message: DiracMessage = { ts: Date.now(), type: "say", say: "api_req_retried" }
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("retrying")
+	})
+})
