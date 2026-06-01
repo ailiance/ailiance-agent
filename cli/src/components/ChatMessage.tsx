@@ -311,6 +311,37 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 		)
 	}
 
+	// Activity journal — compact dim markers so the user sees what the agent is
+	// doing between answers (which model is queried, checkpoints, retries).
+	if (say === "api_req_started") {
+		const modelId = (message as { modelInfo?: { modelId?: string } }).modelInfo?.modelId
+		return (
+			<Box marginBottom={1}>
+				<Text color="gray" dimColor>
+					→ {modelId ? `querying ${modelId}` : "querying model"}
+				</Text>
+			</Box>
+		)
+	}
+	if (say === "checkpoint_created") {
+		return (
+			<Box marginBottom={1}>
+				<Text color="gray" dimColor>
+					✓ checkpoint saved
+				</Text>
+			</Box>
+		)
+	}
+	if (say === "api_req_retried") {
+		return (
+			<Box marginBottom={1}>
+				<Text color="gray" dimColor>
+					⟳ retrying request…
+				</Text>
+			</Box>
+		)
+	}
+
 	// Reasoning / chain-of-thought. Streamed live and kept in history, dimmed
 	// and italic so it stays visually distinct from the assistant's answer.
 	if (say === "reasoning") {
@@ -612,11 +643,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 		)
 	}
 
-	// API request info (show cost/tokens inline)
-	if (say === "api_req_started" && text) {
-		// Skip showing these - they're summarized in the status bar
-		return null
-	}
+	// (api_req_started is handled earlier as a compact activity marker.)
 
 	// Browser actions
 	if (say === "browser_action" || say === "browser_action_launch") {

@@ -136,3 +136,29 @@ describe("ChatMessage reasoning rendering", () => {
 		expect((lastFrame() || "").trim()).toBe("")
 	})
 })
+
+describe("ChatMessage activity journal", () => {
+	it("shows the queried model for api_req_started", () => {
+		const message = {
+			ts: Date.now(),
+			type: "say",
+			say: "api_req_started",
+			text: "{}",
+			modelInfo: { modelId: "ailiance-reasoning-r1" },
+		} as unknown as DiracMessage
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("querying ailiance-reasoning-r1")
+	})
+
+	it("shows a checkpoint marker", () => {
+		const message: DiracMessage = { ts: Date.now(), type: "say", say: "checkpoint_created" }
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("checkpoint saved")
+	})
+
+	it("shows a retry marker", () => {
+		const message: DiracMessage = { ts: Date.now(), type: "say", say: "api_req_retried" }
+		const { lastFrame } = render(React.createElement(ChatMessage, { message, mode: "act" }))
+		expect(lastFrame() || "").toContain("retrying")
+	})
+})
