@@ -609,6 +609,27 @@
   {
     "type": "function",
     "function": {
+      "name": "find_tools",
+      "strict": false,
+      "description": "Discover and activate additional MCP tools that are not currently available to you. Only a relevant subset of external (MCP) tools is loaded by default to keep the tool list small. If you need a capability you don't see (e.g. interacting with GitHub, a database, a browser, etc.), call find_tools with a short natural-language description of the capability you need. The matching tools become available on your next turn. Example: { query: \"search and comment on GitHub issues\" }.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "A short natural-language description of the capability or tool you need."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "write_to_file",
       "strict": false,
       "description": "Creates a new file or completely overwrites an existing file. Automatically creates required directories.",
