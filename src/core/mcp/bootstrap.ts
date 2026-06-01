@@ -67,13 +67,15 @@ export function convertJsonSchemaToParams(inputSchema: object): NonNullable<Dira
  * Uses qualifiedName as both id and name so the LLM calls the tool by its full qualified name.
  */
 export function mcpToolToSpec(tool: McpToolMetadata): DiracToolSpec {
+	const qualifiedName = tool.qualifiedName
 	return {
 		// Cast is intentional: MCP tools use dynamic qualified names, not enum values.
 		// The same pattern is used in McpToolHandler.
-		id: tool.qualifiedName as DiracDefaultTool,
-		name: tool.qualifiedName,
+		id: qualifiedName as DiracDefaultTool,
+		name: qualifiedName,
 		description: tool.description ?? `MCP tool from plugin ${tool.pluginName}`,
 		parameters: convertJsonSchemaToParams(tool.inputSchema),
+		contextRequirements: (ctx) => ctx.activeMcpTools === undefined || ctx.activeMcpTools.has(qualifiedName),
 	}
 }
 
