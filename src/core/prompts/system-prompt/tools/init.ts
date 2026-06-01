@@ -21,6 +21,7 @@ import { subagent } from "./subagent"
 import { summarize_task } from "./summarize_task"
 import { use_skill } from "./use_skill"
 import { list_skills } from "./list_skills"
+import { find_tools } from "./find_tools"
 import { write_to_file } from "./write_to_file"
 
 /**
@@ -52,6 +53,7 @@ export function registerDiracToolSets(): void {
 		subagent,
 		use_skill,
 		list_skills,
+		find_tools,
 		write_to_file,
 	]
 

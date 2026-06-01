@@ -108,6 +108,9 @@ export class ToolExecutorCoordinator {
 		[DiracDefaultTool.LIST_SKILLS]: (_v: ToolValidator) => new ListSkillsToolHandler(),
 		[DiracDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
 		[DiracDefaultTool.GET_TOOL_RESULT]: (_v: ToolValidator) => new GetToolResultToolHandler(),
+
+		// Handler implemented in Task 10 (adaptive MCP retrieval)
+		[DiracDefaultTool.FIND_TOOLS]: (_v: ToolValidator) => undefined,
 	}
 
 	/**
