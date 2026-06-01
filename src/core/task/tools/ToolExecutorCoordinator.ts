@@ -26,6 +26,7 @@ import { UseSubagentsToolHandler } from "./handlers/SubagentToolHandler"
 import { SummarizeTaskHandler } from "./handlers/SummarizeTaskHandler"
 import { UseSkillToolHandler } from "./handlers/UseSkillToolHandler"
 
+import { FindToolsToolHandler } from "./handlers/FindToolsToolHandler"
 import { WriteToFileToolHandler } from "./handlers/WriteToFileToolHandler"
 import { AgentConfigLoader } from "./subagent/AgentConfigLoader"
 import { ToolValidator } from "./ToolValidator"
@@ -109,8 +110,7 @@ export class ToolExecutorCoordinator {
 		[DiracDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
 		[DiracDefaultTool.GET_TOOL_RESULT]: (_v: ToolValidator) => new GetToolResultToolHandler(),
 
-		// Handler implemented in Task 10 (adaptive MCP retrieval)
-		[DiracDefaultTool.FIND_TOOLS]: (_v: ToolValidator) => undefined,
+		[DiracDefaultTool.FIND_TOOLS]: (_v: ToolValidator) => new FindToolsToolHandler(),
 	}
 
 	/**
