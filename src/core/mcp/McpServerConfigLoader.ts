@@ -5,6 +5,7 @@ import { Logger } from "@/shared/services/Logger"
 
 import { pluginDiscoveryService } from "../plugins/PluginDiscoveryService"
 import type { McpServerConfig } from "./types"
+import { assertMcpUrlAllowed, shouldSendBearer } from "./urlSecurity"
 
 interface RawMcpJson {
 	mcpServers?: Record<
@@ -40,13 +41,24 @@ function serverTokenEnv(serverId: string): string {
 // `Authorization: Bearer <token>` from ISAAC_MCP_<ID>_TOKEN when set and no
 // Authorization header was declared. The token is never persisted (the tool
 // cache stores only a config hash + the tool list).
-function resolveHttpHeaders(serverId: string, raw?: Record<string, string>): Record<string, string> | undefined {
+function resolveHttpHeaders(serverId: string, url: string, raw?: Record<string, string>): Record<string, string> | undefined {
 	const headers: Record<string, string> = {}
 	for (const [k, v] of Object.entries(raw ?? {})) {
 		headers[k] = expandEnvVars(v)
 	}
 	const token = process.env[serverTokenEnv(serverId)]?.trim()
 	const hasAuth = Object.keys(headers).some((k) => k.toLowerCase() === "authorization")
+	// Token-gate: a bearer credential (injected from env OR declared in .mcp.json)
+	// must not leave the machine in cleartext. Fail closed — skip the server
+	// rather than silently leak the token to an insecure public endpoint.
+	if ((token && !hasAuth) || hasAuth) {
+		if (!shouldSendBearer(url)) {
+			throw new Error(
+				`refusing to send Authorization over insecure channel to ${url} ` +
+					`(use https, a private/loopback/Tailscale host, or add the host to ISAAC_MCP_ALLOW_HOSTS)`,
+			)
+		}
+	}
 	if (token && !hasAuth) {
 		headers.Authorization = `Bearer ${token}`
 	}
@@ -86,15 +98,47 @@ export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 			const kind = server.type ?? "stdio"
 			if (kind !== "stdio" && kind !== "http") continue
 
-			// Validate required fields per transport before claiming the id, so an
-			// invalid entry doesn't shadow a valid same-id server from a later plugin.
-			if (kind === "stdio" && !server.command) {
-				Logger.warn(`[mcp] Server "${serverId}" in plugin ${plugin.manifest.name} has no command, skipping`)
-				continue
-			}
-			if (kind === "http" && !server.url) {
-				Logger.warn(`[mcp] HTTP server "${serverId}" in plugin ${plugin.manifest.name} has no url, skipping`)
-				continue
+			// Validate + resolve per transport BEFORE claiming the id, so an invalid
+			// or security-rejected entry doesn't shadow a valid same-id server from a
+			// later plugin (mirrors the dedupe-by-id contract below).
+			const pluginRoot = plugin.rootDir
+			let resolved: McpServerConfig | null = null
+
+			if (kind === "stdio") {
+				if (!server.command) {
+					Logger.warn(`[mcp] Server "${serverId}" in plugin ${plugin.manifest.name} has no command, skipping`)
+					continue
+				}
+				resolved = {
+					id: serverId,
+					pluginName: plugin.manifest.name,
+					pluginRoot,
+					type: "stdio",
+					command: expandPluginRoot(server.command, pluginRoot),
+					args: (server.args ?? []).map((a) => expandPluginRoot(a, pluginRoot)),
+				}
+			} else {
+				if (!server.url) {
+					Logger.warn(`[mcp] HTTP server "${serverId}" in plugin ${plugin.manifest.name} has no url, skipping`)
+					continue
+				}
+				const url = expandEnvVars(server.url)
+				// SSRF guard: refuse cloud-metadata endpoints (unless allowlisted).
+				const verdict = assertMcpUrlAllowed(url)
+				if (!verdict.ok) {
+					Logger.warn(`[mcp] HTTP server "${serverId}" in plugin ${plugin.manifest.name}: ${verdict.reason}, skipping`)
+					continue
+				}
+				let headers: Record<string, string> | undefined
+				try {
+					headers = resolveHttpHeaders(serverId, url, server.headers)
+				} catch (e) {
+					Logger.warn(
+						`[mcp] HTTP server "${serverId}" in plugin ${plugin.manifest.name}: ${(e as Error).message}, skipping`,
+					)
+					continue
+				}
+				resolved = { id: serverId, pluginName: plugin.manifest.name, pluginRoot, type: "http", url, headers }
 			}
 
 			const dupOwner = seenServers.get(serverId)
@@ -105,27 +149,7 @@ export async function loadMcpConfigsFromPlugins(): Promise<McpServerConfig[]> {
 				continue
 			}
 			seenServers.set(serverId, plugin.manifest.name)
-
-			const pluginRoot = plugin.rootDir
-			if (kind === "http") {
-				configs.push({
-					id: serverId,
-					pluginName: plugin.manifest.name,
-					pluginRoot,
-					type: "http",
-					url: expandEnvVars(server.url!),
-					headers: resolveHttpHeaders(serverId, server.headers),
-				})
-			} else {
-				configs.push({
-					id: serverId,
-					pluginName: plugin.manifest.name,
-					pluginRoot,
-					type: "stdio",
-					command: expandPluginRoot(server.command!, pluginRoot),
-					args: (server.args ?? []).map((a) => expandPluginRoot(a, pluginRoot)),
-				})
-			}
+			configs.push(resolved)
 		}
 	}
 

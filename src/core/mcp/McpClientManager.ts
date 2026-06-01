@@ -10,6 +10,7 @@ import { Logger } from "../../shared/services/Logger"
 import { loadMcpConfigsFromPlugins } from "./McpServerConfigLoader"
 import type { ConnectedClient, McpServerConfig, McpToolMetadata, McpToolResult } from "./types"
 import { makeQualifiedToolName } from "./types"
+import { assertMcpUrlAllowed } from "./urlSecurity"
 
 export interface McpLoadFilter {
 	enabledServers?: string[]
@@ -118,6 +119,10 @@ class McpClientManager {
 
 		let transport: Parameters<Client["connect"]>[0]
 		if (cfg.type === "http") {
+			// Defense-in-depth: the loader already enforces this, but re-check at
+			// connect time in case a config reached us through another path.
+			const verdict = assertMcpUrlAllowed(cfg.url)
+			if (!verdict.ok) throw new Error(`MCP server "${serverId}": ${verdict.reason}`)
 			// Dynamic import so the streamableHttp module (and its ESM-only
 			// eventsource-parser dep) is pulled in only when an HTTP server connects.
 			// esbuild bundles it into the dist; the MCP unit tests run under vitest

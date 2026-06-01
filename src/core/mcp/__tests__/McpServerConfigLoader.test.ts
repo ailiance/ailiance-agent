@@ -5,6 +5,7 @@ import path from "path"
 import { afterEach, beforeEach, describe, it } from "vitest"
 
 import type { DiscoveredPlugin } from "../../plugins/PluginDiscoveryService"
+import type { McpStdioServerConfig } from "../types"
 
 // We test loadMcpConfigsFromPlugins by patching pluginDiscoveryService.discover()
 // to return fake plugins pointing at a tmpdir, without touching the real ~/.claude/plugins.
@@ -83,8 +84,8 @@ describe("McpServerConfigLoader", () => {
 		expect(result[0].id).to.equal("my-server")
 		expect(result[0].pluginName).to.equal("plugin-with-mcp")
 		expect(result[0].type).to.equal("stdio")
-		expect(result[0].command).to.equal("/usr/bin/node")
-		expect(result[0].args).to.deep.equal(["server.js", "--port", "3000"])
+		expect((result[0] as McpStdioServerConfig).command).to.equal("/usr/bin/node")
+		expect((result[0] as McpStdioServerConfig).args).to.deep.equal(["server.js", "--port", "3000"])
 
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
 	})
@@ -105,7 +106,7 @@ describe("McpServerConfigLoader", () => {
 		const context7s = result.filter((c) => c.id === "context7")
 		expect(context7s).to.have.length(1)
 		expect(context7s[0].pluginName).to.equal("plugin-a") // first declarer wins
-		expect(context7s[0].args).to.deep.equal(["-y", "@upstash/context7-mcp@2.1.4"])
+		expect((context7s[0] as McpStdioServerConfig).args).to.deep.equal(["-y", "@upstash/context7-mcp@2.1.4"])
 
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
 	})
@@ -131,8 +132,8 @@ describe("McpServerConfigLoader", () => {
 		const { loadMcpConfigsFromPlugins } = loaderModule
 		const result = await loadMcpConfigsFromPlugins()
 		expect(result).to.have.length(1)
-		expect(result[0].command).to.equal(`${fakePlugin.rootDir}/bin/server`)
-		expect(result[0].args).to.deep.equal([`--root`, `${fakePlugin.rootDir}/data`])
+		expect((result[0] as McpStdioServerConfig).command).to.equal(`${fakePlugin.rootDir}/bin/server`)
+		expect((result[0] as McpStdioServerConfig).args).to.deep.equal([`--root`, `${fakePlugin.rootDir}/data`])
 
 		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
 	})
@@ -242,6 +243,68 @@ describe("McpServerConfigLoader", () => {
 		} finally {
 			delete process.env.MCP_HOST
 			delete process.env.MCP_KEY
+			;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+		}
+	})
+
+	it("skips an http server pointing at a cloud-metadata endpoint (SSRF guard)", async () => {
+		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-ssrf", "1.0.0", { name: "plugin-ssrf" })
+		await fs.writeFile(
+			path.join(fakePlugin.rootDir, ".mcp.json"),
+			JSON.stringify({
+				mcpServers: { evil: { type: "http", url: "http://169.254.169.254/latest/meta-data/" } },
+			}),
+		)
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
+
+		const { loadMcpConfigsFromPlugins } = loaderModule
+		const result = await loadMcpConfigsFromPlugins()
+		expect(result).to.have.length(0)
+
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+	})
+
+	it("skips an http server when a bearer token would leak over cleartext to a public host (token-gate)", async () => {
+		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-tokengate", "1.0.0", { name: "plugin-tokengate" })
+		await fs.writeFile(
+			path.join(fakePlugin.rootDir, ".mcp.json"),
+			JSON.stringify({
+				mcpServers: { pub: { type: "http", url: "http://api.public.example/mcp" } },
+			}),
+		)
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
+
+		process.env.ISAAC_MCP_PUB_TOKEN = "secret-token"
+		try {
+			const { loadMcpConfigsFromPlugins } = loaderModule
+			const result = await loadMcpConfigsFromPlugins()
+			expect(result).to.have.length(0)
+		} finally {
+			delete process.env.ISAAC_MCP_PUB_TOKEN
+			;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
+		}
+	})
+
+	it("injects the bearer token for a private host over http (token-gate allows)", async () => {
+		const fakePlugin = await createFakePlugin(tmpDir, "owner", "plugin-localtoken", "1.0.0", { name: "plugin-localtoken" })
+		await fs.writeFile(
+			path.join(fakePlugin.rootDir, ".mcp.json"),
+			JSON.stringify({
+				mcpServers: { loc: { type: "http", url: "http://127.0.0.1:8765/mcp" } },
+			}),
+		)
+		;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => [fakePlugin]
+
+		process.env.ISAAC_MCP_LOC_TOKEN = "local-token"
+		try {
+			const { loadMcpConfigsFromPlugins } = loaderModule
+			const result = await loadMcpConfigsFromPlugins()
+			expect(result).to.have.length(1)
+			expect((result[0] as { headers?: Record<string, string> }).headers).to.deep.equal({
+				Authorization: "Bearer local-token",
+			})
+		} finally {
+			delete process.env.ISAAC_MCP_LOC_TOKEN
 			;(pluginDiscoveryModule.pluginDiscoveryService as any).discover = async () => []
 		}
 	})
