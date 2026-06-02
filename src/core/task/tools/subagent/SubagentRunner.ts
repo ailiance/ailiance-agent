@@ -1,8 +1,11 @@
 import * as path from "node:path"
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 import type { ApiHandler, buildApiHandler } from "@core/api"
 import { parseAssistantMessageV2, ToolParamName, ToolUse } from "@core/assistant-message"
 import { getOrDiscoverSkills } from "@core/context/instructions/user-instructions/skills"
+import { getActiveMcpToolSet } from "@core/mcp/retrieval/session"
 import { formatResponse } from "@core/prompts/responses"
 import { PromptRegistry } from "@core/prompts/system-prompt"
 import type { SystemPromptContext } from "@core/prompts/system-prompt/types"
@@ -16,13 +19,13 @@ import { getContextWindowInfo } from "@/core/context/context-management/context-
 import { HostRegistryInfo } from "@/registry"
 import { DiracError, DiracErrorType } from "@/services/error"
 import { calculateApiCostAnthropic } from "@/utils/cost"
+import { TOOL_EXAMPLES } from "../../../prompts/tool-examples"
 import { TaskState } from "../../TaskState"
+import { excerpt } from "../../utils/excerpt"
 import { ToolExecutorCoordinator } from "../ToolExecutorCoordinator"
 import { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import { SubagentBuilder } from "./SubagentBuilder"
-import { excerpt } from "../../utils/excerpt"
-import { TOOL_EXAMPLES } from "../../../prompts/tool-examples"
 
 const MAX_EMPTY_ASSISTANT_RETRIES = 3
 const MAX_INITIAL_STREAM_ATTEMPTS = 3
@@ -368,6 +371,7 @@ export class SubagentRunner {
 				yoloModeToggled: false,
 				enableParallelToolCalling: false,
 				isSubagentRun: true,
+				activeMcpTools: getActiveMcpToolSet()?.snapshot(),
 				isMultiRootEnabled: this.baseConfig.isMultiRootEnabled,
 				workspaceRoots: this.baseConfig.workspaceManager?.getRoots().map((root) => ({
 					path: root.path,
@@ -436,7 +440,7 @@ ${partialResult}`
 									type: "text",
 									text: workspaceMetadataEnvironmentBlock,
 								} as DiracTextContentBlock,
-						  ]
+							]
 						: []),
 				],
 			})
@@ -863,7 +867,9 @@ ${partialResult}`
 				...baseCallbacks,
 				say: async () => undefined,
 				sayAndCreateMissingParamError: async (_toolName, paramName) =>
-					formatResponse.toolError(formatResponse.missingToolParameterError(paramName, TOOL_EXAMPLES[_toolName as DiracDefaultTool])),
+					formatResponse.toolError(
+						formatResponse.missingToolParameterError(paramName, TOOL_EXAMPLES[_toolName as DiracDefaultTool]),
+					),
 				executeCommandTool: async (command: string, timeoutSeconds: number | undefined) => {
 					this.activeCommandExecutions += 1
 					try {
@@ -929,7 +935,6 @@ ${partialResult}`
 			conversationHistoryDeletedRange: updatedDeletedRange,
 		}
 	}
-
 
 	private shouldCompactBeforeNextRequest(
 		requestTotalTokens: number,

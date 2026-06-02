@@ -9,6 +9,7 @@ import { DiagnosticsScanToolHandler } from "./handlers/DiagnosticsScanToolHandle
 import { EditFileToolHandler } from "./handlers/EditFileToolHandler"
 import { ExecuteCommandToolHandler } from "./handlers/ExecuteCommandToolHandler"
 import { FindSymbolReferencesToolHandler } from "./handlers/FindSymbolReferencesToolHandler"
+import { FindToolsToolHandler } from "./handlers/FindToolsToolHandler"
 import { GenerateExplanationToolHandler } from "./handlers/GenerateExplanationToolHandler"
 import { GetFileSkeletonToolHandler } from "./handlers/GetFileSkeletonToolHandler"
 import { GetFunctionToolHandler } from "./handlers/GetFunctionToolHandler"
@@ -25,7 +26,6 @@ import { SearchFilesToolHandler } from "./handlers/SearchFilesToolHandler"
 import { UseSubagentsToolHandler } from "./handlers/SubagentToolHandler"
 import { SummarizeTaskHandler } from "./handlers/SummarizeTaskHandler"
 import { UseSkillToolHandler } from "./handlers/UseSkillToolHandler"
-
 import { WriteToFileToolHandler } from "./handlers/WriteToFileToolHandler"
 import { AgentConfigLoader } from "./subagent/AgentConfigLoader"
 import { ToolValidator } from "./ToolValidator"
@@ -108,6 +108,8 @@ export class ToolExecutorCoordinator {
 		[DiracDefaultTool.LIST_SKILLS]: (_v: ToolValidator) => new ListSkillsToolHandler(),
 		[DiracDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
 		[DiracDefaultTool.GET_TOOL_RESULT]: (_v: ToolValidator) => new GetToolResultToolHandler(),
+
+		[DiracDefaultTool.FIND_TOOLS]: (_v: ToolValidator) => new FindToolsToolHandler(),
 	}
 
 	/**

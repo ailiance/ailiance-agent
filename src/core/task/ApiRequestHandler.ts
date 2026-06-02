@@ -12,6 +12,7 @@ import {
 	getLocalWindsurfRules,
 	refreshExternalRulesToggles,
 } from "@core/context/instructions/user-instructions/external-rules"
+import { getActiveMcpToolSet } from "@core/mcp/retrieval/session"
 import { formatResponse } from "@core/prompts/responses"
 import type { SystemPromptContext } from "@core/prompts/system-prompt"
 import { getSystemPrompt } from "@core/prompts/system-prompt"
@@ -206,6 +207,7 @@ export class ApiRequestHandler {
 			availableCores: getAvailableCores(),
 			shouldCompact,
 			userPromptText: firstUserPromptText,
+			activeMcpTools: getActiveMcpToolSet()?.snapshot(),
 		}
 
 		// Notify user if any conditional rules were applied for this request
@@ -425,9 +427,7 @@ ${notice}`
 						// For permanent client errors, mark attempt=1 to signal
 						// "fail-fast, no retries attempted" so the UI does not
 						// claim 3 retries were tried.
-						const finalAttempt = isPermanentClientError
-							? this.taskState.autoRetryAttempts + 1
-							: 3
+						const finalAttempt = isPermanentClientError ? this.taskState.autoRetryAttempts + 1 : 3
 						await this.ctx.say(
 							"error_retry",
 							JSON.stringify({

@@ -67,13 +67,15 @@ export function convertJsonSchemaToParams(inputSchema: object): NonNullable<Dira
  * Uses qualifiedName as both id and name so the LLM calls the tool by its full qualified name.
  */
 export function mcpToolToSpec(tool: McpToolMetadata): DiracToolSpec {
+	const qualifiedName = tool.qualifiedName
 	return {
 		// Cast is intentional: MCP tools use dynamic qualified names, not enum values.
 		// The same pattern is used in McpToolHandler.
-		id: tool.qualifiedName as DiracDefaultTool,
-		name: tool.qualifiedName,
+		id: qualifiedName as DiracDefaultTool,
+		name: qualifiedName,
 		description: tool.description ?? `MCP tool from plugin ${tool.pluginName}`,
 		parameters: convertJsonSchemaToParams(tool.inputSchema),
+		contextRequirements: (ctx) => ctx.activeMcpTools === undefined || ctx.activeMcpTools.has(qualifiedName),
 	}
 }
 
@@ -105,7 +107,10 @@ function readMcpSettings(): {
 	const envServersRaw = process.env.AILIANCE_MCP_SERVERS
 	const envEnabled =
 		envServersRaw !== undefined
-			? envServersRaw.split(",").map((s) => s.trim()).filter(Boolean)
+			? envServersRaw
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean)
 			: undefined
 	const noMcp =
 		["1", "true", "yes"].includes((process.env.AILIANCE_NO_MCP ?? "").toLowerCase()) ||
@@ -153,6 +158,30 @@ export async function initializeMcpForTask(
 
 		if (tools.length > 0) {
 			Logger.info(`MCP: registered ${tools.length} tool(s) from plugins`)
+		}
+
+		// Adaptive retrieval: build the vector index and publish a session active set.
+		const { ActiveMcpToolSet } = await import("./retrieval/ActiveMcpToolSet")
+		const { getRetrievalConfig } = await import("./retrieval/config")
+		const { setActiveMcpToolSet } = await import("./retrieval/session")
+		try {
+			const { createDefaultEmbedder } = await import("./retrieval/Embedder")
+			const { ToolVectorIndex } = await import("./retrieval/ToolVectorIndex")
+			const os = await import("os")
+			const path = await import("path")
+			const cachePath = path.join(os.homedir(), ".dirac", "mcp-tool-vectors.json")
+			const embedder = createDefaultEmbedder()
+			const index = await new ToolVectorIndex(embedder, cachePath).build(
+				tools.map((t) => ({ qualifiedName: t.qualifiedName, text: `${t.qualifiedName}\n${t.description ?? ""}` })),
+			)
+			setActiveMcpToolSet(new ActiveMcpToolSet(embedder, index, getRetrievalConfig()))
+		} catch (err) {
+			Logger.warn("MCP adaptive retrieval unavailable; running native-only:", err)
+			const { Embedder } = await import("./retrieval/Embedder")
+			const dead = new Embedder(async () => {
+				throw new Error("embedder unavailable")
+			})
+			setActiveMcpToolSet(new ActiveMcpToolSet(dead, new Map(), getRetrievalConfig()))
 		}
 
 		return tools

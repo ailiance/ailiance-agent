@@ -66,6 +66,8 @@ program
 		"Comma-separated allowlist of plugin MCP servers to load (e.g. github,context7); only these load this run",
 	)
 	.option("--no-mcp", "Disable all plugin MCP servers for this run (smaller prompt, faster on big-context backends)")
+	.option("--mcp-top-k <n>", "Max MCP tools to preload by relevance (default 8)")
+	.option("--mcp-threshold <t>", "Min cosine similarity to preload an MCP tool (default 0.3)")
 	.action(async (prompt, options) => {
 		// Per-run MCP control. Commander sets options.mcp = false for --no-mcp,
 		// or the string list for --mcp <servers>. Surfaced to the core MCP
@@ -74,6 +76,12 @@ program
 			process.env.AILIANCE_NO_MCP = "1"
 		} else if (typeof options.mcp === "string") {
 			process.env.AILIANCE_MCP_SERVERS = options.mcp
+		}
+		if (typeof options.mcpTopK === "string") {
+			process.env.AILIANCE_MCP_TOP_K = options.mcpTopK
+		}
+		if (typeof options.mcpThreshold === "string") {
+			process.env.AILIANCE_MCP_THRESHOLD = options.mcpThreshold
 		}
 		const { runTask } = await import("./commands/task")
 		const { resumeTask } = await import("./commands/resume")
@@ -288,6 +296,8 @@ program
 		"Comma-separated allowlist of plugin MCP servers to load (e.g. github,context7); only these load this run",
 	)
 	.option("--no-mcp", "Disable all plugin MCP servers for this run (smaller prompt, faster on big-context backends)")
+	.option("--mcp-top-k <n>", "Max MCP tools to preload by relevance (default 8)")
+	.option("--mcp-threshold <t>", "Min cosine similarity to preload an MCP tool (default 0.3)")
 	.action(async (prompt, options) => {
 		// Per-run MCP control (mirrors the `task` command): surfaced to the core
 		// MCP bootstrap via env so no global config is touched.
@@ -295,6 +305,12 @@ program
 			process.env.AILIANCE_NO_MCP = "1"
 		} else if (typeof options.mcp === "string") {
 			process.env.AILIANCE_MCP_SERVERS = options.mcp
+		}
+		if (typeof options.mcpTopK === "string") {
+			process.env.AILIANCE_MCP_TOP_K = options.mcpTopK
+		}
+		if (typeof options.mcpThreshold === "string") {
+			process.env.AILIANCE_MCP_THRESHOLD = options.mcpThreshold
 		}
 		// ailiance-agent fork: kanban path removed.
 		const { printWarning } = await import("./utils/display")

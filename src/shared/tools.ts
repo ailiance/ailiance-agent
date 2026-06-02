@@ -36,6 +36,8 @@ export enum DiracDefaultTool {
 	// Sprint 2 — async tool result lookup. Fetches the result of a
 	// previously-dispatched long-running tool by task_id.
 	GET_TOOL_RESULT = "get_tool_result",
+
+	FIND_TOOLS = "find_tools",
 }
 
 // Array of all tool names for compatibility

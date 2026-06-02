@@ -8,7 +8,9 @@ import { ModelContextTracker } from "@core/context/context-tracking/ModelContext
 import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
 import { initializeMcpForTask } from "@core/mcp/bootstrap"
 import { mcpClientManager } from "@core/mcp/McpClientManager"
+import { clearActiveMcpToolSet, getActiveMcpToolSet } from "@core/mcp/retrieval/session"
 import { CommandPermissionController } from "@core/permissions"
+import { getSavedApiConversationHistory } from "@core/storage/disk"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { HostProvider } from "@hosts/host-provider"
 import { ICheckpointManager } from "@integrations/checkpoints/types"
@@ -517,11 +519,70 @@ export class Task {
 		// on its first request. Failures are swallowed — ailiance-agent must work
 		// without plugins.
 		await initializeMcpForTask(this.toolExecutor)
+		// Adaptive MCP retrieval: seed the session active set from the first
+		// user task text so the prompt-context gate can filter MCP tools down
+		// to the relevant subset. Best-effort — must not block task start.
+		const _mcpActiveSet = getActiveMcpToolSet()
+		if (_mcpActiveSet && typeof task === "string" && task.length > 0) {
+			await _mcpActiveSet.seed(task)
+		}
 		return this.lifecycleManager.startTask(task, images, files)
 	}
 
 	public async resumeTaskFromHistory() {
+		// Mirror startTask: the resume path must (re)publish MCP tool specs +
+		// a fresh session active set, otherwise getActiveMcpToolSet() returns
+		// undefined (or a stale set from a prior task in a long-lived process)
+		// and the prompt-context gate floods the prompt with every MCP spec
+		// still registered in the process-global DiracToolSet. Re-init is cheap
+		// (re-lists + re-publishes; the vector index is disk-cached).
+		await initializeMcpForTask(this.toolExecutor)
+		// Seed the active set from the resumed conversation's first user message
+		// so retrieval filters MCP tools down to the relevant subset. Best-effort.
+		const _mcpActiveSet = getActiveMcpToolSet()
+		if (_mcpActiveSet) {
+			const firstUserText = await this.extractFirstUserTextFromHistory()
+			if (firstUserText) {
+				await _mcpActiveSet.seed(firstUserText)
+			}
+		}
 		return this.lifecycleManager.resumeTaskFromHistory()
+	}
+
+	/**
+	 * Best-effort extraction of the first user message text from the saved API
+	 * conversation history, used to seed the adaptive MCP retrieval active set
+	 * on resume. Mirrors the extraction in ApiRequestHandler. Returns undefined
+	 * if the history is unreadable or contains no user text.
+	 */
+	private async extractFirstUserTextFromHistory(): Promise<string | undefined> {
+		try {
+			const history = await getSavedApiConversationHistory(this.taskId)
+			const firstUser = history.find((m) => m.role === "user")
+			if (!firstUser) {
+				return undefined
+			}
+			const content: unknown = firstUser.content
+			if (typeof content === "string") {
+				return content.length > 0 ? content : undefined
+			}
+			if (Array.isArray(content)) {
+				const parts: string[] = []
+				for (const block of content) {
+					if (block && typeof block === "object" && (block as { type?: unknown }).type === "text") {
+						const text = (block as { text?: unknown }).text
+						if (typeof text === "string") {
+							parts.push(text)
+						}
+					}
+				}
+				return parts.length > 0 ? parts.join(" ") : undefined
+			}
+			return undefined
+		} catch {
+			// best-effort — resume must never break on a missing/corrupt history
+			return undefined
+		}
 	}
 
 	private async initiateTaskLoop(userContent: DiracContent[]): Promise<void> {
@@ -550,6 +611,14 @@ export class Task {
 		// Disconnect MCP servers; no-op if none were connected.
 		mcpClientManager.disconnectAll().catch((_err) => {
 			// non-fatal — MCP cleanup must never block abort
+		})
+		// Clear the process-global adaptive-retrieval active set so the previous
+		// task's selection cannot leak into the next task's first request. We
+		// publish an EMPTY set (not undefined) so the gate emits zero MCP tools
+		// in the between-tasks window; fire-and-forget since it only constructs
+		// objects (no async work runs).
+		clearActiveMcpToolSet().catch((_err) => {
+			// non-fatal — retrieval cleanup must never block abort
 		})
 		return this.lifecycleManager.abortTask()
 	}
