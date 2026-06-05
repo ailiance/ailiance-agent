@@ -3,17 +3,19 @@ import { resolveWorkspacePath } from "@core/workspace"
 import { ASTAnchorBridge } from "@utils/ASTAnchorBridge"
 import { getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool } from "@/core/prompts/system-prompt/tool-unit"
+import { get_function } from "@/core/prompts/system-prompt/tools/get_function"
 import { telemetryService } from "@/services/telemetry"
-import { IsaacDefaultTool } from "@/shared/tools"
 import { IsaacAssistantToolUseBlock, IsaacStorageMessage, IsaacUserToolResultContentBlock } from "@/shared/messages"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
+import { coerceFirstStringArray, coerceToStringArray } from "../utils/coerceArray"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
-import { coerceToStringArray, coerceFirstStringArray } from "../utils/coerceArray"
 
 export class GetFunctionToolHandler implements IFullyManagedTool {
 	readonly name = IsaacDefaultTool.GET_FUNCTION
@@ -55,7 +57,7 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 		}
 	}
 
-		private extractLastKnownHashFromHistory(
+	private extractLastKnownHashFromHistory(
 		history: IsaacStorageMessage[],
 		targetPath: string,
 		functionName: string,
@@ -73,7 +75,9 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 						const hasPathMatch =
 							input?.path === targetPath || (Array.isArray(input?.paths) && input.paths.includes(targetPath))
 						const hasFunctionMatch =
-							input?.function_names && Array.isArray(input.function_names) && input.function_names.includes(functionName)
+							input?.function_names &&
+							Array.isArray(input.function_names) &&
+							input.function_names.includes(functionName)
 
 						if (toolUseBlock.name === this.name && hasPathMatch && hasFunctionMatch) {
 							const toolUseId = toolUseBlock.id
@@ -83,7 +87,8 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 							if (nextMessage && nextMessage.role === "user" && Array.isArray(nextMessage.content)) {
 								const resultBlock = nextMessage.content.find(
 									(c: any) =>
-										c.type === "tool_result" && (c as unknown as IsaacUserToolResultContentBlock).tool_use_id === toolUseId,
+										c.type === "tool_result" &&
+										(c as unknown as IsaacUserToolResultContentBlock).tool_use_id === toolUseId,
 								)
 
 								if (resultBlock && resultBlock.type === "tool_result") {
@@ -118,8 +123,7 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 		return undefined
 	}
 
-
-		async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
+	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = coerceFirstStringArray(block.params.paths, block.params.path)
 		const functionNames = coerceToStringArray(block.params.function_names)
 
@@ -170,7 +174,9 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 							const lastKnownHash = this.extractLastKnownHashFromHistory(history, relPath, functionName)
 
 							if (currentHash && lastKnownHash === currentHash) {
-								processedFuncs.push(`${firstLine}\nno changes have been made to the function since your last read (Hash: ${currentHash})`)
+								processedFuncs.push(
+									`${firstLine}\nno changes have been made to the function since your last read (Hash: ${currentHash})`,
+								)
 							} else {
 								processedFuncs.push(funcContent)
 							}
@@ -278,3 +284,18 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 		return finalResult
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `get_function`. Co-locates the prompt spec with
+ * the handler factory and the read-only flag, exposing the drift-detecting typed
+ * link between spec params and the handler. This tool only has array params
+ * (`paths`, `function_names`), read via `coerceFirstStringArray`/
+ * `coerceToStringArray`; no scalar `readParam` call applies. Coexists with the
+ * legacy registration paths (no cutover yet).
+ */
+export const get_function_unit = defineTool({
+	id: IsaacDefaultTool.GET_FUNCTION,
+	spec: get_function,
+	readonly: true,
+	createHandler: (validator: unknown) => new GetFunctionToolHandler(validator as ToolValidator),
+})

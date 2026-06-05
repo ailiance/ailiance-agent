@@ -1,9 +1,10 @@
 import { IsaacDefaultTool } from "@/shared/tools"
 import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
 const id = IsaacDefaultTool.SEARCH
 
-export const search_files: IsaacToolSpec = {
+export const search_files = {
 	id,
 	name: "search_files",
 	description:
@@ -36,4 +37,11 @@ export const search_files: IsaacToolSpec = {
 			usage: "2",
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * The handler reads scalar params through these names; a rename/removal of a
+ * spec parameter changes this union and breaks the handler compile (kills drift).
+ */
+export type SearchFilesParam = ParamNames<typeof search_files>

@@ -6,6 +6,8 @@ import { stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import * as path from "path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool, readParam } from "@/core/prompts/system-prompt/tool-unit"
+import { search_files } from "@/core/prompts/system-prompt/tools/search_files"
 import { parseWorkspaceInlinePath } from "@/core/workspace/utils/parseWorkspaceInlinePath"
 import { WorkspacePathAdapter } from "@/core/workspace/WorkspacePathAdapter"
 import { resolveWorkspacePath } from "@/core/workspace/WorkspaceResolver"
@@ -20,8 +22,8 @@ import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
-import { ToolResultUtils } from "../utils/ToolResultUtils"
 import { coerceFirstStringArray } from "../utils/coerceArray"
+import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 // Sprint 2 — task D: async-by-default search_files. Mirrors S2-C
 // (ExecuteCommandToolHandler): if ripgrep finishes within ASYNC_FAST_PATH_MS
@@ -240,9 +242,11 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = this.getRelPaths(block.params)
-		const regex: string | undefined = block.params.regex
-		const filePattern: string | undefined = block.params.file_pattern
-		const contextLines = Number.parseInt(block.params.context_lines || "0", 10)
+		// Lot E: read scalar params through the typed contract derived from the
+		// spec. Renaming any of these in the spec breaks this handler's compile.
+		const regex: string | undefined = readParam(search_files_unit, block.params, "regex")
+		const filePattern: string | undefined = readParam(search_files_unit, block.params, "file_pattern")
+		const contextLines = Number.parseInt(readParam(search_files_unit, block.params, "context_lines") || "0", 10)
 
 		// Extract provider information for telemetry
 		const apiConfig = config.services.stateManager.getApiConfiguration()
@@ -653,3 +657,16 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		return results
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `search_files`. Co-locates the prompt spec with
+ * the handler factory and the read-only flag, exposing the drift-detecting typed
+ * link between spec params and the handler. Coexists with the legacy
+ * registration paths (no cutover yet).
+ */
+export const search_files_unit = defineTool({
+	id: IsaacDefaultTool.SEARCH,
+	spec: search_files,
+	readonly: true,
+	createHandler: (validator: unknown) => new SearchFilesToolHandler(validator as ToolValidator),
+})

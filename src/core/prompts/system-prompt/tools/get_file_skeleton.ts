@@ -1,9 +1,10 @@
 import { IsaacDefaultTool } from "@/shared/tools"
 import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
 const id = IsaacDefaultTool.GET_FILE_SKELETON
 
-export const get_file_skeleton: IsaacToolSpec = {
+export const get_file_skeleton = {
 	id,
 	name: "get_file_skeleton",
 	description:
@@ -18,4 +19,11 @@ export const get_file_skeleton: IsaacToolSpec = {
 			usage: '["src/utils/math.ts", "src/utils/string.py"]',
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * A rename/removal of a spec parameter changes this union and breaks any
+ * handler that reads params through the typed contract (kills drift).
+ */
+export type GetFileSkeletonParam = ParamNames<typeof get_file_skeleton>

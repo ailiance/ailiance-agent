@@ -1,19 +1,19 @@
-import * as fs from "fs/promises"
-import { getReadablePath, isLocatedInWorkspace } from "@/utils/path"
-import { arePathsEqual } from "@/utils/path"
 import { ToolUse } from "@core/assistant-message"
-import { HostProvider } from "@/hosts/host-provider"
 import { resolveWorkspacePath } from "@core/workspace"
+import * as fs from "fs/promises"
+import { defineTool } from "@/core/prompts/system-prompt/tool-unit"
+import { diagnostics_scan } from "@/core/prompts/system-prompt/tools/diagnostics_scan"
+import { HostProvider } from "@/hosts/host-provider"
+import { telemetryService } from "@/services/telemetry"
 import { Diagnostic, DiagnosticSeverity, FileDiagnostics } from "@/shared/proto/index.isaac"
 import { IsaacDefaultTool } from "@/shared/tools"
-import { telemetryService } from "@/services/telemetry"
-
+import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@/utils/path"
 import { ToolResponse } from "../../index"
 import { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import { ToolValidator } from "../ToolValidator"
-import { coerceToStringArray } from "../utils/coerceArray"
 import { TaskConfig } from "../types/TaskConfig"
 import { StronglyTypedUIHelpers } from "../types/UIHelpers"
+import { coerceToStringArray } from "../utils/coerceArray"
 
 export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 	readonly name = IsaacDefaultTool.DIAGNOSTICS_SCAN
@@ -49,7 +49,7 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 		}
 	}
 
-		async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
+	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const validation = this.validator.assertRequiredParams(block, "paths")
 		if (!validation.ok) {
 			config.taskState.consecutiveMistakeCount++
@@ -72,9 +72,14 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 					const content = await fs.readFile(absolutePath, "utf8")
 					return { absolutePath, displayPath, content, error: undefined }
 				} catch (error) {
-					return { absolutePath, displayPath, content: "", error: error instanceof Error ? error.message : String(error) }
+					return {
+						absolutePath,
+						displayPath,
+						content: "",
+						error: error instanceof Error ? error.message : String(error),
+					}
 				}
-			})
+			}),
 		)
 
 		const errorResults = fileInfos.filter((f) => f.error).map((f) => `- file: ${f.displayPath}\n  error: ${f.error}`)
@@ -112,10 +117,14 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 
 			// Check if we found any diagnostics for the requested files
 			foundDiagnostics = validFiles.some((f) => {
-				const fileDiags = allDiagnostics.find((d) => arePathsEqual(d.filePath, f.displayPath) || arePathsEqual(d.filePath, f.absolutePath))
+				const fileDiags = allDiagnostics.find(
+					(d) => arePathsEqual(d.filePath, f.displayPath) || arePathsEqual(d.filePath, f.absolutePath),
+				)
 				return (
 					fileDiags?.diagnostics.some(
-						(d) => d.severity === DiagnosticSeverity.DIAGNOSTIC_ERROR || d.severity === DiagnosticSeverity.DIAGNOSTIC_WARNING
+						(d) =>
+							d.severity === DiagnosticSeverity.DIAGNOSTIC_ERROR ||
+							d.severity === DiagnosticSeverity.DIAGNOSTIC_WARNING,
 					) ?? false
 				)
 			})
@@ -129,10 +138,14 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 		}
 
 		const results = validFiles.map((f) => {
-			const fileDiags = allDiagnostics.find((d) => arePathsEqual(d.filePath, f.displayPath) || arePathsEqual(d.filePath, f.absolutePath))
+			const fileDiags = allDiagnostics.find(
+				(d) => arePathsEqual(d.filePath, f.displayPath) || arePathsEqual(d.filePath, f.absolutePath),
+			)
 			const allProblems =
 				fileDiags?.diagnostics.filter(
-					(d) => d.severity === DiagnosticSeverity.DIAGNOSTIC_ERROR || d.severity === DiagnosticSeverity.DIAGNOSTIC_WARNING
+					(d) =>
+						d.severity === DiagnosticSeverity.DIAGNOSTIC_ERROR ||
+						d.severity === DiagnosticSeverity.DIAGNOSTIC_WARNING,
 				) || []
 
 			if (allProblems.length === 0) {
@@ -215,8 +228,21 @@ export class DiagnosticsScanToolHandler implements IFullyManagedTool {
 			block.isNativeToolCall,
 		)
 
-
 		return finalResult
 	}
-
 }
+
+/**
+ * Lot E — unified tool unit for `diagnostics_scan`. Co-locates the prompt spec
+ * with the handler factory and the read-only flag, exposing the drift-detecting
+ * typed link between spec params and the handler. This tool only has the `paths`
+ * array param (read via `coerceToStringArray`); no scalar `readParam` call
+ * applies. diagnostics_scan runs linters without mutating the workspace, so it
+ * is read-only. Coexists with the legacy registration paths (no cutover yet).
+ */
+export const diagnostics_scan_unit = defineTool({
+	id: IsaacDefaultTool.DIAGNOSTICS_SCAN,
+	spec: diagnostics_scan,
+	readonly: true,
+	createHandler: (validator: unknown) => new DiagnosticsScanToolHandler(validator as ToolValidator),
+})

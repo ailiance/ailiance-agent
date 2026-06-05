@@ -2,6 +2,8 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { read_file } from "@core/prompts/system-prompt/tools/read_file"
 import { resolveWorkspacePath } from "@core/workspace"
 import { extractFileContent } from "@integrations/misc/extract-file-content"
 import { contentHash, hashLines, stripHashes } from "@utils/line-hashing"
@@ -92,8 +94,12 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = coerceToStringArray(block.params.paths)
-		const startLineNum = block.params.start_line ? Number.parseInt(String(block.params.start_line)) : undefined
-		const endLineNum = block.params.end_line ? Number.parseInt(String(block.params.end_line)) : undefined
+		// Lot E: read scalar pagination params through the typed contract derived
+		// from the spec. Renaming `start_line`/`end_line` in the spec breaks these.
+		const startLineRaw = readParam(read_file_unit, block.params, "start_line")
+		const endLineRaw = readParam(read_file_unit, block.params, "end_line")
+		const startLineNum = startLineRaw ? Number.parseInt(String(startLineRaw)) : undefined
+		const endLineNum = endLineRaw ? Number.parseInt(String(endLineRaw)) : undefined
 		const rawOffset = (block.params as any).offset
 		const rawLimit = (block.params as any).limit
 		const offsetNum = rawOffset !== undefined && rawOffset !== "" ? Number.parseInt(String(rawOffset)) : undefined
@@ -434,3 +440,16 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 		return finalResult
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `read_file`. Co-locates the prompt spec with the
+ * handler factory and the read-only flag, exposing the drift-detecting typed
+ * link between spec params and the handler. Coexists with the legacy
+ * init.ts / ToolExecutorCoordinator registration paths (no cutover yet).
+ */
+export const read_file_unit = defineTool({
+	id: IsaacDefaultTool.FILE_READ,
+	spec: read_file,
+	readonly: true,
+	createHandler: (validator: unknown) => new ReadFileToolHandler(validator as ToolValidator),
+})

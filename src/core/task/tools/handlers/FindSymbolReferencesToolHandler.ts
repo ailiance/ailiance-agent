@@ -6,6 +6,8 @@ import { getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool, readParam } from "@/core/prompts/system-prompt/tool-unit"
+import { find_symbol_references } from "@/core/prompts/system-prompt/tools/find_symbol_references"
 import { SymbolIndexService } from "@/services/symbol-index/SymbolIndexService"
 import { telemetryService } from "@/services/telemetry"
 import { IsaacDefaultTool } from "@/shared/tools"
@@ -15,8 +17,8 @@ import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
-import { ToolResultUtils } from "../utils/ToolResultUtils"
 import { coerceFirstStringArray } from "../utils/coerceArray"
+import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 export class FindSymbolReferencesToolHandler implements IFullyManagedTool {
 	readonly name = IsaacDefaultTool.FIND_SYMBOL_REFERENCES
@@ -63,7 +65,10 @@ export class FindSymbolReferencesToolHandler implements IFullyManagedTool {
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = coerceFirstStringArray(block.params.paths, block.params.path)
 		const symbols = coerceFirstStringArray(block.params.symbols, block.params.symbol)
-		const findType = (block.params.find_type as "definition" | "reference" | "both") || "both"
+		// Lot E: read the scalar `find_type` param through the typed contract
+		// derived from the spec. Renaming it in the spec breaks this compile.
+		const findType =
+			(readParam(find_symbol_references_unit, block.params, "find_type") as "definition" | "reference" | "both") || "both"
 
 		const apiConfig = config.services.stateManager.getApiConfiguration()
 		const currentMode = config.services.stateManager.getGlobalSettingsKey("mode")
@@ -285,3 +290,17 @@ export class FindSymbolReferencesToolHandler implements IFullyManagedTool {
 		return result
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `find_symbol_references`. Co-locates the prompt
+ * spec with the handler factory and the read-only flag, exposing the
+ * drift-detecting typed link between spec params and the handler. The handler
+ * reads the scalar `find_type` param through the typed contract. Coexists with
+ * the legacy registration paths (no cutover yet).
+ */
+export const find_symbol_references_unit = defineTool({
+	id: IsaacDefaultTool.FIND_SYMBOL_REFERENCES,
+	spec: find_symbol_references,
+	readonly: true,
+	createHandler: (validator: unknown) => new FindSymbolReferencesToolHandler(validator as ToolValidator),
+})
