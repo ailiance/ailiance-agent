@@ -4,6 +4,7 @@ import { defineTool } from "@core/prompts/system-prompt/tool-unit"
 import { edit_file } from "@core/prompts/system-prompt/tools/edit_file"
 import { telemetryService } from "@/services/telemetry"
 
+import { Logger } from "@/shared/services/Logger"
 import { IsaacDefaultTool } from "@/shared/tools"
 import { ToolResponse } from "../../index"
 import { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -59,7 +60,11 @@ export class EditFileToolHandler implements IFullyManagedTool {
 		if (typeof files === "string") {
 			try {
 				files = JSON.parse(files)
-			} catch (e) {}
+			} catch (e) {
+				// Partial-block preview: incomplete JSON is expected mid-stream,
+				// so this is debug-level only (full validation happens at execute).
+				Logger.debug(`[EditFileToolHandler] partial 'files' not yet valid JSON: ${(e as Error)?.message}`)
+			}
 		}
 		const relPath = Array.isArray(files) && files[0]?.path ? files[0].path : ""
 		const filesCount = Array.isArray(files) ? files.length : 0
@@ -69,7 +74,10 @@ export class EditFileToolHandler implements IFullyManagedTool {
 					if (typeof edits === "string") {
 						try {
 							edits = JSON.parse(edits)
-						} catch (e) {}
+						} catch (e) {
+							// Partial-block preview count; incomplete mid-stream JSON is expected.
+							Logger.debug(`[EditFileToolHandler] partial 'edits' not yet valid JSON: ${(e as Error)?.message}`)
+						}
 					}
 					return acc + (Array.isArray(edits) ? edits.length : 0)
 				}, 0)
@@ -146,7 +154,12 @@ export class EditFileToolHandler implements IFullyManagedTool {
 				files = JSON.parse(files)
 				block.params.files = files
 				wasStringified = true
-			} catch (e) {}
+			} catch (e) {
+				// Execute path: a malformed 'files' here falls through to the
+				// !Array.isArray branch which surfaces a toolError. Log so the
+				// underlying parse failure is diagnosable.
+				Logger.warn(`[EditFileToolHandler] failed to JSON.parse 'files' at execute: ${(e as Error)?.message}`)
+			}
 		}
 
 		let result: ToolResponse
@@ -165,7 +178,13 @@ export class EditFileToolHandler implements IFullyManagedTool {
 					try {
 						fe.edits = JSON.parse(fe.edits)
 						editsWasStringified = true
-					} catch (e) {}
+					} catch (e) {
+						// Execute path: leaving edits as a string means downstream
+						// treats it as no structured edits. Log so it is visible.
+						Logger.warn(
+							`[EditFileToolHandler] failed to JSON.parse 'edits' for ${fe.path} at execute: ${(e as Error)?.message}`,
+						)
+					}
 				}
 
 				const { absolutePath, displayPath } = this.processor.resolvePath(config, fe.path)

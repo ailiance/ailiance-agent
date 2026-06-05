@@ -111,6 +111,71 @@ describe("scrubSecrets", () => {
 		expect(out.env).not.toContain("PEMfakeBody")
 		expect(out.env).toContain("[REDACTED]")
 	})
+
+	// ailiance-agent fork: gateway (gateway.ailiance.fr) credential coverage.
+	it("redacts gateway Authorization bearer header", () => {
+		const out = scrubSecrets({
+			headers: { Authorization: "Bearer ail-gw-abcdef1234567890" },
+		}) as { headers: { Authorization: string } }
+		// key-based redaction wins for the object key.
+		expect(out.headers.Authorization).toBe("[REDACTED]")
+	})
+
+	it("redacts inline Authorization: Bearer <gateway token>", () => {
+		const out = scrubSecrets({
+			log: "POST /chat/completions Authorization: Bearer ail-gw-abcdef1234567890 done",
+		}) as { log: string }
+		expect(out.log).not.toContain("ail-gw-abcdef1234567890")
+		expect(out.log).toContain("[REDACTED]")
+	})
+
+	it("redacts AILIANCE_DEFAULT_API_KEY-style env key", () => {
+		const out = scrubSecrets({ AILIANCE_DEFAULT_API_KEY: "gw-token-xyz", region: "eu" }) as Record<
+			string,
+			unknown
+		>
+		expect(out.AILIANCE_DEFAULT_API_KEY).toBe("[REDACTED]")
+		expect(out.region).toBe("eu")
+	})
+
+	it("redacts x-api-key header key", () => {
+		const out = scrubSecrets({ "x-api-key": "gw-secret-123" }) as Record<string, unknown>
+		expect(out["x-api-key"]).toBe("[REDACTED]")
+	})
+
+	it("redacts access_token / refresh_token / client_secret keys", () => {
+		const out = scrubSecrets({
+			access_token: "a",
+			refresh_token: "b",
+			client_secret: "c",
+			ok: 1,
+		}) as Record<string, unknown>
+		expect(out.access_token).toBe("[REDACTED]")
+		expect(out.refresh_token).toBe("[REDACTED]")
+		expect(out.client_secret).toBe("[REDACTED]")
+		expect(out.ok).toBe(1)
+	})
+
+	it("redacts inline bearer=value form", () => {
+		const out = scrubSecrets({ env: "bearer=ail-gw-tok-9999 trailing" }) as { env: string }
+		expect(out.env).not.toContain("ail-gw-tok-9999")
+		expect(out.env).toContain("[REDACTED]")
+	})
+
+	it("keeps diagnostic X-Ailiance-* headers intact (not secrets)", () => {
+		const out = scrubSecrets({
+			"x-ailiance-worker-port": "9311",
+			"x-ailiance-domain": "code",
+			"x-ailiance-chain": "mixture",
+			"x-ailiance-backend": "fp_abc",
+			"x-ailiance-upstream-model": "devstral-python",
+		}) as Record<string, string>
+		expect(out["x-ailiance-worker-port"]).toBe("9311")
+		expect(out["x-ailiance-domain"]).toBe("code")
+		expect(out["x-ailiance-chain"]).toBe("mixture")
+		expect(out["x-ailiance-backend"]).toBe("fp_abc")
+		expect(out["x-ailiance-upstream-model"]).toBe("devstral-python")
+	})
 })
 
 describe("JsonlTracer", () => {

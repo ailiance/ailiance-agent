@@ -18,9 +18,17 @@ export const TRACING_DIR_NAME = ".ailiance-agent/runs"
 // "key: value" / "key=value" / "Authorization: Bearer <token>" shapes.
 // The optional [A-Za-z0-9_-]* between the keyword and the separator catches
 // suffixed fields like aws_secret_access_key=... or api_key_v2: ....
-// Keyword set kept in sync with the object-key regex in scrubObjectKey().
+// Keyword set kept in sync with the object-key regex in scrubValue().
+//
+// ailiance-agent fork: the gateway (gateway.ailiance.fr) authenticates with a
+// bearer token carried as openAiApiKey/openAiCompatibleCustomApiKey and sent as
+// `Authorization: Bearer <token>` (BEARER_PATTERN) or surfaced in env/headers as
+// AILIANCE_*_API_KEY / x-api-key. Those land here via the api[_-]?key, token and
+// bearer keywords below. The diagnostic X-Ailiance-* response headers (worker
+// port, domain, chain, backend, upstream-model) are intentionally NOT scrubbed —
+// they carry no credentials and are useful trace data.
 const SECRET_KV_PATTERN =
-	/((?:password|token|api[_-]?key|secret|credential|credentials|passphrase|private[_-]?key|ssh[_-]?key|signing[_-]?key|certificate|conn(?:ection)?[_-]?str|aws[_-]?secret|aws[_-]?access[_-]?key)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'})]+)/gi
+	/((?:password|bearer|token|api[_-]?key|secret|credential|credentials|passphrase|private[_-]?key|ssh[_-]?key|signing[_-]?key|certificate|conn(?:ection)?[_-]?str|aws[_-]?secret|aws[_-]?access[_-]?key|(?:access|refresh|auth)[_-]?token|client[_-]?secret)[A-Za-z0-9_-]*["'\s]*[=:]["'\s]*)([^\s,;"'})]+)/gi
 const BEARER_PATTERN = /(authorization["'\s]*[=:]["'\s]*(?:bearer|basic)\s+)([A-Za-z0-9._\-+/=]+)/gi
 // Well-known token shapes:
 //   - sk-..., ghp_..., xox?-..., JWT (eyJ...)
@@ -111,7 +119,7 @@ function scrubValue(value: unknown, seen: WeakSet<object>): unknown {
 	const out: Record<string, unknown> = {}
 	for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
 		if (
-			/password|token|api[_-]?key|secret|bearer|authorization|credential|credentials|private[_-]?key|conn(?:ection)?[_-]?str|passphrase|ssh[_-]?key|signing[_-]?key|certificate|aws[_-]?secret|aws[_-]?access[_-]?key/i.test(
+			/password|token|api[_-]?key|secret|bearer|authorization|credential|credentials|private[_-]?key|conn(?:ection)?[_-]?str|passphrase|ssh[_-]?key|signing[_-]?key|certificate|aws[_-]?secret|aws[_-]?access[_-]?key|(?:access|refresh|auth)[_-]?token|client[_-]?secret/i.test(
 				k,
 			)
 		) {

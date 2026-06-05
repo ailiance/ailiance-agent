@@ -19,6 +19,15 @@
  * 5. Implement full diff checking across all workspace roots
  *
  * See PRD: Multi-Workspace Folder Support for complete requirements
+ *
+ * ailiance-agent fork (P1 #9): this class is intentionally NOT wired into
+ * buildCheckpointManager() — it is incomplete. `restoreCheckpoint()` and
+ * `doesLatestTaskCompletionHaveNewChanges()` were silent no-ops (returning {}
+ * and false), which means a user "restoring" a checkpoint or asking to "see new
+ * changes" would silently get nothing. The factory now falls back to the
+ * single-root manager (primary root) with a warning instead. Those two methods
+ * now throw, so any future re-wiring fails loudly during testing rather than
+ * silently losing the user's work.
  */
 
 import { MessageStateHandler } from "@core/task/message-state"
@@ -194,11 +203,13 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 
 		Logger.log(`[MultiRootCheckpointManager] Restoring checkpoint for primary root: ${primaryRoot.name}`)
 
-		// TODO: Implement full restore logic similar to TaskCheckpointManager
-		// For now, this is a placeholder that would delegate to the existing restore logic
-		// In a full implementation, we'd restore all roots or provide options to the user
-
-		return {}
+		// ailiance-agent fork (P1 #9): restore is NOT implemented. Returning {}
+		// here silently dropped the user's restore request. Fail loudly instead so
+		// the broken path can never ship unnoticed (and so the factory's
+		// single-root fallback stays the only live code path).
+		throw new Error(
+			"MultiRootCheckpointManager.restoreCheckpoint is not implemented. Multi-root checkpoint restore is unsupported; use single-root checkpoints.",
+		)
 	}
 
 	/**
@@ -210,20 +221,12 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 			return false
 		}
 
-		// Check if any root has changes
-		for (const [path] of this.trackers.entries()) {
-			try {
-				// TODO: Implement proper diff checking logic
-				// This would need to track checkpoint hashes per root
-				// For now, return false as a safe default
-				const rootName = this.workspaceManager.getRoots().find((r) => r.path === path)?.name || path
-				Logger.log(`[MultiRootCheckpointManager] Checking for changes in ${rootName}`)
-			} catch (error) {
-				Logger.error(`[MultiRootCheckpointManager] Error checking changes for ${path}:`, error)
-			}
-		}
-
-		return false
+		// ailiance-agent fork (P1 #9): diff checking is NOT implemented. Always
+		// returning false silently hid changes from the "See new changes" button.
+		// Fail loudly instead of pretending there are no changes.
+		throw new Error(
+			"MultiRootCheckpointManager.doesLatestTaskCompletionHaveNewChanges is not implemented. Multi-root change detection is unsupported; use single-root checkpoints.",
+		)
 	}
 
 	/**

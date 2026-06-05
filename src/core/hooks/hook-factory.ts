@@ -754,10 +754,32 @@ class PluginHookRunner<Name extends HookName> extends HookRunner<Name> {
 				CLAUDE_CODE_VERSION: input.diracVersion ?? "",
 			}
 
+			// SECURITY (P1 #4): plugin hooks come from ~/.claude/plugins/cache,
+			// which is user-writeable and unsigned — installing a plugin is the
+			// trust boundary. `command` is the plugin manifest's declared shell
+			// command (with ${CLAUDE_PLUGIN_ROOT} already expanded by
+			// PluginHookLoader to a path structurally confined to that cache, since
+			// rootDir is built from readdir entries that can never contain "..").
+			//
+			// We KEEP shell:true on purpose: the Claude Code plugin-hook contract
+			// allows free-form shell command lines (pipes, args, redirects, env
+			// expansion), so passing args as an array would break legitimate hooks.
+			// Crucially, NO untrusted runtime value is interpolated into `command`:
+			// the hook input JSON is delivered on stdin (below) and the dynamic
+			// values (CLAUDE_TASK_ID / CLAUDE_CODE_VERSION) are passed via `env`,
+			// never spliced into the command string — so there is no command
+			// injection surface beyond the (inherent) trust placed in the plugin.
+			//
+			// Hardening that does not break the contract:
+			//   - audit-log the exact command we are about to run, so supply-chain
+			//     code execution is visible rather than silent;
+			//   - windowsHide so a malicious/buggy hook cannot pop visible windows.
+			Logger.info(`[PluginHooks] Plugin '${pluginName}' executing hook command: ${command}`)
 			const child = childProcessModule.spawn(command, [], {
 				shell: true,
 				env,
 				stdio: ["pipe", "pipe", "pipe"],
+				windowsHide: true,
 			})
 
 			let stdout = ""

@@ -1,10 +1,10 @@
-import { ParseEntry, parse } from "shell-quote"
-import picomatch from "picomatch"
+import { fileExistsAtPath } from "@utils/fs"
+import chokidar, { FSWatcher } from "chokidar"
 import fs from "fs/promises"
 import path from "path"
-import chokidar, { FSWatcher } from "chokidar"
+import picomatch from "picomatch"
+import { ParseEntry, parse } from "shell-quote"
 import { Logger } from "@/shared/services/Logger"
-import { fileExistsAtPath } from "@utils/fs"
 import {
 	COMMAND_PERMISSIONS_ENV_VAR,
 	CommandPermissionConfig,
@@ -124,6 +124,10 @@ export class CommandPermissionController {
 			const content = await fs.readFile(configPath, "utf8")
 			return JSON.parse(content) as CommandPermissionConfig
 		} catch (error) {
+			// Intentional fallback (null = no file-based rules), but a malformed
+			// permissions.json silently disabling the user's command allow/deny
+			// rules is a security-relevant surprise — surface it.
+			Logger.error(`Failed to read/parse ${configPath}; command permission rules from file ignored:`, error)
 			return null
 		}
 	}
@@ -137,16 +141,13 @@ export class CommandPermissionController {
 		const rules = currentConfig.rules || []
 
 		// Check if rule already exists to avoid duplicates
-		const exists = rules.some(
-			(r) => r.tool === rule.tool && r.pattern === rule.pattern && r.action === rule.action
-		)
+		const exists = rules.some((r) => r.tool === rule.tool && r.pattern === rule.pattern && r.action === rule.action)
 
 		if (!exists) {
 			rules.push(rule)
 			await this.saveConfig({ ...currentConfig, rules })
 		}
 	}
-
 
 	async saveConfig(config: CommandPermissionConfig): Promise<void> {
 		if (!this.workspaceRoot) {
@@ -261,9 +262,8 @@ export class CommandPermissionController {
 
 		if (tool === "execute_command") {
 			return this.matchesPattern(pattern, rule.pattern)
-		} else {
-			return picomatch(rule.pattern, { dot: true })(pattern)
 		}
+		return picomatch(rule.pattern, { dot: true })(pattern)
 	}
 
 	/**

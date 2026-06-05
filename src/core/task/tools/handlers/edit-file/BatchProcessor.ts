@@ -12,6 +12,7 @@ import * as path from "path"
 import { HostProvider } from "@/hosts/host-provider"
 import { getDiagnosticsProviders } from "@/integrations/diagnostics/getDiagnosticsProviders"
 import { IsaacSayTool } from "@/shared/ExtensionMessage"
+import { Logger } from "@/shared/services/Logger"
 import { IsaacDefaultTool } from "@/shared/tools"
 import { IsaacAskResponse } from "@/shared/WebviewMessage"
 import { ToolResponse } from "../../../index"
@@ -57,7 +58,13 @@ export class BatchProcessor {
 					files = JSON.parse(files)
 					b.params.files = files
 					wasStringified = true
-				} catch (e) {}
+				} catch (e) {
+					// Intentional fallback: leave `files` as the raw string. The
+					// Array.isArray(files) guard below then skips it. Log so a
+					// malformed stringified `files` param is diagnosable instead
+					// of silently dropping every edit in the block.
+					Logger.warn(`[BatchProcessor] failed to JSON.parse stringified 'files' param: ${(e as Error)?.message}`)
+				}
 			}
 
 			if (Array.isArray(files)) {
@@ -70,7 +77,13 @@ export class BatchProcessor {
 					try {
 						fe.edits = JSON.parse(fe.edits)
 						editsWasStringified = true
-					} catch (e) {}
+					} catch (e) {
+						// Intentional fallback: leave `fe.edits` as-is. Log so a
+						// malformed stringified per-file `edits` param surfaces.
+						Logger.warn(
+							`[BatchProcessor] failed to JSON.parse stringified 'edits' for ${fe.path}: ${(e as Error)?.message}`,
+						)
+					}
 				}
 
 				const { absolutePath, displayPath } = this.resolvePath(config, fe.path)
@@ -387,7 +400,14 @@ export class BatchProcessor {
 				if (typeof files === "string") {
 					try {
 						files = JSON.parse(files)
-					} catch (e) {}
+					} catch (e) {
+						// Intentional fallback: the !Array.isArray(files) guard
+						// below returns a clear toolError. Log the parse failure so
+						// it is diagnosable rather than masked by the generic error.
+						Logger.warn(
+							`[BatchProcessor] failed to JSON.parse stringified 'files' param (validation path): ${(e as Error)?.message}`,
+						)
+					}
 				}
 				if (!Array.isArray(files)) {
 					config.taskState.consecutiveMistakeCount++
