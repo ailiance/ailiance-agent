@@ -44,6 +44,15 @@ function transformToolCallIdForNativeApi(toolId: string, provider?: ApiProvider)
 		// Use the last 33 chars + "call_" (5 chars) to stay under the 40-char limit.
 		return `call_${toolId.slice(toolId.length - (MAX_TOOL_CALL_ID_LENGTH - 5))}`
 	}
+	if (provider !== "openai") {
+		return toolId
+	}
+	// The OpenAI Chat Completions API rejects tool_call_id values longer than 40 chars
+	// ("Invalid parameter: 'tool_call_id' ... not found in 'tool_calls'"). Ensure the ID
+	// stays within the limit for the native OpenAI provider.
+	if (toolId.length > MAX_TOOL_CALL_ID_LENGTH) {
+		return toolId.slice(0, MAX_TOOL_CALL_ID_LENGTH)
+	}
 	return toolId
 }
 
