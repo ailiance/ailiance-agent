@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react"
 import { Box, Text } from "ink"
-import { AsciiMotionCli, StaticRobotFrame } from "./AsciiMotionCli"
+import React, { useEffect, useState } from "react"
+import type { RoutingEvent } from "@/services/local-router/RoutingObserver"
+import { version as CLI_VERSION } from "../../package.json"
 import { centerText } from "../utils/display"
 import { osc8 } from "../utils/hyperlink"
-import { version as CLI_VERSION } from "../../package.json"
-import type { RoutingEvent } from "@/services/local-router/RoutingObserver"
-
+import { AsciiMotionCli, StaticRobotFrame } from "./AsciiMotionCli"
 
 interface ChatHeaderProps {
 	isWelcomeState?: boolean
@@ -39,20 +38,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ isWelcomeState, quote, o
 
 	const content = (
 		<React.Fragment>
-			{isWelcomeState ? (
-				<AsciiMotionCli onInteraction={onInteraction} />
-			) : (
-				<StaticRobotFrame />
-			)}
+			{isWelcomeState ? <AsciiMotionCli onInteraction={onInteraction} /> : <StaticRobotFrame />}
 			<Text> </Text>
 			<Text bold color="white">
-				{centerText(`ISAAC v${CLI_VERSION} — EU-sovereign coding agent (fork of Isaac/Cline)`)}
+				{centerText(`ISAAC v${CLI_VERSION} — EU-sovereign coding agent (fork of Dirac/Cline)`)}
 			</Text>
 			{webuiUrl && (
 				<Box marginTop={0}>
-					<Text dimColor>
-						{centerText(`Web UI: ${osc8(webuiUrl, webuiUrl)}`)}
-					</Text>
+					<Text dimColor>{centerText(`Web UI: ${osc8(webuiUrl, webuiUrl)}`)}</Text>
 				</Box>
 			)}
 			{routing && (

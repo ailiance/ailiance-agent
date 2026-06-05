@@ -1,5 +1,5 @@
 /**
- * ISAAC CLI - TypeScript implementation with React Ink (fork of Isaac/Cline)
+ * ISAAC CLI - TypeScript implementation with React Ink (fork of Dirac/Cline)
  */
 
 // MUST be the first import — its top-level side effect (raw-mode stdin) runs
@@ -31,7 +31,7 @@ const program = new Command()
 // ailiance-agent fork: rebrand CLI banner
 program
 	.name("isaac")
-	.description("ISAAC — Intelligence Souveraine Ailiance Agent Codeur (fork of Isaac/Cline)")
+	.description("ISAAC — Intelligence Souveraine Ailiance Agent Codeur (fork of Dirac/Cline)")
 	.version(CLI_VERSION)
 
 // Enable positional options to avoid conflicts between root and subcommand options with the same name
