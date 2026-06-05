@@ -9,7 +9,7 @@ const mockContext: SystemPromptContext = {
 	cwd: "/test/project",
 	ide: "TestIde",
 	supportsBrowserUse: true,
-	diracWebToolsEnabled: true,
+	isaacWebToolsEnabled: true,
 	subagentsEnabled: true,
 	providerInfo: { providerId: "test", model: { id: "test-model", info: { supportsPromptCache: false } }, mode: "act" },
 	isTesting: true,

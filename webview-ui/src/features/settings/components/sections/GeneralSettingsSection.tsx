@@ -82,7 +82,7 @@ const GeneralSettingsSection = ({ renderSectionHeader }: GeneralSettingsSectionP
 								<VSCodeTextField
 									className="w-full"
 									onChange={(e: any) => updateSetting("writePromptMetadataDirectory", e.target.value)}
-									placeholder="e.g. .dirac-prompt-artifacts (defaults to workspace root if empty)"
+									placeholder="e.g. .isaac-prompt-artifacts (defaults to workspace root if empty)"
 									value={writePromptMetadataDirectory || ""}
 								/>
 							</div>

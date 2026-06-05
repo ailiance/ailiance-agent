@@ -4,12 +4,12 @@ import { useChatStore } from "../chatStore"
 
 describe("useChatStore", () => {
 	beforeEach(() => {
-		useChatStore.setState({ diracMessages: [] })
+		useChatStore.setState({ isaacMessages: [] })
 	})
 
 	it("should initialize with empty messages", () => {
 		const { result } = renderHook(() => useChatStore())
-		expect(result.current.diracMessages).toEqual([])
+		expect(result.current.isaacMessages).toEqual([])
 	})
 
 	it("should set messages", () => {
@@ -20,7 +20,7 @@ describe("useChatStore", () => {
 			result.current.setIsaacMessages(messages)
 		})
 
-		expect(result.current.diracMessages).toEqual(messages)
+		expect(result.current.isaacMessages).toEqual(messages)
 	})
 
 	it("should update partial message", () => {
@@ -40,8 +40,8 @@ describe("useChatStore", () => {
 			result.current.updatePartialMessage(updatedMessage)
 		})
 
-		expect(result.current.diracMessages[1]).toEqual(updatedMessage)
-		expect(result.current.diracMessages[0]).toEqual(initialMessages[0])
+		expect(result.current.isaacMessages[1]).toEqual(updatedMessage)
+		expect(result.current.isaacMessages[0]).toEqual(initialMessages[0])
 	})
 
 	it("should not update if message ts not found", () => {
@@ -58,6 +58,6 @@ describe("useChatStore", () => {
 			result.current.updatePartialMessage(unknownMessage)
 		})
 
-		expect(result.current.diracMessages).toEqual(initialMessages)
+		expect(result.current.isaacMessages).toEqual(initialMessages)
 	})
 })

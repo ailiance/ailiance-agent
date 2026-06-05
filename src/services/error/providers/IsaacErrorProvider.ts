@@ -5,7 +5,7 @@ import { fetch } from "@/shared/net"
 import { Setting } from "@/shared/proto/index.host"
 import { Logger } from "@/shared/services/Logger"
 import * as pkg from "../../../../package.json"
-import { diracTelemetryConfig, IsaacTelemetryClientValidConfig } from "../../../shared/services/config/dirac-telemetry-config"
+import { IsaacTelemetryClientValidConfig, isaacTelemetryConfig } from "../../../shared/services/config/isaac-telemetry-config"
 import { getErrorLevelFromString } from ".."
 import { IsaacError } from "../IsaacError"
 import type { ErrorSettings, IErrorProvider } from "./IErrorProvider"
@@ -125,16 +125,16 @@ export class IsaacErrorProvider implements IErrorProvider {
 	}
 
 	private async sendToIsaac(event: string, properties: Record<string, unknown>) {
-		if (!diracTelemetryConfig.apiKey) {
+		if (!isaacTelemetryConfig.apiKey) {
 			return
 		}
 
 		try {
-			await fetch(diracTelemetryConfig.host, {
+			await fetch(isaacTelemetryConfig.host, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"X-Dirac-API-Key": diracTelemetryConfig.apiKey,
+					"X-Dirac-API-Key": isaacTelemetryConfig.apiKey,
 				},
 				body: JSON.stringify({
 					distinctId: getDistinctId(),

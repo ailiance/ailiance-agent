@@ -30,7 +30,7 @@ describe("TaskStart Hook", () => {
 
 	describe("Hook Input Format", () => {
 		it("should receive task metadata from startTask", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 const input = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
 const metadata = input.taskStart.taskMetadata;
@@ -62,10 +62,10 @@ console.log(JSON.stringify({
 		})
 
 		it("should receive all common hook input fields", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 const input = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
-const hasAllFields = input.diracVersion && input.hookName === 'TaskStart' && 
+const hasAllFields = input.isaacVersion && input.hookName === 'TaskStart' && 
                      input.timestamp && input.taskId && 
                      input.workspaceRoots !== undefined &&
                      input.model && input.model.provider && input.model.slug;
@@ -96,7 +96,7 @@ console.log(JSON.stringify({
 		})
 
 		it("should handle empty initialTask", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 const input = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
 const initialTask = input.taskStart.taskMetadata.initialTask;
@@ -129,7 +129,7 @@ console.log(JSON.stringify({
 
 	describe("Hook Behavior", () => {
 		it("should allow task to start when hook returns cancel: false", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 console.log(JSON.stringify({
   cancel: false,
@@ -158,7 +158,7 @@ console.log(JSON.stringify({
 		})
 
 		it("should block task when hook returns cancel: true", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 console.log(JSON.stringify({
   cancel: true,
@@ -187,7 +187,7 @@ console.log(JSON.stringify({
 		})
 
 		it("should provide context modification even when not added to conversation", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 const input = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
 console.log(JSON.stringify({
@@ -219,7 +219,7 @@ console.log(JSON.stringify({
 
 	describe("Error Handling", () => {
 		it("should handle hook script errors", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 console.error("Hook execution error");
 process.exit(1);`
@@ -247,7 +247,7 @@ process.exit(1);`
 		})
 
 		it("should handle malformed JSON output from hook", async () => {
-			const hookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const hookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const hookScript = `#!/usr/bin/env node
 console.log("not valid json")`
 
@@ -282,7 +282,7 @@ console.log("not valid json")`
 			// Create global hooks directory
 			globalHooksDir = path.join(tempDir, "global-hooks")
 			await fs.mkdir(globalHooksDir, { recursive: true })
-			workspaceHooksDir = path.join(tempDir, ".diracrules", "hooks")
+			workspaceHooksDir = path.join(tempDir, ".isaacrules", "hooks")
 
 			// Use deterministic hook directories to avoid test flakiness.
 			stubHookDirs(sandbox, [globalHooksDir, workspaceHooksDir])
@@ -300,7 +300,7 @@ console.log(JSON.stringify({
 			await writeHookScript(globalHookPath, globalHookScript)
 
 			// Create workspace hook
-			const workspaceHookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const workspaceHookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const workspaceHookScript = `#!/usr/bin/env node
 console.log(JSON.stringify({
   cancel: false,
@@ -337,7 +337,7 @@ console.log(JSON.stringify({
 }))`
 			await writeHookScript(globalHookPath, globalHookScript)
 
-			const workspaceHookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const workspaceHookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const workspaceHookScript = `#!/usr/bin/env node
 console.log(JSON.stringify({
   cancel: false,
@@ -373,7 +373,7 @@ console.log(JSON.stringify({
 }))`
 			await writeHookScript(globalHookPath, globalHookScript)
 
-			const workspaceHookPath = path.join(tempDir, ".diracrules", "hooks", "TaskStart")
+			const workspaceHookPath = path.join(tempDir, ".isaacrules", "hooks", "TaskStart")
 			const workspaceHookScript = `#!/usr/bin/env node
 console.log(JSON.stringify({
   cancel: true,

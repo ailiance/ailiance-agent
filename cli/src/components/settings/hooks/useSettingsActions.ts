@@ -1,22 +1,22 @@
-import { useCallback } from "react"
-import { StateManager } from "@/core/storage/StateManager"
-import { getProviderModelIdKey, ProviderToApiKeyMap } from "@shared/storage"
-import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
-import { githubCopilotAuthManager } from "@/integrations/github-copilot/auth"
-import { applyProviderConfig } from "../../../utils/provider-config"
-import { normalizeReasoningEffort, nextReasoningEffort } from "../utils"
-import { FEATURE_SETTINGS, type FeatureKey } from "../constants"
-import { hasModelPicker, CUSTOM_MODEL_ID } from "../../ModelPicker"
-import { usesOpenRouterModels } from "../../../utils/openrouter-models"
-import { openExternal } from "@/utils/env"
-import { Logger } from "@/shared/services/Logger"
-import type { Controller } from "@/core/controller"
-import type { ListItem, SettingsTab } from "../types"
 import type { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
-import type { TelemetrySetting } from "@shared/TelemetrySetting"
-import type { OpenaiReasoningEffort } from "@shared/storage/types"
 import type { ApiProvider, ModelInfo } from "@shared/api"
+import { getProviderModelIdKey, ProviderToApiKeyMap } from "@shared/storage"
+import type { OpenaiReasoningEffort } from "@shared/storage/types"
+import type { TelemetrySetting } from "@shared/TelemetrySetting"
+import { useCallback } from "react"
+import type { Controller } from "@/core/controller"
+import { StateManager } from "@/core/storage/StateManager"
+import { githubCopilotAuthManager } from "@/integrations/github-copilot/auth"
+import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
+import { Logger } from "@/shared/services/Logger"
+import { openExternal } from "@/utils/env"
+import { usesOpenRouterModels } from "../../../utils/openrouter-models"
+import { applyProviderConfig } from "../../../utils/provider-config"
 import type { ObjectEditorState } from "../../ConfigViewComponents"
+import { CUSTOM_MODEL_ID, hasModelPicker } from "../../ModelPicker"
+import { FEATURE_SETTINGS, type FeatureKey } from "../constants"
+import type { ListItem, SettingsTab } from "../types"
+import { nextReasoningEffort, normalizeReasoningEffort } from "../utils"
 
 interface UseSettingsActionsProps {
 	items: ListItem[]
@@ -39,7 +39,9 @@ interface UseSettingsActionsProps {
 	autoApproveSettings: AutoApprovalSettings
 	setAutoApproveSettings: (settings: AutoApprovalSettings) => void
 	features: Record<FeatureKey, boolean>
-	setFeatures: (features: Record<FeatureKey, boolean> | ((prev: Record<FeatureKey, boolean>) => Record<FeatureKey, boolean>)) => void
+	setFeatures: (
+		features: Record<FeatureKey, boolean> | ((prev: Record<FeatureKey, boolean>) => Record<FeatureKey, boolean>),
+	) => void
 	preferredLanguage: string
 	setPreferredLanguage: (language: string) => void
 	telemetry: TelemetrySetting
@@ -404,7 +406,7 @@ export function useSettingsActions({
 					const planKey = planProvider ? getProviderModelIdKey(planProvider, "plan") : null
 
 					if (separateModels) {
-						const stateKey = (item.key === "actModelId" || item.key === "actCustomModelId") ? actKey : planKey
+						const stateKey = item.key === "actModelId" || item.key === "actCustomModelId" ? actKey : planKey
 						if (stateKey) stateManager.setGlobalState(stateKey, editValue || undefined)
 					} else {
 						if (actKey) stateManager.setGlobalState(actKey, editValue || undefined)
@@ -474,10 +476,10 @@ export function useSettingsActions({
 				return
 			}
 
-			if (providerId === "dirac") {
+			if (providerId === "isaac") {
 				setIsPickingProvider(false)
-				await applyProviderConfig({ providerId: "dirac", controller })
-				setProvider("dirac")
+				await applyProviderConfig({ providerId: "isaac", controller })
+				setProvider("isaac")
 				refreshModelIds()
 				return
 			}
@@ -500,7 +502,21 @@ export function useSettingsActions({
 				setIsPickingProvider(false)
 			}
 		},
-		[stateManager, startCodexAuth, controller, refreshModelIds, initialMode, onClose, setProvider, setIsPickingProvider, setIsConfiguringBedrock, setPendingProvider, startGithubAuth, setApiKeyValue, setIsEnteringApiKey],
+		[
+			stateManager,
+			startCodexAuth,
+			controller,
+			refreshModelIds,
+			initialMode,
+			onClose,
+			setProvider,
+			setIsPickingProvider,
+			setIsConfiguringBedrock,
+			setPendingProvider,
+			startGithubAuth,
+			setApiKeyValue,
+			setIsEnteringApiKey,
+		],
 	)
 
 	const handleModelSelect = useCallback(
@@ -516,14 +532,18 @@ export function useSettingsActions({
 			const apiConfig = stateManager.getApiConfiguration()
 			const actProvider = apiConfig.actModeApiProvider
 			const planProvider = apiConfig.planModeApiProvider || actProvider
-			const providerForSelection = separateModels ? (pickingModelKey === "actModelId" ? actProvider : planProvider) : actProvider || planProvider
+			const providerForSelection = separateModels
+				? pickingModelKey === "actModelId"
+					? actProvider
+					: planProvider
+				: actProvider || planProvider
 			if (!providerForSelection) return
 
 			const actKey = actProvider ? getProviderModelIdKey(actProvider, "act") : null
 			const planKey = planProvider ? getProviderModelIdKey(planProvider, "plan") : null
 
 			let modelInfo: ModelInfo | undefined
-			if (providerForSelection === "dirac" || providerForSelection === "openrouter") {
+			if (providerForSelection === "isaac" || providerForSelection === "openrouter") {
 				const openRouterModels = await controller?.readOpenRouterModels()
 				modelInfo = openRouterModels?.[modelId]
 			}
@@ -532,7 +552,8 @@ export function useSettingsActions({
 				const stateKey = pickingModelKey === "actModelId" ? actKey : planKey
 				if (stateKey) stateManager.setGlobalState(stateKey, modelId)
 				if (modelInfo) {
-					const infoKey = pickingModelKey === "actModelId" ? "actModeOpenRouterModelInfo" : "planModeOpenRouterModelInfo"
+					const infoKey =
+						pickingModelKey === "actModelId" ? "actModeOpenRouterModelInfo" : "planModeOpenRouterModelInfo"
 					stateManager.setGlobalState(infoKey, modelInfo)
 				}
 			} else {
@@ -551,7 +572,20 @@ export function useSettingsActions({
 			setPickingModelKey(null)
 			if (initialMode) onClose()
 		},
-		[pickingModelKey, separateModels, stateManager, controller, provider, refreshModelIds, initialMode, onClose, setIsPickingModel, setIsBedrockCustomFlow, setPickingModelKey, rebuildTaskApi],
+		[
+			pickingModelKey,
+			separateModels,
+			stateManager,
+			controller,
+			provider,
+			refreshModelIds,
+			initialMode,
+			onClose,
+			setIsPickingModel,
+			setIsBedrockCustomFlow,
+			setPickingModelKey,
+			rebuildTaskApi,
+		],
 	)
 
 	const handleApiKeySubmit = useCallback(
@@ -565,7 +599,17 @@ export function useSettingsActions({
 			setApiKeyValue("")
 			if (initialMode) onClose()
 		},
-		[pendingProvider, controller, refreshModelIds, initialMode, onClose, setProvider, setIsEnteringApiKey, setPendingProvider, setApiKeyValue],
+		[
+			pendingProvider,
+			controller,
+			refreshModelIds,
+			initialMode,
+			onClose,
+			setProvider,
+			setIsEnteringApiKey,
+			setPendingProvider,
+			setApiKeyValue,
+		],
 	)
 
 	const handleLanguageSelect = useCallback(
@@ -575,7 +619,6 @@ export function useSettingsActions({
 			setIsPickingLanguage(false)
 
 			rebuildTaskApi()
-
 		},
 		[stateManager, setPreferredLanguage, setIsPickingLanguage, rebuildTaskApi],
 	)

@@ -122,13 +122,13 @@ export class IsaacIgnoreController {
 	private cwd: string
 	private ignoreInstance: Ignore
 	private fileWatcher?: FSWatcher
-	diracIgnoreContent: string | undefined
+	isaacIgnoreContent: string | undefined
 
 	constructor(cwd: string) {
 		this.cwd = cwd
 		this.ignoreInstance = ignore()
 		this.ignoreInstance.add(DEFAULT_IGNORE_PATTERNS)
-		this.diracIgnoreContent = undefined
+		this.isaacIgnoreContent = undefined
 	}
 
 	/**
@@ -136,16 +136,16 @@ export class IsaacIgnoreController {
 	 * Must be called after construction and before using the controller
 	 */
 	async initialize(): Promise<void> {
-		// Set up file watcher for .diracignore
+		// Set up file watcher for .isaacignore
 		this.setupFileWatcher()
 		await this.loadIsaacIgnore()
 	}
 
 	/**
-	 * Set up the file watcher for .diracignore changes
+	 * Set up the file watcher for .isaacignore changes
 	 */
 	private setupFileWatcher(): void {
-		const ignorePath = path.join(this.cwd, ".diracignore")
+		const ignorePath = path.join(this.cwd, ".isaacignore")
 
 		this.fileWatcher = chokidar.watch(ignorePath, {
 			persistent: true, // Keep the process running as long as files are being watched
@@ -172,12 +172,12 @@ export class IsaacIgnoreController {
 		})
 
 		this.fileWatcher.on("error", (error) => {
-			Logger.error("Error watching .diracignore file:", error)
+			Logger.error("Error watching .isaacignore file:", error)
 		})
 	}
 
 	/**
-	 * Load custom patterns from .diracignore if it exists.
+	 * Load custom patterns from .isaacignore if it exists.
 	 * Supports "!include <filename>" to load additional ignore patterns from other files.
 	 */
 	private async loadIsaacIgnore(): Promise<void> {
@@ -185,18 +185,18 @@ export class IsaacIgnoreController {
 			// Reset ignore instance to prevent duplicate patterns
 			this.ignoreInstance = ignore()
 			this.ignoreInstance.add(DEFAULT_IGNORE_PATTERNS)
-			const ignorePath = path.join(this.cwd, ".diracignore")
+			const ignorePath = path.join(this.cwd, ".isaacignore")
 			if (await fileExistsAtPath(ignorePath)) {
 				const content = await fs.readFile(ignorePath, "utf8")
-				this.diracIgnoreContent = content
+				this.isaacIgnoreContent = content
 				await this.processIgnoreContent(content)
-				this.ignoreInstance.add(".diracignore")
+				this.ignoreInstance.add(".isaacignore")
 			} else {
-				this.diracIgnoreContent = undefined
+				this.isaacIgnoreContent = undefined
 			}
 		} catch (error) {
 			// Should never happen: reading file failed even though it exists
-			Logger.error("Unexpected error loading .diracignore:", error)
+			Logger.error("Unexpected error loading .isaacignore:", error)
 		}
 	}
 

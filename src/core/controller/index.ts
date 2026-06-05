@@ -29,7 +29,7 @@ import { BannerService } from "@/services/banner/BannerService"
 import { featureFlagsService } from "@/services/feature-flags"
 import { getDistinctId } from "@/services/logging/distinctId"
 import { telemetryService } from "@/services/telemetry"
-import { IsaacExtensionContext } from "@/shared/dirac"
+import { IsaacExtensionContext } from "@/shared/isaac"
 import { getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
 import { Session } from "@/shared/services/Session"
@@ -367,7 +367,7 @@ export class Controller {
 			})
 
 			if (this.task) {
-				// 'abandoned' will prevent this dirac instance from affecting future dirac instance gui. this may happen if its hanging on a streaming request
+				// 'abandoned' will prevent this isaac instance from affecting future isaac instance gui. this may happen if its hanging on a streaming request
 				this.task.taskState.abandoned = true
 			}
 
@@ -596,7 +596,7 @@ export class Controller {
 		const telemetrySetting = this.stateManager.getGlobalSettingsKey("telemetrySetting")
 		const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
 		const enableCheckpointsSetting = this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
-		const globalDiracRulesToggles = this.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
+		const globalIsaacRulesToggles = this.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
 		const globalWorkflowToggles = this.stateManager.getGlobalSettingsKey("globalWorkflowToggles")
 		const globalSkillsToggles = this.stateManager.getGlobalSettingsKey("globalSkillsToggles")
 		const localSkillsToggles = this.stateManager.getWorkspaceStateKey("localSkillsToggles")
@@ -620,7 +620,7 @@ export class Controller {
 		const dismissedBanners = this.stateManager.getGlobalStateKey("dismissedBanners")
 		const doubleCheckCompletionEnabled = this.stateManager.getGlobalSettingsKey("doubleCheckCompletionEnabled")
 
-		const localDiracRulesToggles = this.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
+		const localIsaacRulesToggles = this.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
 		const localWindsurfRulesToggles = this.stateManager.getWorkspaceStateKey("localWindsurfRulesToggles")
 		const localCursorRulesToggles = this.stateManager.getWorkspaceStateKey("localCursorRulesToggles")
 		const localAgentsRulesToggles = this.stateManager.getWorkspaceStateKey("localAgentsRulesToggles")
@@ -637,7 +637,7 @@ export class Controller {
 		const primaryRootPath = this.workspaceManager?.getPrimaryRoot()?.path
 		const currentTaskItem = this.task?.taskId ? (taskHistory || []).find((item) => item.id === this.task?.taskId) : undefined
 		// Spread to create new array reference - React needs this to detect changes in useEffect dependencies
-		const diracMessages = [...(this.task?.messageStateHandler.getIsaacMessages() || [])]
+		const isaacMessages = [...(this.task?.messageStateHandler.getIsaacMessages() || [])]
 		const checkpointManagerErrorMessage = this.task?.taskState.checkpointManagerErrorMessage
 
 		const processedTaskHistory = (taskHistory || [])
@@ -654,8 +654,8 @@ export class Controller {
 		const platform = process.platform as Platform
 		const distinctId = getDistinctId()
 		const version = ExtensionRegistryInfo.version
-		const diracConfig = IsaacEnv.config()
-		const environment = diracConfig.environment
+		const isaacConfig = IsaacEnv.config()
+		const environment = isaacConfig.environment
 		const banners = BannerService.get().getActiveBanners() ?? []
 		const welcomeBanners = BannerService.get().getWelcomeBanners() ?? []
 
@@ -673,7 +673,7 @@ export class Controller {
 			version,
 			apiConfiguration,
 			currentTaskItem,
-			diracMessages,
+			isaacMessages,
 			checkpointManagerErrorMessage,
 			autoApprovalSettings,
 			browserSettings,
@@ -690,8 +690,8 @@ export class Controller {
 			platform,
 			environment,
 			distinctId,
-			globalDiracRulesToggles: globalDiracRulesToggles || {},
-			localDiracRulesToggles: localDiracRulesToggles || {},
+			globalIsaacRulesToggles: globalIsaacRulesToggles || {},
+			localIsaacRulesToggles: localIsaacRulesToggles || {},
 			localWindsurfRulesToggles: localWindsurfRulesToggles || {},
 			localCursorRulesToggles: localCursorRulesToggles || {},
 			localAgentsRulesToggles: localAgentsRulesToggles || {},
@@ -724,8 +724,8 @@ export class Controller {
 				user: this.stateManager.getGlobalStateKey("multiRootEnabled"),
 				featureFlag: true, // Multi-root workspace is now always enabled
 			},
-			diracWebToolsEnabled: {
-				user: this.stateManager.getGlobalSettingsKey("diracWebToolsEnabled"),
+			isaacWebToolsEnabled: {
+				user: this.stateManager.getGlobalSettingsKey("isaacWebToolsEnabled"),
 				featureFlag: featureFlagsService.getWebtoolsEnabled(),
 			},
 			worktreesEnabled: {

@@ -14,7 +14,7 @@ import { getCwd, getDesktopDir } from "@/utils/path"
 import { ensureTaskDirectoryExists, saveApiConversationHistory, saveIsaacMessages } from "../storage/disk"
 import { TaskState } from "./TaskState"
 
-// Event types for diracMessages changes
+// Event types for isaacMessages changes
 export type IsaacMessageChangeType = "add" | "update" | "delete" | "set"
 
 export interface IsaacMessageChange {
@@ -33,7 +33,7 @@ export interface IsaacMessageChange {
 
 // Strongly-typed event emitter interface
 export interface MessageStateHandlerEvents {
-	diracMessagesChanged: [change: IsaacMessageChange]
+	isaacMessagesChanged: [change: IsaacMessageChange]
 }
 
 interface MessageStateHandlerParams {
@@ -49,7 +49,7 @@ interface MessageStateHandlerParams {
 export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents> {
 	private workspaceRootPath?: string
 	private apiConversationHistory: IsaacStorageMessage[] = []
-	private diracMessages: IsaacMessage[] = []
+	private isaacMessages: IsaacMessage[] = []
 	private taskIsFavorited: boolean
 	private checkpointTracker: CheckpointTracker | undefined
 	private updateTaskHistory: (historyItem: HistoryItem) => Promise<HistoryItem[]>
@@ -74,10 +74,10 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Emit a diracMessagesChanged event with the change details
+	 * Emit a isaacMessagesChanged event with the change details
 	 */
 	private emitIsaacMessagesChanged(change: IsaacMessageChange): void {
-		this.emit("diracMessagesChanged", change)
+		this.emit("isaacMessagesChanged", change)
 	}
 
 	setCheckpointTracker(tracker: CheckpointTracker | undefined) {
@@ -102,15 +102,15 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	getIsaacMessages(): IsaacMessage[] {
-		return this.diracMessages
+		return this.isaacMessages
 	}
 
 	setIsaacMessages(newMessages: IsaacMessage[]) {
-		const previousMessages = this.diracMessages
-		this.diracMessages = newMessages
+		const previousMessages = this.isaacMessages
+		this.isaacMessages = newMessages
 		this.emitIsaacMessagesChanged({
 			type: "set",
-			messages: this.diracMessages,
+			messages: this.isaacMessages,
 			previousMessages,
 		})
 	}
@@ -125,9 +125,9 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	 */
 	private async saveIsaacMessagesInternal(): Promise<void> {
 		try {
-			await saveIsaacMessages(this.taskId, this.diracMessages)
+			await saveIsaacMessages(this.taskId, this.isaacMessages)
 		} catch (error) {
-			Logger.error("Failed to save dirac messages:", error)
+			Logger.error("Failed to save isaac messages:", error)
 		}
 	}
 
@@ -141,7 +141,7 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 			// Capture state needed for history update
 			// Note: we don't hold the lock here, but these are mostly immutable or
 			// fine to have slight inconsistencies in the history summary.
-			const messages = [...this.diracMessages]
+			const messages = [...this.isaacMessages]
 			if (messages.length === 0) return
 
 			const apiMetrics = getApiMetrics(combineApiRequests(combineCommandSequences(messages.slice(1))))
@@ -156,7 +156,7 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 
 			const lastModelInfo = [...this.apiConversationHistory].reverse().find((msg) => msg.modelInfo !== undefined)
 			const taskDir = await ensureTaskDirectoryExists(this.taskId)
-			
+
 			// Slow operation: get folder size
 			let taskDirSize = 0
 			try {
@@ -193,7 +193,7 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Save dirac messages and update task history (public API with mutex protection)
+	 * Save isaac messages and update task history (public API with mutex protection)
 	 * This is the main entry point for saving message state from external callers
 	 */
 	async saveIsaacMessagesAndUpdateHistory(): Promise<void> {
@@ -220,22 +220,22 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Add a new message to diracMessages array with proper index tracking
+	 * Add a new message to isaacMessages array with proper index tracking
 	 * CRITICAL: This entire operation must be atomic to prevent race conditions (RC-4)
 	 * The conversationHistoryIndex must be set correctly based on the current state,
 	 * and the message must be added and saved without any interleaving operations
 	 */
 	async addToIsaacMessages(message: IsaacMessage) {
 		await this.withStateLock(async () => {
-			// these values allow us to reconstruct the conversation history at the time this dirac message was created
-			// it's important that apiConversationHistory is initialized before we add dirac messages
+			// these values allow us to reconstruct the conversation history at the time this isaac message was created
+			// it's important that apiConversationHistory is initialized before we add isaac messages
 			message.conversationHistoryIndex = this.apiConversationHistory.length - 1
 			message.conversationHistoryDeletedRange = this.taskState.conversationHistoryDeletedRange
-			const index = this.diracMessages.length
-			this.diracMessages.push(message)
+			const index = this.isaacMessages.length
+			this.isaacMessages.push(message)
 			this.emitIsaacMessagesChanged({
 				type: "add",
-				messages: this.diracMessages,
+				messages: this.isaacMessages,
 				index,
 				message,
 			})
@@ -245,16 +245,16 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Replace the entire diracMessages array with new messages
+	 * Replace the entire isaacMessages array with new messages
 	 * Protected by mutex to prevent concurrent modifications (RC-4)
 	 */
 	async overwriteIsaacMessages(newMessages: IsaacMessage[]) {
 		await this.withStateLock(async () => {
-			const previousMessages = this.diracMessages
-			this.diracMessages = newMessages
+			const previousMessages = this.isaacMessages
+			this.isaacMessages = newMessages
 			this.emitIsaacMessagesChanged({
 				type: "set",
-				messages: this.diracMessages,
+				messages: this.isaacMessages,
 				previousMessages,
 			})
 			await this.saveIsaacMessagesInternal()
@@ -263,27 +263,27 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Update a specific message in the diracMessages array
+	 * Update a specific message in the isaacMessages array
 	 * The entire operation (validate, update, save) is atomic to prevent races (RC-4)
 	 */
 	async updateIsaacMessage(index: number, updates: Partial<IsaacMessage>): Promise<void> {
 		await this.withStateLock(async () => {
-			if (index < 0 || index >= this.diracMessages.length) {
+			if (index < 0 || index >= this.isaacMessages.length) {
 				throw new Error(`Invalid message index: ${index}`)
 			}
 
 			// Capture previous state before mutation
-			const previousMessage = { ...this.diracMessages[index] }
+			const previousMessage = { ...this.isaacMessages[index] }
 
 			// Apply updates to the message
-			Object.assign(this.diracMessages[index], updates)
+			Object.assign(this.isaacMessages[index], updates)
 
 			this.emitIsaacMessagesChanged({
 				type: "update",
-				messages: this.diracMessages,
+				messages: this.isaacMessages,
 				index,
 				previousMessage,
-				message: this.diracMessages[index],
+				message: this.isaacMessages[index],
 			})
 
 			// Save changes
@@ -296,24 +296,24 @@ export class MessageStateHandler extends EventEmitter<MessageStateHandlerEvents>
 	}
 
 	/**
-	 * Delete a specific message from the diracMessages array
+	 * Delete a specific message from the isaacMessages array
 	 * The entire operation (validate, delete, save) is atomic to prevent races (RC-4)
 	 */
 	async deleteIsaacMessage(index: number): Promise<void> {
 		await this.withStateLock(async () => {
-			if (index < 0 || index >= this.diracMessages.length) {
+			if (index < 0 || index >= this.isaacMessages.length) {
 				throw new Error(`Invalid message index: ${index}`)
 			}
 
 			// Capture the message before deletion
-			const previousMessage = this.diracMessages[index]
+			const previousMessage = this.isaacMessages[index]
 
 			// Remove the message at the specified index
-			this.diracMessages.splice(index, 1)
+			this.isaacMessages.splice(index, 1)
 
 			this.emitIsaacMessagesChanged({
 				type: "delete",
-				messages: this.diracMessages,
+				messages: this.isaacMessages,
 				index,
 				previousMessage,
 			})

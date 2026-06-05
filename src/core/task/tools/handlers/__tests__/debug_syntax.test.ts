@@ -67,7 +67,7 @@ function createConfig() {
 				markFileAsEditedByIsaac: sinon.stub(),
 			},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			stateManager: {
 				getApiConfiguration: () => ({
 					planModeApiProvider: "openai",
@@ -89,7 +89,7 @@ function createConfig() {
 
 describe("EditFileToolHandler – debug syntax", () => {
 	beforeEach(async () => {
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-edit-debug-syntax-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-edit-debug-syntax-"))
 		setVscodeHostProviderMock({
 			hostBridgeClient: {
 				workspaceClient: {

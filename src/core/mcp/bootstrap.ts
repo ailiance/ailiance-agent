@@ -169,7 +169,7 @@ export async function initializeMcpForTask(
 			const { ToolVectorIndex } = await import("./retrieval/ToolVectorIndex")
 			const os = await import("os")
 			const path = await import("path")
-			const cachePath = path.join(os.homedir(), ".dirac", "mcp-tool-vectors.json")
+			const cachePath = path.join(os.homedir(), ".isaac", "mcp-tool-vectors.json")
 			const embedder = createDefaultEmbedder()
 			const index = await new ToolVectorIndex(embedder, cachePath).build(
 				tools.map((t) => ({ qualifiedName: t.qualifiedName, text: `${t.qualifiedName}\n${t.description ?? ""}` })),

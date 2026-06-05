@@ -28,7 +28,7 @@ export async function getWorktreeDefaults(_controller: Controller, _request: Emp
 	const suffix = generateRandomSuffix()
 
 	// Generate suggested branch name
-	const suggestedBranch = `worktree/dirac-${suffix}`
+	const suggestedBranch = `worktree/isaac-${suffix}`
 
 	// Generate suggested path in Documents/Isaac/Worktrees/<project-name>-<suffix>
 	const documentsPath = await getDocumentsPath()

@@ -52,7 +52,7 @@ describe("selectOutputMode", () => {
 	})
 
 	describe("piped stdin", () => {
-		it("should use plain text mode when stdin was piped (echo x | dirac)", () => {
+		it("should use plain text mode when stdin was piped (echo x | isaac)", () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: false, // piped stdin is not a TTY
@@ -62,7 +62,7 @@ describe("selectOutputMode", () => {
 			expect(result.reason).toBe("piped_stdin")
 		})
 
-		it("should use plain text mode when stdin was piped but empty (echo '' | dirac 'prompt')", () => {
+		it("should use plain text mode when stdin was piped but empty (echo '' | isaac 'prompt')", () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: false,
@@ -75,7 +75,7 @@ describe("selectOutputMode", () => {
 
 	describe("stdin redirected (< /dev/null)", () => {
 		it("should use plain text mode when stdin is redirected from /dev/null", () => {
-			// dirac "prompt" < /dev/null
+			// isaac "prompt" < /dev/null
 			// stdin is not a TTY, but also not a FIFO/file, so stdinWasPiped=false
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
@@ -89,7 +89,7 @@ describe("selectOutputMode", () => {
 
 	describe("stdout redirected", () => {
 		it("should use plain text mode when stdout is redirected to file", () => {
-			// dirac "prompt" > output.txt
+			// isaac "prompt" > output.txt
 			const result = selectOutputMode({
 				stdoutIsTTY: false,
 				stdinIsTTY: true,
@@ -100,7 +100,7 @@ describe("selectOutputMode", () => {
 		})
 
 		it("should use plain text mode when stdout is piped", () => {
-			// dirac "prompt" | grep something
+			// isaac "prompt" | grep something
 			const result = selectOutputMode({
 				stdoutIsTTY: false,
 				stdinIsTTY: true,
@@ -136,7 +136,7 @@ describe("selectOutputMode", () => {
 	})
 
 	describe("real-world scenarios", () => {
-		it("dirac (no args, interactive terminal)", () => {
+		it("isaac (no args, interactive terminal)", () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: true,
@@ -145,7 +145,7 @@ describe("selectOutputMode", () => {
 			expect(result.usePlainTextMode).toBe(false)
 		})
 
-		it('dirac "prompt" (prompt arg, interactive terminal)', () => {
+		it('isaac "prompt" (prompt arg, interactive terminal)', () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: true,
@@ -154,7 +154,7 @@ describe("selectOutputMode", () => {
 			expect(result.usePlainTextMode).toBe(false)
 		})
 
-		it('cat file | dirac "explain"', () => {
+		it('cat file | isaac "explain"', () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: false,
@@ -163,7 +163,7 @@ describe("selectOutputMode", () => {
 			expect(result.usePlainTextMode).toBe(true)
 		})
 
-		it('dirac --yolo "prompt"', () => {
+		it('isaac --yolo "prompt"', () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: true,
@@ -173,7 +173,7 @@ describe("selectOutputMode", () => {
 			expect(result.usePlainTextMode).toBe(true)
 		})
 
-		it('dirac "prompt" < /dev/null', () => {
+		it('isaac "prompt" < /dev/null', () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: true,
 				stdinIsTTY: false,
@@ -182,7 +182,7 @@ describe("selectOutputMode", () => {
 			expect(result.usePlainTextMode).toBe(true)
 		})
 
-		it('dirac "prompt" > output.log', () => {
+		it('isaac "prompt" > output.log', () => {
 			const result = selectOutputMode({
 				stdoutIsTTY: false,
 				stdinIsTTY: true,

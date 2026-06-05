@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type * as acp from "@agentclientprotocol/sdk"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { IsaacAgent } from "./IsaacAgent.js"
 import { formatReviewFindings } from "./review.js"
 
@@ -60,7 +60,7 @@ const mocks = vi.hoisted(() => {
 		initializeCliContext: vi.fn(() => ({
 			extensionContext: {},
 			storageContext: {},
-			EXTENSION_DIR: "/tmp/dirac-test",
+			EXTENSION_DIR: "/tmp/isaac-test",
 		})),
 		setRuntimeHooksDir: vi.fn(),
 	}
@@ -100,9 +100,9 @@ function git(cwd: string, args: string[]): string {
 }
 
 function createGitRepo(options?: { branchName?: string }): string {
-	const repoPath = mkdtempSync(path.join(tmpdir(), "dirac-review-"))
+	const repoPath = mkdtempSync(path.join(tmpdir(), "isaac-review-"))
 	git(repoPath, ["init", "-b", options?.branchName ?? "main"])
-	git(repoPath, ["config", "user.email", "dirac@example.com"])
+	git(repoPath, ["config", "user.email", "isaac@example.com"])
 	git(repoPath, ["config", "user.name", "Isaac Test"])
 	return repoPath
 }
@@ -364,8 +364,6 @@ describe("Isaac ACP review commands", () => {
 					explanation: "Explanation one.",
 				},
 			]),
-		).toBe(
-			"- a.ts:3 [high] First finding\nExplanation one.\n\n- b.ts:8 [medium] Second finding\nExplanation two.",
-		)
+		).toBe("- a.ts:3 [high] First finding\nExplanation one.\n\n- b.ts:8 [medium] Second finding\nExplanation two.")
 	})
 })

@@ -1,7 +1,7 @@
 import { getDistinctId } from "@/services/logging/distinctId"
 import { fetch } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
-import { diracTelemetryConfig } from "../../../shared/services/config/dirac-telemetry-config"
+import { isaacTelemetryConfig } from "../../../shared/services/config/isaac-telemetry-config"
 import type { FeatureFlagsAndPayloads, FeatureFlagsSettings, IFeatureFlagsProvider } from "./IFeatureFlagsProvider"
 
 /**
@@ -24,16 +24,16 @@ export class IsaacFeatureFlagsProvider implements IFeatureFlagsProvider {
 	}
 
 	async getAllFlagsAndPayloads(options: { flagKeys?: string[] }): Promise<FeatureFlagsAndPayloads | undefined> {
-		if (!this.isEnabled() || !diracTelemetryConfig.apiKey) {
+		if (!this.isEnabled() || !isaacTelemetryConfig.apiKey) {
 			return undefined
 		}
 
 		try {
-			const response = await fetch(`${diracTelemetryConfig.host}/decide`, {
+			const response = await fetch(`${isaacTelemetryConfig.host}/decide`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"X-Dirac-API-Key": diracTelemetryConfig.apiKey,
+					"X-Dirac-API-Key": isaacTelemetryConfig.apiKey,
 				},
 				body: JSON.stringify({
 					distinctId: this.distinctId,

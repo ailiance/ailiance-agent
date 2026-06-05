@@ -252,8 +252,8 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.LMSTUDIO
 		case "vscode-lm":
 			return ProtoApiProvider.VSCODE_LM
-		case "dirac":
-			return ProtoApiProvider.DIRAC
+		case "isaac":
+			return ProtoApiProvider.ISAAC
 		case "litellm":
 			return ProtoApiProvider.LITELLM
 		default:
@@ -274,8 +274,8 @@ export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvid
 			return "lmstudio"
 		case ProtoApiProvider.VSCODE_LM:
 			return "vscode-lm"
-		case ProtoApiProvider.DIRAC:
-			return "dirac"
+		case ProtoApiProvider.ISAAC:
+			return "isaac"
 		case ProtoApiProvider.LITELLM:
 			return "litellm"
 		default:
@@ -351,7 +351,7 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		minimaxApiKey: config.minimaxApiKey,
 		minimaxApiLine: config.minimaxApiLine,
 		nousResearchApiKey: config.nousResearchApiKey,
-		diracApiKey: config.diracApiKey,
+		isaacApiKey: config.isaacApiKey,
 		aihubmixApiKey: config.aihubmixApiKey,
 		aihubmixBaseUrl: config.aihubmixBaseUrl,
 		aihubmixAppCode: config.aihubmixAppCode,
@@ -367,8 +367,8 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		planModeAwsBedrockCustomModelBaseId: config.planModeAwsBedrockCustomModelBaseId as string | undefined,
 		planModeOpenRouterModelId: config.planModeOpenRouterModelId,
 		planModeOpenRouterModelInfo: convertModelInfoToProtoOpenRouter(config.planModeOpenRouterModelInfo),
-		planModeDiracModelId: config.planModeDiracModelId,
-		planModeDiracModelInfo: convertModelInfoToProtoOpenRouter(config.planModeDiracModelInfo),
+		planModeIsaacModelId: config.planModeIsaacModelId,
+		planModeIsaacModelInfo: convertModelInfoToProtoOpenRouter(config.planModeIsaacModelInfo),
 		planModeOpenAiModelId: config.planModeOpenAiModelId,
 		planModeOpenAiModelInfo: convertOpenAiCompatibleModelInfoToProto(config.planModeOpenAiModelInfo),
 		planModeLmStudioModelId: config.planModeLmStudioModelId,
@@ -403,8 +403,8 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		actModeAwsBedrockCustomModelBaseId: config.actModeAwsBedrockCustomModelBaseId as string | undefined,
 		actModeOpenRouterModelId: config.actModeOpenRouterModelId,
 		actModeOpenRouterModelInfo: convertModelInfoToProtoOpenRouter(config.actModeOpenRouterModelInfo),
-		actModeDiracModelId: config.actModeDiracModelId,
-		actModeDiracModelInfo: convertModelInfoToProtoOpenRouter(config.actModeDiracModelInfo),
+		actModeIsaacModelId: config.actModeIsaacModelId,
+		actModeIsaacModelInfo: convertModelInfoToProtoOpenRouter(config.actModeIsaacModelInfo),
 		actModeOpenAiModelId: config.actModeOpenAiModelId,
 		actModeOpenAiModelInfo: convertOpenAiCompatibleModelInfoToProto(config.actModeOpenAiModelInfo),
 		actModeLmStudioModelId: config.actModeLmStudioModelId,
@@ -501,7 +501,7 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		minimaxApiKey: protoConfig.minimaxApiKey,
 		minimaxApiLine: protoConfig.minimaxApiLine,
 		nousResearchApiKey: protoConfig.nousResearchApiKey,
-		diracApiKey: protoConfig.diracApiKey,
+		isaacApiKey: protoConfig.isaacApiKey,
 
 		// Plan mode configurations
 		planModeApiProvider:
@@ -517,8 +517,8 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		planModeAwsBedrockCustomModelBaseId: protoConfig.planModeAwsBedrockCustomModelBaseId as BedrockModelId | undefined,
 		planModeOpenRouterModelId: protoConfig.planModeOpenRouterModelId,
 		planModeOpenRouterModelInfo: convertProtoToModelInfo(protoConfig.planModeOpenRouterModelInfo),
-		planModeDiracModelId: protoConfig.planModeDiracModelId,
-		planModeDiracModelInfo: convertProtoToModelInfo(protoConfig.planModeDiracModelInfo),
+		planModeIsaacModelId: protoConfig.planModeIsaacModelId,
+		planModeIsaacModelInfo: convertProtoToModelInfo(protoConfig.planModeIsaacModelInfo),
 		planModeOpenAiModelId: protoConfig.planModeOpenAiModelId,
 		planModeOpenAiModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.planModeOpenAiModelInfo),
 		planModeLmStudioModelId: protoConfig.planModeLmStudioModelId,
@@ -554,8 +554,8 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		actModeAwsBedrockCustomModelBaseId: protoConfig.actModeAwsBedrockCustomModelBaseId as BedrockModelId | undefined,
 		actModeOpenRouterModelId: protoConfig.actModeOpenRouterModelId,
 		actModeOpenRouterModelInfo: convertProtoToModelInfo(protoConfig.actModeOpenRouterModelInfo),
-		actModeDiracModelId: protoConfig.actModeDiracModelId,
-		actModeDiracModelInfo: convertProtoToModelInfo(protoConfig.actModeDiracModelInfo),
+		actModeIsaacModelId: protoConfig.actModeIsaacModelId,
+		actModeIsaacModelInfo: convertProtoToModelInfo(protoConfig.actModeIsaacModelInfo),
 		actModeOpenAiModelId: protoConfig.actModeOpenAiModelId,
 		actModeOpenAiModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.actModeOpenAiModelInfo),
 		actModeLmStudioModelId: protoConfig.actModeLmStudioModelId,

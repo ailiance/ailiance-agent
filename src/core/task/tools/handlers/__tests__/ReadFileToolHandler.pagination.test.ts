@@ -2,8 +2,8 @@ import { strict as assert } from "node:assert"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import * as pathUtils from "@utils/path"
 import { IsaacDefaultTool } from "@shared/tools"
+import * as pathUtils from "@utils/path"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import sinon from "sinon"
 import { TaskState } from "../../../TaskState"
@@ -102,7 +102,7 @@ function createConfig(opts: CreateConfigOpts = {}) {
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider: {},
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			contextManager: {},
 		},
@@ -129,7 +129,7 @@ describe("ReadFileToolHandler – pagination & sizing", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-readpag-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-readpag-test-"))
 		sandbox.stub(pathUtils, "isLocatedInWorkspace").resolves(true)
 	})
 

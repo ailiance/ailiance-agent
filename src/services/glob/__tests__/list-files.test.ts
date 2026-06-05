@@ -10,7 +10,7 @@ function normalizeForComparison(value: string): string {
 }
 
 describe("listFiles", () => {
-	const tmpDir = path.join(os.tmpdir(), `dirac-list-files-test-${Math.random().toString(36).slice(2)}`)
+	const tmpDir = path.join(os.tmpdir(), `isaac-list-files-test-${Math.random().toString(36).slice(2)}`)
 
 	after(async () => {
 		await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined)
@@ -35,6 +35,9 @@ describe("listFiles", () => {
 
 		const [files] = await listFiles(tmpDir, false, 200)
 
-		files.map((f) => f.path).map(normalizeForComparison).should.containEql(normalizeForComparison(nestedFile))
+		files
+			.map((f) => f.path)
+			.map(normalizeForComparison)
+			.should.containEql(normalizeForComparison(nestedFile))
 	})
 })

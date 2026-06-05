@@ -82,7 +82,7 @@ function createMockConfig(cwd: string) {
 				markFileAsEditedByIsaac: sinon.stub(),
 				trackFileContext: sinon.stub().resolves(),
 			},
-			diracIgnoreController: {
+			isaacIgnoreController: {
 				validateAccess: () => true,
 				filterPaths: (paths: string[]) => paths,
 			},

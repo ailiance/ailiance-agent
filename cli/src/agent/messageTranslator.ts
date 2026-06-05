@@ -280,7 +280,7 @@ function translateSayMessage(
 		case "error":
 		case "error_retry":
 		case "diff_error":
-		case "diracignore_error":
+		case "isaacignore_error":
 			// Error messages → agent_message_chunk (errors are displayed as text)
 			if (message.text) {
 				updates.push({
@@ -340,7 +340,6 @@ function translateSayMessage(
 			// Task started - don't echo the user's prompt back to them
 			// The ACP client already knows what they typed
 			break
-
 
 		case "hook_status":
 			// Format hook status as a human-readable message
@@ -776,7 +775,7 @@ function translatePlainCommandToolMessage(
 	message: IsaacMessage,
 	sessionState: AcpSessionState,
 	clientCapabilities?: acp.ClientCapabilities,
-): acp.ToolCallUpdate & { sessionUpdate: "tool_call_update" } | undefined {
+): (acp.ToolCallUpdate & { sessionUpdate: "tool_call_update" }) | undefined {
 	const command = extractCommandFromText(message.text)
 	const toolCallId = sessionState.currentToolCallId
 	if (!command || !toolCallId) return undefined
@@ -1055,8 +1054,12 @@ function getToolTitleSuffix(toolInfo: IsaacSayTool): string {
 		.map((result: any) => (typeof result?.path === "string" ? result.path : ""))
 		.filter(Boolean)
 
-	const paths = Array.isArray((toolInfo as any).paths) ? (toolInfo as any).paths.filter((path: unknown) => typeof path === "string") : []
-	const pathList = [toolInfo.path, ...paths, ...resultPaths].filter((path): path is string => typeof path === "string" && path.length > 0)
+	const paths = Array.isArray((toolInfo as any).paths)
+		? (toolInfo as any).paths.filter((path: unknown) => typeof path === "string")
+		: []
+	const pathList = [toolInfo.path, ...paths, ...resultPaths].filter(
+		(path): path is string => typeof path === "string" && path.length > 0,
+	)
 
 	if (pathList.length > 1) {
 		return pathList.join(", ")

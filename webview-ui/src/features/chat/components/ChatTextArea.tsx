@@ -11,7 +11,7 @@ import type React from "react"
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import DynamicTextArea from "react-textarea-autosize"
 import { usePlatform } from "@/context/PlatformContext"
-import IsaacRulesToggleModal from "@/features/dirac-rules/components/IsaacRulesToggleModal"
+import IsaacRulesToggleModal from "@/features/isaac-rules/components/IsaacRulesToggleModal"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/features/settings/components/utils/providerUtils"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { cn } from "@/lib/utils"
@@ -690,7 +690,9 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 									if (searchResults.length === 0 && query.length > 0) {
 										const options = getContextMenuOptions(query, selectedType, queryItems, [])
 										const hasRealOptions = options.some(
-											(opt) => opt.type !== ContextMenuOptionType.NoResults && opt.type !== ContextMenuOptionType.URL,
+											(opt) =>
+												opt.type !== ContextMenuOptionType.NoResults &&
+												opt.type !== ContextMenuOptionType.URL,
 										)
 										if (!hasRealOptions) {
 											setShowContextMenu(false)
@@ -1017,7 +1019,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				return unknownModel
 			}
 			switch (selectedProvider) {
-				case "dirac":
+				case "isaac":
 					return `${selectedProvider}:${selectedModelId}`
 				case "openai":
 					return `openai-compat:${selectedModelId}`
@@ -1289,9 +1291,9 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					{showSlashCommandsMenu && (
 						<div ref={slashCommandsMenuContainerRef}>
 							<SlashCommandMenu
+								availableSkills={availableSkills}
 								globalWorkflowToggles={globalWorkflowToggles}
 								localWorkflowToggles={localWorkflowToggles}
-								availableSkills={availableSkills}
 								onMouseDown={handleMenuMouseDown}
 								onSelect={handleSlashCommandsSelect}
 								query={slashCommandsQuery}
@@ -1543,14 +1545,17 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							<div
 								className={cn(
 									"flex items-center bg-transparent border border-input-border rounded-md overflow-hidden cursor-pointer transition-all duration-200 hover:border-ring/40 select-none relative h-6 w-fit min-w-[112px]",
-									"font-mono text-[9px] tracking-tight whitespace-nowrap"
+									"font-mono text-[9px] tracking-tight whitespace-nowrap",
 								)}
 								data-testid="mode-switch"
 								onClick={onModeToggle}>
 								<motion.div
 									animate={{
 										x: mode === "act" ? "100%" : "0%",
-										backgroundColor: mode === "plan" ? "var(--vscode-activityWarningBadge-background)" : "var(--vscode-focusBorder)",
+										backgroundColor:
+											mode === "plan"
+												? "var(--vscode-activityWarningBadge-background)"
+												: "var(--vscode-focusBorder)",
 									}}
 									className="absolute h-full w-1/2 opacity-90"
 									initial={false}
@@ -1563,13 +1568,19 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 											aria-checked={isSelected}
 											className={cn(
 												"flex-1 z-10 text-center transition-colors duration-150 flex items-center justify-center gap-1.5 px-3",
-												isSelected ? "text-white font-bold" : "text-(--vscode-input-placeholderForeground) hover:text-(--vscode-input-foreground)"
+												isSelected
+													? "text-white font-bold"
+													: "text-(--vscode-input-placeholderForeground) hover:text-(--vscode-input-foreground)",
 											)}
 											key={m}
 											onMouseLeave={() => setShownTooltipMode(null)}
 											onMouseOver={() => setShownTooltipMode(m.toLowerCase() as Mode)}
 											role="switch">
-											{m === "Plan" ? <span className="codicon codicon-lightbulb text-[10px]" /> : <span className="codicon codicon-zap text-[10px]" />}
+											{m === "Plan" ? (
+												<span className="codicon codicon-lightbulb text-[10px]" />
+											) : (
+												<span className="codicon codicon-zap text-[10px]" />
+											)}
 											{m}
 										</div>
 									)

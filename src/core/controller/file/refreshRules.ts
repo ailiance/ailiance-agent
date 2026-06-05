@@ -1,5 +1,5 @@
-import { refreshIsaacRulesToggles } from "@core/context/instructions/user-instructions/dirac-rules"
 import { refreshExternalRulesToggles } from "@core/context/instructions/user-instructions/external-rules"
+import { refreshIsaacRulesToggles } from "@core/context/instructions/user-instructions/isaac-rules"
 import { refreshWorkflowToggles } from "@core/context/instructions/user-instructions/workflows"
 import { EmptyRequest } from "@shared/proto/isaac/common"
 import { RefreshedRules } from "@shared/proto/isaac/file"
@@ -24,8 +24,8 @@ export async function refreshRules(controller: Controller, _request: EmptyReques
 		const { localWorkflowToggles, globalWorkflowToggles } = await refreshWorkflowToggles(controller, cwd)
 
 		return RefreshedRules.create({
-			globalDiracRulesToggles: { toggles: globalToggles },
-			localDiracRulesToggles: { toggles: localToggles },
+			globalIsaacRulesToggles: { toggles: globalToggles },
+			localIsaacRulesToggles: { toggles: localToggles },
 			localCursorRulesToggles: { toggles: cursorLocalToggles },
 			localWindsurfRulesToggles: { toggles: windsurfLocalToggles },
 			localAgentsRulesToggles: { toggles: agentsLocalToggles },

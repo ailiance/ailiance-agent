@@ -22,7 +22,7 @@ export const FEATURE_SETTINGS = {
 		description: "Automatically summarize long conversations",
 	},
 	webTools: {
-		stateKey: "diracWebToolsEnabled",
+		stateKey: "isaacWebToolsEnabled",
 		default: true,
 		label: "Web tools",
 		description: "Enable web search and fetch tools",

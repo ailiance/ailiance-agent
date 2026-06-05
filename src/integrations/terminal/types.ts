@@ -333,11 +333,11 @@ export interface CommandExecutorCallbacks {
 	/** Update the background command running state in the controller */
 	updateBackgroundCommandState: (running: boolean) => void
 	/**
-	 * Update a dirac message by index
+	 * Update a isaac message by index
 	 * Supports updating commandCompleted status and/or text content
 	 */
 	updateIsaacMessage: (index: number, updates: { commandCompleted?: boolean; text?: string }) => Promise<void>
-	/** Get dirac messages array */
+	/** Get isaac messages array */
 	getIsaacMessages: () => Array<{ ask?: string; say?: string; text?: string }>
 	/** Add content to user message for next API request */
 	addToUserMessageContent: (content: { type: string; text: string }) => void

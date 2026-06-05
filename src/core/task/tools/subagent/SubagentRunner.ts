@@ -850,7 +850,7 @@ ${partialResult}`
 	private createSubagentTaskConfig(state: TaskState): TaskConfig {
 		const baseCallbacks = this.baseConfig.callbacks
 		const coordinator = new ToolExecutorCoordinator()
-		const validator = new ToolValidator(this.baseConfig.services.diracIgnoreController)
+		const validator = new ToolValidator(this.baseConfig.services.isaacIgnoreController)
 
 		for (const tool of this.allowedTools) {
 			coordinator.registerByName(tool, validator)

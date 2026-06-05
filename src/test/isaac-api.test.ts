@@ -3,7 +3,7 @@ import * as should from "should"
 import * as sinon from "sinon"
 import { createIsaacAPI } from "@/exports"
 import { Logger } from "@/shared/services/Logger"
-import type { IsaacAPI } from "../exports/dirac"
+import type { IsaacAPI } from "../exports/isaac"
 import { setVscodeHostProviderMock } from "./host-provider-test-utils"
 
 describe("IsaacAPI Core Functionality", () => {

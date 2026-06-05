@@ -107,7 +107,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 				throw err
 			}
 
-			// Check diracignore access before performing any IO.
+			// Check isaacignore access before performing any IO.
 			const accessValidation = this.validator.checkIsaacIgnorePath(relDirPath)
 			if (!accessValidation.ok) {
 				out.push({
@@ -117,7 +117,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 					usedWorkspaceHint: false,
 					fileInfos: [],
 					didHitLimit: false,
-					error: `Access to ${relDirPath} is blocked by .diracignore settings.`,
+					error: `Access to ${relDirPath} is blocked by .isaacignore settings.`,
 				})
 				continue
 			}
@@ -172,7 +172,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 				l.absolutePath,
 				l.fileInfos,
 				l.didHitLimit,
-				config.services.diracIgnoreController,
+				config.services.isaacIgnoreController,
 			)
 			results.push(`Contents of ${l.relDirPath}:\n${formattedList}`)
 		}

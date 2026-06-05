@@ -1,4 +1,4 @@
-import { refreshIsaacRulesToggles } from "@core/context/instructions/user-instructions/dirac-rules"
+import { refreshIsaacRulesToggles } from "@core/context/instructions/user-instructions/isaac-rules"
 import { createRuleFile as createRuleFileImpl } from "@core/context/instructions/user-instructions/rule-helpers"
 import { getWorkspaceBasename } from "@core/workspace"
 import { RuleFile, RuleFileRequest } from "@shared/proto/isaac/file"

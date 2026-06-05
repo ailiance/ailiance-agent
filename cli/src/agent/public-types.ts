@@ -72,8 +72,8 @@ export type IsaacSessionEvents = {
 export interface IsaacAgentOptions {
 	/** Whether debug logging is enabled */
 	debug?: boolean
-	/** Isaac Config Directory (defaults to ~/.dirac) */
-	diracDir?: string
+	/** Isaac Config Directory (defaults to ~/.isaac) */
+	isaacDir?: string
 	/** Workspace directory for CLI context initialization */
 	cwd?: string
 	/** Additional runtime hooks directory */
@@ -86,8 +86,8 @@ export interface IsaacAgentOptions {
 export interface AcpAgentOptions {
 	/** Whether debug logging is enabled */
 	debug?: boolean
-	/** Isaac Config Directory (defaults to ~/.dirac) */
-	diracDir?: string
+	/** Isaac Config Directory (defaults to ~/.isaac) */
+	isaacDir?: string
 	/** Workspace directory for CLI context initialization */
 	cwd?: string
 	/** Additional runtime hooks directory */
@@ -176,7 +176,7 @@ export interface IsaacAgentCapabilities {
  * Isaac agent info for ACP initialization response.
  */
 export interface IsaacAgentInfo {
-	name: "dirac"
+	name: "isaac"
 	title: "Isaac"
 	version: string
 }

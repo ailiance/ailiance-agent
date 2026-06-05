@@ -5,7 +5,7 @@ import { ApiProvider, liteLlmDefaultModelId, openRouterDefaultModelId } from "..
 
 const ProviderKeyMap: Partial<Record<ApiProvider, string>> = {
 	openrouter: "OpenRouterModelId",
-	dirac: "DiracModelId",
+	isaac: "IsaacModelId",
 	openai: "OpenAiModelId",
 	lmstudio: "LmStudioModelId",
 	litellm: "LiteLlmModelId",
@@ -18,7 +18,7 @@ export const ProviderToBaseUrlKeyMap: Partial<Record<ApiProvider, SettingsKey>> 
 } as const
 
 export const ProviderToApiKeyMap: Partial<Record<ApiProvider, keyof Secrets | (keyof Secrets)[]>> = {
-	dirac: ["diracApiKey"],
+	isaac: ["isaacApiKey"],
 	openrouter: "openRouterApiKey",
 	openai: ["openAiApiKey", "openAiCompatibleCustomApiKey"],
 	litellm: "liteLlmApiKey",
@@ -26,7 +26,7 @@ export const ProviderToApiKeyMap: Partial<Record<ApiProvider, keyof Secrets | (k
 
 const ProviderDefaultModelMap: Partial<Record<ApiProvider, string>> = {
 	openrouter: openRouterDefaultModelId,
-	dirac: openRouterDefaultModelId,
+	isaac: openRouterDefaultModelId,
 	openai: openRouterDefaultModelId,
 	lmstudio: "",
 	litellm: liteLlmDefaultModelId,

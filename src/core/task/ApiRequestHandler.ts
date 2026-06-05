@@ -2,16 +2,16 @@ import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ApiStream } from "@core/api/transform/stream"
 import { checkContextWindowExceededError } from "@core/context/context-management/context-error-handling"
 import {
-	getGlobalIsaacRules,
-	getLocalIsaacRules,
-	refreshIsaacRulesToggles,
-} from "@core/context/instructions/user-instructions/dirac-rules"
-import {
 	getLocalAgentsRules,
 	getLocalCursorRules,
 	getLocalWindsurfRules,
 	refreshExternalRulesToggles,
 } from "@core/context/instructions/user-instructions/external-rules"
+import {
+	getGlobalIsaacRules,
+	getLocalIsaacRules,
+	refreshIsaacRulesToggles,
+} from "@core/context/instructions/user-instructions/isaac-rules"
 import { getActiveMcpToolSet } from "@core/mcp/retrieval/session"
 import { formatResponse } from "@core/prompts/responses"
 import type { SystemPromptContext } from "@core/prompts/system-prompt"
@@ -19,11 +19,11 @@ import { getSystemPrompt } from "@core/prompts/system-prompt"
 import { ensureRulesDirectoryExists, ensureTaskDirectoryExists } from "@core/storage/disk"
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { HostProvider } from "@hosts/host-provider"
-import { IsaacError, IsaacErrorType, ErrorService } from "@services/error"
+import { ErrorService, IsaacError, IsaacErrorType } from "@services/error"
 import { featureFlagsService } from "@services/feature-flags"
 import { findLastIndex } from "@shared/array"
-import { IsaacClient } from "@shared/dirac"
 import { IsaacApiReqInfo } from "@shared/ExtensionMessage"
+import { IsaacClient } from "@shared/isaac"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
 import { Logger } from "@shared/services/Logger"
 import { IsaacAskResponse } from "@shared/WebviewMessage"
@@ -60,10 +60,10 @@ export class ApiRequestHandler {
 		const providerInfo = this.ctx.getCurrentProviderInfo()
 		const host = await HostProvider.env.getHostVersion({})
 		const ide = host?.platform || "Unknown"
-		const isCliEnvironment = host.diracType === IsaacClient.Cli
+		const isCliEnvironment = host.isaacType === IsaacClient.Cli
 		const browserSettings = this.ctx.stateManager.getGlobalSettingsKey("browserSettings")
 		const disableBrowserTool = browserSettings.disableToolUse ?? false
-		// dirac browser tool uses image recognition for navigation (requires model image support).
+		// isaac browser tool uses image recognition for navigation (requires model image support).
 		const modelSupportsBrowserUse = providerInfo.model.info.supportsImages ?? false
 
 		const supportsBrowserUse = modelSupportsBrowserUse && !disableBrowserTool // only enable browser use if the model supports it and the user hasn't disabled it
@@ -99,13 +99,13 @@ export class ApiRequestHandler {
 		const localWindsurfRulesFileInstructions = await getLocalWindsurfRules(this.ctx.cwd, windsurfLocalToggles)
 
 		const localAgentsRulesFileInstructions = await getLocalAgentsRules(this.ctx.cwd, agentsLocalToggles)
-		this.ctx.diracIgnoreController.yoloMode = !!this.ctx.stateManager.getGlobalSettingsKey("yoloModeToggled")
+		this.ctx.isaacIgnoreController.yoloMode = !!this.ctx.stateManager.getGlobalSettingsKey("yoloModeToggled")
 
 		const isYolo = !!this.ctx.stateManager.getGlobalSettingsKey("yoloModeToggled")
-		const diracIgnoreContent = this.ctx.diracIgnoreController.diracIgnoreContent
-		let diracIgnoreInstructions: string | undefined
-		if (diracIgnoreContent && !isYolo) {
-			diracIgnoreInstructions = formatResponse.diracIgnoreInstructions(diracIgnoreContent)
+		const isaacIgnoreContent = this.ctx.isaacIgnoreController.isaacIgnoreContent
+		let isaacIgnoreInstructions: string | undefined
+		if (isaacIgnoreContent && !isYolo) {
+			isaacIgnoreInstructions = formatResponse.isaacIgnoreInstructions(isaacIgnoreContent)
 		}
 
 		// Prepare multi-root workspace information if enabled
@@ -188,13 +188,13 @@ export class ApiRequestHandler {
 			localCursorRulesDirInstructions,
 			localWindsurfRulesFileInstructions,
 			localAgentsRulesFileInstructions,
-			diracIgnoreInstructions,
+			isaacIgnoreInstructions,
 			preferredLanguageInstructions,
 			browserSettings: this.ctx.stateManager.getGlobalSettingsKey("browserSettings"),
 			yoloModeToggled: this.ctx.stateManager.getGlobalSettingsKey("yoloModeToggled"),
 			subagentsEnabled: this.ctx.stateManager.getGlobalSettingsKey("subagentsEnabled"),
-			diracWebToolsEnabled:
-				this.ctx.stateManager.getGlobalSettingsKey("diracWebToolsEnabled") && featureFlagsService.getWebtoolsEnabled(),
+			isaacWebToolsEnabled:
+				this.ctx.stateManager.getGlobalSettingsKey("isaacWebToolsEnabled") && featureFlagsService.getWebtoolsEnabled(),
 			isMultiRootEnabled: multiRootEnabled,
 			workspaceRoots,
 			isSubagentRun: false,
@@ -283,10 +283,10 @@ ${notice}`
 		} catch (error) {
 			const isContextWindowExceededError = checkContextWindowExceededError(error)
 			const { model, providerId } = this.ctx.getCurrentProviderInfo()
-			const diracError = ErrorService.get().toIsaacError(error, model.id, providerId)
+			const isaacError = ErrorService.get().toIsaacError(error, model.id, providerId)
 
-			// Capture provider failure telemetry using diracError
-			ErrorService.get().logMessage(diracError.message)
+			// Capture provider failure telemetry using isaacError
+			ErrorService.get().logMessage(isaacError.message)
 
 			if (isContextWindowExceededError && !this.taskState.didAutomaticallyRetryFailedApiRequest) {
 				await this.ctx.handleContextWindowExceededError()
@@ -303,12 +303,12 @@ ${notice}`
 					// If the conversation has more than 3 messages, we can truncate again. If not, then the conversation is bricked.
 					// ToDo: Allow the user to change their input if this is the case.
 					if (truncatedConversationHistory.length > 3) {
-						diracError.message = "Context window exceeded. Click retry to truncate the conversation and try again."
+						isaacError.message = "Context window exceeded. Click retry to truncate the conversation and try again."
 						this.taskState.didAutomaticallyRetryFailedApiRequest = false
 					}
 				}
 
-				const streamingFailedMessage = diracError.serialize()
+				const streamingFailedMessage = isaacError.serialize()
 
 				// Update the 'api_req_started' message to reflect final failure before asking user to manually retry
 				const lastApiReqStartedIndex = findLastIndex(
@@ -316,8 +316,8 @@ ${notice}`
 					(m) => m.say === "api_req_started",
 				)
 				if (lastApiReqStartedIndex !== -1) {
-					const diracMessages = this.ctx.messageStateHandler.getIsaacMessages()
-					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(diracMessages[lastApiReqStartedIndex].text || "{}")
+					const isaacMessages = this.ctx.messageStateHandler.getIsaacMessages()
+					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(isaacMessages[lastApiReqStartedIndex].text || "{}")
 					delete currentApiReqInfo.retryStatus
 
 					await this.ctx.messageStateHandler.updateIsaacMessage(lastApiReqStartedIndex, {
@@ -330,11 +330,11 @@ ${notice}`
 					// this.ctx.ask will trigger postStateToWebview, so this change should be picked up.
 				}
 
-				const isAuthError = diracError.isErrorType(IsaacErrorType.Auth)
+				const isAuthError = isaacError.isErrorType(IsaacErrorType.Auth)
 
 				// Check if this is a Isaac provider insufficient credits error - don't auto-retry these
 				const isIsaacProviderInsufficientCredits = (() => {
-					if (providerId !== "dirac") {
+					if (providerId !== "isaac") {
 						return false
 					}
 					try {
@@ -412,8 +412,8 @@ ${notice}`
 						(m) => m.say === "api_req_started",
 					)
 					if (autoRetryApiReqIndex !== -1) {
-						const diracMessages = this.ctx.messageStateHandler.getIsaacMessages()
-						const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(diracMessages[autoRetryApiReqIndex].text || "{}")
+						const isaacMessages = this.ctx.messageStateHandler.getIsaacMessages()
+						const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(isaacMessages[autoRetryApiReqIndex].text || "{}")
 						delete currentApiReqInfo.streamingFailedMessage
 						await this.ctx.messageStateHandler.updateIsaacMessage(autoRetryApiReqIndex, {
 							text: JSON.stringify(currentApiReqInfo),
@@ -458,8 +458,8 @@ ${notice}`
 					(m) => m.say === "api_req_started",
 				)
 				if (manualRetryApiReqIndex !== -1) {
-					const diracMessages = this.ctx.messageStateHandler.getIsaacMessages()
-					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(diracMessages[manualRetryApiReqIndex].text || "{}")
+					const isaacMessages = this.ctx.messageStateHandler.getIsaacMessages()
+					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(isaacMessages[manualRetryApiReqIndex].text || "{}")
 					delete currentApiReqInfo.streamingFailedMessage
 					await this.ctx.messageStateHandler.updateIsaacMessage(manualRetryApiReqIndex, {
 						text: JSON.stringify(currentApiReqInfo),
@@ -494,7 +494,7 @@ ${notice}`
 		deletedRange?: [number, number]
 	}): Promise<void> {
 		const enabledSetting = this.ctx.stateManager.getGlobalSettingsKey("writePromptMetadataEnabled")
-		const enabledFlag = process.env.DIRAC_WRITE_PROMPT_ARTIFACTS?.toLowerCase()
+		const enabledFlag = process.env.ISAAC_WRITE_PROMPT_ARTIFACTS?.toLowerCase()
 		const enabled =
 			enabledSetting ||
 			enabledFlag === "1" ||
@@ -507,13 +507,13 @@ ${notice}`
 
 		try {
 			const configuredDir =
-				process.env.DIRAC_PROMPT_ARTIFACT_DIR?.trim() ||
+				process.env.ISAAC_PROMPT_ARTIFACT_DIR?.trim() ||
 				this.ctx.stateManager.getGlobalSettingsKey("writePromptMetadataDirectory")?.trim()
 			const artifactDir = configuredDir
 				? path.isAbsolute(configuredDir)
 					? configuredDir
 					: path.resolve(this.ctx.cwd, configuredDir)
-				: path.resolve(this.ctx.cwd, ".dirac-prompt-artifacts")
+				: path.resolve(this.ctx.cwd, ".isaac-prompt-artifacts")
 
 			await fs.mkdir(artifactDir, { recursive: true })
 

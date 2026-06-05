@@ -10,7 +10,7 @@ export interface LockRow {
 
 export interface SqliteLockManagerOptions {
 	dbPath: string
-	instanceAddress: string // dirac core address
+	instanceAddress: string // isaac core address
 }
 
 export interface FolderLockOptions {

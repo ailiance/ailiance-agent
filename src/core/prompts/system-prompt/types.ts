@@ -28,10 +28,10 @@ export interface SystemPromptContext {
 	readonly localCursorRulesDirInstructions?: string
 	readonly localWindsurfRulesFileInstructions?: string
 	readonly localAgentsRulesFileInstructions?: string
-	readonly diracIgnoreInstructions?: string
+	readonly isaacIgnoreInstructions?: string
 	readonly preferredLanguageInstructions?: string
 	readonly userInstructions?: string
-	readonly diracRules?: string
+	readonly isaacRules?: string
 	readonly browserSettings?: BrowserSettings
 	readonly isTesting?: boolean
 	readonly runtimePlaceholders?: Readonly<Record<string, unknown>>
@@ -40,7 +40,7 @@ export interface SystemPromptContext {
 	/** Active MCP tool qualified names for adaptive retrieval. When set, only
 	 * these MCP tools are emitted; undefined means "no gating" (legacy: all). */
 	readonly activeMcpTools?: ReadonlySet<string>
-	readonly diracWebToolsEnabled?: boolean
+	readonly isaacWebToolsEnabled?: boolean
 	readonly isMultiRootEnabled?: boolean
 	readonly workspaceRoots?: Array<{ path: string; name: string; vcs?: string }>
 	readonly isSubagentsEnabledAndCliInstalled?: boolean

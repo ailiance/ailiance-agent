@@ -73,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	await cleanupLegacyVSCodeStorage(context)
 
 	// 4. One-time export of VSCode's native storage to shared file-backed stores.
-	// After this, all platforms (VSCode, CLI, JetBrains) read from ~/.dirac/data/.
+	// After this, all platforms (VSCode, CLI, JetBrains) read from ~/.isaac/data/.
 	await exportVSCodeStorageToSharedFiles(context, storageContext)
 
 	// 4. Register services and perform common initialization
@@ -155,7 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(DIFF_VIEW_URI_SCHEME, diffContentProvider))
 	// Register commands for Accept/Reject from CodeLens
 	context.subscriptions.push(
-		vscode.commands.registerCommand("dirac.acceptEdit", async () => {
+		vscode.commands.registerCommand("isaac.acceptEdit", async () => {
 			const sidebarInstance = IsaacWebviewProvider.getInstance()
 			if (sidebarInstance.controller?.task) {
 				await sidebarInstance.controller.task.handleWebviewAskResponse("yesButtonClicked")
@@ -164,7 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	)
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("dirac.saveWithMyChanges", async () => {
+		vscode.commands.registerCommand("isaac.saveWithMyChanges", async () => {
 			const sidebarInstance = IsaacWebviewProvider.getInstance()
 			if (sidebarInstance.controller?.task) {
 				await sidebarInstance.controller.task.handleWebviewAskResponse("yesButtonClicked")
@@ -172,7 +172,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 	)
 	context.subscriptions.push(
-		vscode.commands.registerCommand("dirac.rejectEdit", async () => {
+		vscode.commands.registerCommand("isaac.rejectEdit", async () => {
 			const sidebarInstance = IsaacWebviewProvider.getInstance()
 			if (sidebarInstance.controller?.task) {
 				await sidebarInstance.controller.task.handleWebviewAskResponse("noButtonClicked")
@@ -204,7 +204,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Register size testing commands in development mode
 	if (IS_DEV) {
-		vscode.commands.executeCommand("setContext", "dirac.isDevMode", IS_DEV)
+		vscode.commands.executeCommand("setContext", "isaac.isDevMode", IS_DEV)
 		// Use dynamic import to avoid loading the module in production
 		import("./dev/commands/tasks")
 			.then((module) => {

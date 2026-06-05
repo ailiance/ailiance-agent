@@ -1,4 +1,4 @@
-import { IsaacApiReqInfo, IsaacSayTool, COMMAND_OUTPUT_STRING } from "@shared/ExtensionMessage"
+import { COMMAND_OUTPUT_STRING, IsaacApiReqInfo, IsaacSayTool } from "@shared/ExtensionMessage"
 import { memo, useEffect, useMemo, useRef, useState } from "react"
 import SubagentStatusRow from "@/features/chat/components/SubagentStatusRow"
 import { useChatStore } from "@/features/chat/store/chatStore"
@@ -38,7 +38,7 @@ export const ChatRowContent = memo(
 
 		const backgroundEditEnabled = useSettingsStore((state) => state.backgroundEditEnabled)
 		const vscodeTerminalExecutionMode = useSettingsStore((state) => state.vscodeTerminalExecutionMode)
-		const diracMessagesCount = useChatStore((state) => state.diracMessages.length)
+		const isaacMessagesCount = useChatStore((state) => state.isaacMessages.length)
 		const onRelinquishControl = useRelinquishControl()
 
 		const [seeNewChangesDisabled, setSeeNewChangesDisabled] = useState(false)
@@ -209,7 +209,6 @@ export const ChatRowContent = memo(
 			<MessageRenderer
 				apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
 				apiRequestFailedMessage={apiRequestFailedMessage}
-				diracMessagesCount={diracMessagesCount}
 				cost={cost}
 				dashboardReasoningContent={reasoningContent}
 				explainChangesDisabled={explainChangesDisabled}
@@ -217,12 +216,14 @@ export const ChatRowContent = memo(
 				handleQuoteClick={handleQuoteClick}
 				icon={icon}
 				inputValue={inputValue}
+				isaacMessagesCount={isaacMessagesCount}
 				isExpanded={isExpanded}
 				isLast={isLast}
 				isRequestInProgress={isRequestInProgress}
 				lastModifiedMessage={lastModifiedMessage}
 				message={message}
 				mode={mode}
+				onAskForUpdate={onAskForUpdate}
 				onSetQuote={onSetQuote}
 				onToggleExpand={onToggleExpand}
 				quoteButtonState={quoteButtonState}
@@ -233,7 +234,6 @@ export const ChatRowContent = memo(
 				setSeeNewChangesDisabled={setSeeNewChangesDisabled}
 				title={title}
 				vscodeTerminalExecutionMode={vscodeTerminalExecutionMode}
-				onAskForUpdate={onAskForUpdate}
 			/>
 		)
 	},

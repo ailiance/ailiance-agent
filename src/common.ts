@@ -1,30 +1,30 @@
-import { IsaacWebviewProvider } from "./core/webview";
-import "./utils/path"; // necessary to have access to String.prototype.toPosix
+import { IsaacWebviewProvider } from "./core/webview"
+import "./utils/path" // necessary to have access to String.prototype.toPosix
 
-import { HostProvider } from "@/hosts/host-provider";
-import { Logger } from "@/shared/services/Logger";
-import type { StorageContext } from "@/shared/storage/storage-context";
-import { FileContextTracker } from "./core/context/context-tracking/FileContextTracker";
-import { clearOnboardingModelsCache } from "./core/controller/models/getIsaacOnboardingModels";
-import { HookDiscoveryCache } from "./core/hooks/HookDiscoveryCache";
-import { HookProcessRegistry } from "./core/hooks/HookProcessRegistry";
-import { StateManager } from "./core/storage/StateManager";
-import { AgentConfigLoader } from "./core/task/tools/subagent/AgentConfigLoader";
-import { ExtensionRegistryInfo } from "./registry";
-import { ErrorService } from "./services/error";
-import { featureFlagsService } from "./services/feature-flags";
-import { getDistinctId } from "./services/logging/distinctId";
-import { SymbolIndexService } from "./services/symbol-index/SymbolIndexService";
-import { telemetryService } from "./services/telemetry";
+import { HostProvider } from "@/hosts/host-provider"
+import { Logger } from "@/shared/services/Logger"
+import type { StorageContext } from "@/shared/storage/storage-context"
+import { FileContextTracker } from "./core/context/context-tracking/FileContextTracker"
+import { clearOnboardingModelsCache } from "./core/controller/models/getIsaacOnboardingModels"
+import { HookDiscoveryCache } from "./core/hooks/HookDiscoveryCache"
+import { HookProcessRegistry } from "./core/hooks/HookProcessRegistry"
+import { StateManager } from "./core/storage/StateManager"
+import { AgentConfigLoader } from "./core/task/tools/subagent/AgentConfigLoader"
+import { ExtensionRegistryInfo } from "./registry"
+import { ErrorService } from "./services/error"
+import { featureFlagsService } from "./services/feature-flags"
+import { getDistinctId } from "./services/logging/distinctId"
+import { SymbolIndexService } from "./services/symbol-index/SymbolIndexService"
+import { telemetryService } from "./services/telemetry"
 // Legacy telemetry removed
-import { IsaacTempManager } from "./services/temp";
-import { cleanupTestMode } from "./services/test/TestMode";
-import { ShowMessageType } from "./shared/proto/host/window";
-import { syncWorker } from "./shared/services/worker/sync";
+import { IsaacTempManager } from "./services/temp"
+import { cleanupTestMode } from "./services/test/TestMode"
+import { ShowMessageType } from "./shared/proto/host/window"
+import { syncWorker } from "./shared/services/worker/sync"
 
-import { getBlobStoreSettingsFromEnv } from "./shared/services/worker/worker";
-import { getLatestAnnouncementId } from "./utils/announcements";
-import { arePathsEqual } from "./utils/path";
+import { getBlobStoreSettingsFromEnv } from "./shared/services/worker/worker"
+import { getLatestAnnouncementId } from "./utils/announcements"
+import { arePathsEqual } from "./utils/path"
 
 /**
  * Performs intialization for Isaac that is common to all platforms.
@@ -38,7 +38,7 @@ export async function initialize(storageContext: StorageContext): Promise<IsaacW
 	Logger.subscribe((msg: string) => HostProvider.get().logToChannel(msg)) // File system logging
 	Logger.subscribe((msg: string) => HostProvider.env.debugLog({ value: msg })) // Host debug logging
 
-	// Initialize IsaacEndpoint configuration (reads bundled and ~/.dirac/endpoints.json if present)
+	// Initialize IsaacEndpoint configuration (reads bundled and ~/.isaac/endpoints.json if present)
 	// This must be done before any other code that calls IsaacEnv.config()
 	// Throws IsaacConfigurationError if config file exists but is invalid
 	const { IsaacEndpoint } = await import("./config")
@@ -102,7 +102,7 @@ async function showVersionUpdateAnnouncement(stateManager: StateManager) {
 	// Version checking for autoupdate notification
 
 	const currentVersion = ExtensionRegistryInfo.version
-	const previousVersion = stateManager.getGlobalStateKey("diracVersion")
+	const previousVersion = stateManager.getGlobalStateKey("isaacVersion")
 	// Perform post-update actions if necessary
 	try {
 		if (!previousVersion || currentVersion !== previousVersion) {
@@ -110,7 +110,7 @@ async function showVersionUpdateAnnouncement(stateManager: StateManager) {
 
 			// Check if there's a new announcement to show
 			// Update version key name if needed
-			const previousIsaacVersion = stateManager.getGlobalStateKey("diracVersion" as any)
+			const previousIsaacVersion = stateManager.getGlobalStateKey("isaacVersion" as any)
 			if (previousIsaacVersion && !previousVersion) {
 				// This is handled by migrateIsaacToIsaac but as a safety measure
 			}
@@ -129,7 +129,7 @@ async function showVersionUpdateAnnouncement(stateManager: StateManager) {
 				})
 			}
 			// Always update the main version tracker for the next launch.
-			await stateManager.setGlobalState("diracVersion", currentVersion)
+			await stateManager.setGlobalState("isaacVersion", currentVersion)
 		}
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)

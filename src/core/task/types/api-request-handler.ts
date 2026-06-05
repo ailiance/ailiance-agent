@@ -17,7 +17,7 @@ export interface ApiRequestHandlerContext {
 	// services
 	api: ApiHandler
 	contextManager: ContextManager
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	stateManager: StateManager
 	messageStateHandler: MessageStateHandler
 	workspaceManager?: WorkspaceRootManager

@@ -30,8 +30,8 @@ export const ReasoningGraph: React.FC<ReasoningGraphProps> = memo(({ nodes, clas
 					key={node.id}
 					transition={{ delay: index * 0.1 }}>
 					{/* Node Icon/Bullet */}
-					<div className="flex-shrink-0 w-6 h-6 rounded-full bg-background border-2 border-dirac flex items-center justify-center shadow-sm">
-						<div className="w-2 h-2 rounded-full bg-dirac" />
+					<div className="flex-shrink-0 w-6 h-6 rounded-full bg-background border-2 border-isaac flex items-center justify-center shadow-sm">
+						<div className="w-2 h-2 rounded-full bg-isaac" />
 					</div>
 
 					{/* Node Content */}

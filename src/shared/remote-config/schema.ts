@@ -120,7 +120,7 @@ const ProviderSettingsSchema = z.object({
 	Anthropic: AnthropicSchema.optional(),
 })
 
-// Settings for a global dirac rules or workflow file.
+// Settings for a global isaac rules or workflow file.
 export const GlobalInstructionsFileSchema = z.object({
 	// When this is enabled, the user cannot turn off this rule or workflow.
 	alwaysEnabled: z.boolean(),

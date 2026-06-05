@@ -1,14 +1,14 @@
 import {
-    ApiConfiguration,
-    ApiProvider,
-    liteLlmModelInfoSaneDefaults,
-    ModelInfo,
-    openAiModelInfoSaneDefaults,
-    openRouterDefaultModelId,
-    openRouterDefaultModelInfo,
-} from "@shared/api";
-import { Mode } from "@shared/ExtensionMessage";
-import * as reasoningSupport from "@shared/utils/reasoning-support";
+	ApiConfiguration,
+	ApiProvider,
+	liteLlmModelInfoSaneDefaults,
+	ModelInfo,
+	openAiModelInfoSaneDefaults,
+	openRouterDefaultModelId,
+	openRouterDefaultModelInfo,
+} from "@shared/api"
+import { Mode } from "@shared/ExtensionMessage"
+import * as reasoningSupport from "@shared/utils/reasoning-support"
 
 export function supportsReasoningEffortForModelId(modelId?: string, modelInfo?: ModelInfo): boolean {
 	if ((modelInfo as any)?.supportsReasoningEffort) {
@@ -19,13 +19,13 @@ export function supportsReasoningEffortForModelId(modelId?: string, modelInfo?: 
 
 /**
  * Returns the static model list for a provider.
- * For providers with dynamic models (openrouter, dirac, etc.), returns undefined.
+ * For providers with dynamic models (openrouter, isaac, etc.), returns undefined.
  * Some providers depend on configuration (qwen, zai) for region-specific models.
  */
 export function getModelsForProvider(
 	apiProvider: ApiProvider | undefined,
 	openRouterModels: Record<string, ModelInfo>,
-	diracModels: Record<string, ModelInfo> | null,
+	isaacModels: Record<string, ModelInfo> | null,
 	_vercelAiGatewayModels: Record<string, ModelInfo>,
 	liteLlmModels: Record<string, ModelInfo>,
 	_requestyModels: Record<string, ModelInfo>,
@@ -38,8 +38,8 @@ export function getModelsForProvider(
 	switch (apiProvider) {
 		case "openrouter":
 			return openRouterModels
-		case "dirac":
-			return diracModels || {}
+		case "isaac":
+			return isaacModels || {}
 		case "litellm":
 			return liteLlmModels
 		default:
@@ -98,25 +98,25 @@ export function normalizeApiConfiguration(
 				selectedModelId: openRouterModelId || openRouterDefaultModelId,
 				selectedModelInfo: openRouterModelInfo || openRouterDefaultModelInfo,
 			}
-		case "dirac":
+		case "isaac":
 			const fallbackOpenRouterModelId =
 				currentMode === "plan" ? apiConfiguration?.planModeOpenRouterModelId : apiConfiguration?.actModeOpenRouterModelId
 			const fallbackOpenRouterModelInfo =
 				currentMode === "plan"
 					? apiConfiguration?.planModeOpenRouterModelInfo
 					: apiConfiguration?.actModeOpenRouterModelInfo
-			const diracModelId =
-				(currentMode === "plan" ? apiConfiguration?.planModeDiracModelId : apiConfiguration?.actModeDiracModelId) ||
+			const isaacModelId =
+				(currentMode === "plan" ? apiConfiguration?.planModeIsaacModelId : apiConfiguration?.actModeIsaacModelId) ||
 				fallbackOpenRouterModelId ||
 				openRouterDefaultModelId
-			const diracModelInfo =
-				(currentMode === "plan" ? apiConfiguration?.planModeDiracModelInfo : apiConfiguration?.actModeDiracModelInfo) ||
+			const isaacModelInfo =
+				(currentMode === "plan" ? apiConfiguration?.planModeIsaacModelInfo : apiConfiguration?.actModeIsaacModelInfo) ||
 				fallbackOpenRouterModelInfo ||
 				openRouterDefaultModelInfo
 			return {
 				selectedProvider: provider,
-				selectedModelId: diracModelId,
-				selectedModelInfo: diracModelInfo,
+				selectedModelId: isaacModelId,
+				selectedModelInfo: isaacModelInfo,
 			}
 		case "openai":
 			const openAiModelId =
@@ -188,9 +188,7 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			mode === "plan" ? apiConfiguration?.planModeThinkingBudgetTokens : apiConfiguration?.actModeThinkingBudgetTokens,
 		reasoningEffort: mode === "plan" ? apiConfiguration?.planModeReasoningEffort : apiConfiguration?.actModeReasoningEffort,
 		vsCodeLmModelSelector:
-			mode === "plan"
-				? apiConfiguration?.planModeVsCodeLmModelSelector
-				: apiConfiguration?.actModeVsCodeLmModelSelector,
+			mode === "plan" ? apiConfiguration?.planModeVsCodeLmModelSelector : apiConfiguration?.actModeVsCodeLmModelSelector,
 		awsBedrockCustomSelected:
 			mode === "plan"
 				? apiConfiguration?.planModeAwsBedrockCustomSelected
@@ -203,8 +201,8 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			mode === "plan" ? apiConfiguration?.planModeOpenRouterModelId : apiConfiguration?.actModeOpenRouterModelId,
 		openRouterModelInfo:
 			mode === "plan" ? apiConfiguration?.planModeOpenRouterModelInfo : apiConfiguration?.actModeOpenRouterModelInfo,
-		diracModelId: mode === "plan" ? apiConfiguration?.planModeDiracModelId : apiConfiguration?.actModeDiracModelId,
-		diracModelInfo: mode === "plan" ? apiConfiguration?.planModeDiracModelInfo : apiConfiguration?.actModeDiracModelInfo,
+		isaacModelId: mode === "plan" ? apiConfiguration?.planModeIsaacModelId : apiConfiguration?.actModeIsaacModelId,
+		isaacModelInfo: mode === "plan" ? apiConfiguration?.planModeIsaacModelInfo : apiConfiguration?.actModeIsaacModelInfo,
 		openAiModelId: mode === "plan" ? apiConfiguration?.planModeOpenAiModelId : apiConfiguration?.actModeOpenAiModelId,
 		openAiModelInfo: mode === "plan" ? apiConfiguration?.planModeOpenAiModelInfo : apiConfiguration?.actModeOpenAiModelInfo,
 		lmStudioModelId: mode === "plan" ? apiConfiguration?.planModeLmStudioModelId : apiConfiguration?.actModeLmStudioModelId,
@@ -220,7 +218,8 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 		groqModelId: mode === "plan" ? apiConfiguration?.planModeGroqModelId : apiConfiguration?.actModeGroqModelId,
 		groqModelInfo: mode === "plan" ? apiConfiguration?.planModeGroqModelInfo : apiConfiguration?.actModeGroqModelInfo,
 		basetenModelId: mode === "plan" ? apiConfiguration?.planModeBasetenModelId : apiConfiguration?.actModeBasetenModelId,
-		basetenModelInfo: mode === "plan" ? apiConfiguration?.planModeBasetenModelInfo : apiConfiguration?.actModeBasetenModelInfo,
+		basetenModelInfo:
+			mode === "plan" ? apiConfiguration?.planModeBasetenModelInfo : apiConfiguration?.actModeBasetenModelInfo,
 		huggingFaceModelId:
 			mode === "plan" ? apiConfiguration?.planModeHuggingFaceModelId : apiConfiguration?.actModeHuggingFaceModelId,
 		huggingFaceModelInfo:
@@ -289,11 +288,11 @@ export async function syncModeConfigurations(
 			updates.actModeOpenRouterModelInfo = sourceFields.openRouterModelInfo
 			break
 
-		case "dirac":
-			updates.planModeDiracModelId = sourceFields.diracModelId
-			updates.actModeDiracModelId = sourceFields.diracModelId
-			updates.planModeDiracModelInfo = sourceFields.diracModelInfo
-			updates.actModeDiracModelInfo = sourceFields.diracModelInfo
+		case "isaac":
+			updates.planModeIsaacModelId = sourceFields.isaacModelId
+			updates.actModeIsaacModelId = sourceFields.isaacModelId
+			updates.planModeIsaacModelInfo = sourceFields.isaacModelInfo
+			updates.actModeIsaacModelInfo = sourceFields.isaacModelInfo
 			break
 
 		case "openai":

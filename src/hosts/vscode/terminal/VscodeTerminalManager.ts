@@ -255,7 +255,7 @@ export class VscodeTerminalManager implements ITerminalManager {
 			if (t.shellPath !== expectedShellPath) {
 				return false
 			}
-			const terminalCwd = t.terminal.shellIntegration?.cwd // one of dirac's commands could have changed the cwd of the terminal
+			const terminalCwd = t.terminal.shellIntegration?.cwd // one of isaac's commands could have changed the cwd of the terminal
 			if (!terminalCwd) {
 				Logger.log(`[TerminalManager] Terminal ${t.id} has no cwd, skipping`)
 				return false

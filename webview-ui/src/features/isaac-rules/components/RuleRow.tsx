@@ -1,5 +1,5 @@
-import { StringRequest } from "@shared/proto/isaac/common"
 import { DeleteSkillRequest, RuleFileRequest } from "@shared/proto/index.isaac"
+import { StringRequest } from "@shared/proto/isaac/common"
 import { REMOTE_URI_SCHEME } from "@shared/remote-config/constants"
 import { EyeIcon, InfoIcon, PenIcon, Trash2Icon } from "lucide-react"
 import { FileServiceClient } from "@/shared/api/grpc-client"
@@ -123,7 +123,7 @@ const RuleRow: React.FC<{
 				RuleFileRequest.create({
 					rulePath,
 					isGlobal,
-					type: ruleType || "dirac",
+					type: ruleType || "isaac",
 				}),
 			).catch((err) => console.error("Failed to delete rule file:", err))
 		}

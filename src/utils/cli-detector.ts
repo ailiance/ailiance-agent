@@ -9,9 +9,9 @@ const execAsync = promisify(exec)
  */
 export async function isIsaacCliInstalled(): Promise<boolean> {
 	try {
-		// Try to get the version of the dirac CLI tool
+		// Try to get the version of the isaac CLI tool
 		// This will fail if the tool is not installed
-		const { stdout } = await execAsync("dirac version", {
+		const { stdout } = await execAsync("isaac version", {
 			timeout: 5000, // 5 second timeout
 		})
 

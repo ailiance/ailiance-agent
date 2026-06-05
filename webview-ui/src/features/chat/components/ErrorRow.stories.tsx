@@ -15,7 +15,7 @@ const createMockMessage = (overrides: Partial<IsaacMessage> = {}): IsaacMessage 
 })
 
 const createMockAuthState = (overrides: any = {}) => ({
-	diracUser: null,
+	isaacUser: null,
 	activeOrganization: null,
 	isAuthenticated: false,
 	...overrides,
@@ -23,7 +23,7 @@ const createMockAuthState = (overrides: any = {}) => ({
 
 const createMockExtensionState = (overrides: any = {}) => ({
 	version: "1.0.0",
-	diracMessages: [],
+	isaacMessages: [],
 	taskHistory: [],
 	shouldShowAnnouncement: false,
 	...overrides,
@@ -51,7 +51,7 @@ const meta: Meta<typeof ErrorRow> = {
 		docs: {
 			description: {
 				component:
-					"Displays different types of error messages in the chat interface, including API errors, credit limit errors, diff errors, and diracignore errors. Handles special error parsing for Isaac provider errors and provides appropriate user actions.",
+					"Displays different types of error messages in the chat interface, including API errors, credit limit errors, diff errors, and isaacignore errors. Handles special error parsing for Isaac provider errors and provides appropriate user actions.",
 			},
 		},
 	},
@@ -71,7 +71,7 @@ export const Default: Story = {
 	argTypes: {
 		errorType: {
 			control: { type: "select" },
-			options: ["error", "mistake_limit_reached", "diff_error", "diracignore_error"],
+			options: ["error", "mistake_limit_reached", "diff_error", "isaacignore_error"],
 			description: "Type of error to display",
 		},
 		message: {
@@ -129,7 +129,7 @@ export const IsaacBalanceError: Story = {
 			message: "Insufficient credits to complete this request.",
 			code: "insufficient_credits",
 			request_id: "req_123456789",
-			providerId: "dirac",
+			providerId: "isaac",
 			details: {
 				current_balance: 0.5,
 				total_spent: 25.75,
@@ -148,7 +148,7 @@ export const IsaacRateLimitError: Story = {
 		apiRequestFailedMessage: JSON.stringify({
 			message: "Rate limit exceeded. Please wait before making another request.",
 			request_id: "req_987654321",
-			providerId: "dirac",
+			providerId: "isaac",
 		}),
 	},
 }
@@ -162,7 +162,7 @@ export const AuthenticationErrors: Story = {
 			message: "Authentication failed. Please sign in to continue.",
 			code: "ERR_BAD_REQUEST",
 			request_id: "req_auth_123",
-			providerId: "dirac",
+			providerId: "isaac",
 		}),
 	},
 	argTypes: {
@@ -185,7 +185,7 @@ export const AuthErrorSignedIn: Story = {
 	...AuthenticationErrors,
 	decorators: [
 		createStoryDecorator({
-			diracUser: { id: "user123", email: "user@example.com" },
+			isaacUser: { id: "user123", email: "user@example.com" },
 			isAuthenticated: true,
 		}),
 	],
@@ -209,14 +209,14 @@ export const InteractiveSignIn: Story = {
 			message: "Please sign in to access Isaac services.",
 			code: "ERR_BAD_REQUEST",
 			request_id: "req_signin_test",
-			providerId: "dirac",
+			providerId: "isaac",
 		}),
 	},
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 
 		// Find the sign in button
-		const signInButton = canvas.getByRole("button", { name: /sign in to dirac/i })
+		const signInButton = canvas.getByRole("button", { name: /sign in to isaac/i })
 		await expect(signInButton).toBeInTheDocument()
 
 		// Test button is clickable
@@ -255,7 +255,7 @@ export const ErrorWithRequestId: Story = {
 		apiRequestFailedMessage: JSON.stringify({
 			message: "An unexpected error occurred while processing your request.",
 			request_id: "req_detailed_123456",
-			providerId: "dirac",
+			providerId: "isaac",
 		}),
 	},
 	play: async ({ canvasElement }) => {

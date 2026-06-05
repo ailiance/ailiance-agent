@@ -79,7 +79,7 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 					try {
 						return await ASTAnchorBridge.getFileSkeleton(
 							absPath,
-							config.services.diracIgnoreController,
+							config.services.isaacIgnoreController,
 							config.ulid,
 							{ showCallGraph: true },
 						)

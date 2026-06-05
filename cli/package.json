@@ -1,7 +1,7 @@
 {
 	"name": "isaac-cli",
 	"version": "0.9.1-beta",
-	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Isaac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"
 	],
@@ -50,7 +50,7 @@
 	"keywords": [
 		"isaac",
 		"ailiance",
-		"dirac",
+		"isaac",
 		"claude",
 		"dev",
 		"openrouter",

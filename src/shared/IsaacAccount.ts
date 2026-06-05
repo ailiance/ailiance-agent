@@ -79,5 +79,5 @@ export interface OrganizationUsageTransaction {
 	userId: string
 }
 
-// Used in dirac.ts provider and in webview-ui/src/components/chat/ChatRow.tsx to display the login button
-export const DIRAC_ACCOUNT_AUTH_ERROR_MESSAGE = "Unauthorized: Please sign in to Isaac before trying again."
+// Used in isaac.ts provider and in webview-ui/src/components/chat/ChatRow.tsx to display the login button
+export const ISAAC_ACCOUNT_AUTH_ERROR_MESSAGE = "Unauthorized: Please sign in to Isaac before trying again."

@@ -3,7 +3,7 @@
  *
  * VSCode historically stored global state, workspace state, and secrets via the
  * ExtensionContext API (backed by SQLite under ~/.vscode/). This module migrates
- * that data to the shared file-backed stores in ~/.dirac/data/ so all platforms
+ * that data to the shared file-backed stores in ~/.isaac/data/ so all platforms
  * (VSCode, CLI, JetBrains) share the same persistence layer.
  *
  * ## Migration semantics
@@ -24,23 +24,22 @@
  *
  * - taskHistory is NOT migrated here. It uses its own file-based storage
  *   at {globalStorageFsPath}/state/taskHistory.json. Note that for VSCode,
- *   globalStorageFsPath is still the VSCode-managed path (not ~/.dirac/data/),
+ *   globalStorageFsPath is still the VSCode-managed path (not ~/.isaac/data/),
  *   so task history is NOT yet shared across clients.
  *
  *   TODO: Migrate taskHistory.json and task data files ({globalStorageFsPath}/tasks/)
- *   to ~/.dirac/data/ so that tasks created in VSCode are visible in CLI/JetBrains
+ *   to ~/.isaac/data/ so that tasks created in VSCode are visible in CLI/JetBrains
  *   and vice versa. See also: checkpoints at {globalStorageFsPath}/checkpoints/.
  */
 
 import fs from "node:fs/promises"
 import path from "node:path"
-import { fileExistsAtPath } from "@/utils/fs"
-import { HistoryItem } from "@/shared/HistoryItem"
-
 import type * as vscode from "vscode"
+import { HistoryItem } from "@/shared/HistoryItem"
 import { Logger } from "@/shared/services/Logger"
 import { GlobalStateAndSettingKeys, LocalStateKeys, SecretKeys } from "@/shared/storage/state-keys"
 import type { StorageContext } from "@/shared/storage/storage-context"
+import { fileExistsAtPath } from "@/utils/fs"
 
 /** Bump this when adding new migration steps. */
 export const CURRENT_MIGRATION_VERSION = 2

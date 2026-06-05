@@ -94,8 +94,8 @@ service FileService {
 
 // Response for refreshRules operation
 message RefreshedRules {
-  IsaacRulesToggles global_dirac_rules_toggles = 1;
-  IsaacRulesToggles local_dirac_rules_toggles = 2;
+  IsaacRulesToggles global_isaac_rules_toggles = 1;
+  IsaacRulesToggles local_isaac_rules_toggles = 2;
   IsaacRulesToggles local_cursor_rules_toggles = 3;
   IsaacRulesToggles local_windsurf_rules_toggles = 4;
   IsaacRulesToggles local_agents_rules_toggles = 5;
@@ -211,8 +211,8 @@ message IsaacRulesToggles {
 
 // Response for toggleIsaacRule operation
 message ToggleIsaacRules {
-  IsaacRulesToggles global_dirac_rules_toggles = 1;
-  IsaacRulesToggles local_dirac_rules_toggles = 2;
+  IsaacRulesToggles global_isaac_rules_toggles = 1;
+  IsaacRulesToggles local_isaac_rules_toggles = 2;
   IsaacRulesToggles remote_rules_toggles = 3;
 }
 

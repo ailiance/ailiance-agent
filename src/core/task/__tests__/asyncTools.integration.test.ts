@@ -128,7 +128,7 @@ function makeRealisticConfig(): {
 				}),
 			},
 			commandPermissionController: { validateCommand: () => ({ allowed: true }) },
-			diracIgnoreController: { validateCommand: () => undefined },
+			isaacIgnoreController: { validateCommand: () => undefined },
 		},
 		callbacks,
 		autoApprovalSettings: { enableNotifications: false },

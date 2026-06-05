@@ -64,7 +64,7 @@ export class SummarizeTaskHandler implements IToolHandler, IPartialBlockHandler 
 						apiConversationHistory: apiHistory,
 						conversationHistoryDeletedRange: config.taskState.conversationHistoryDeletedRange,
 						contextManager: config.services.contextManager,
-						diracMessages: config.messageState.getIsaacMessages(),
+						isaacMessages: config.messageState.getIsaacMessages(),
 						messageStateHandler: config.messageState,
 						compactionStrategy: strategy,
 						say: config.callbacks.say,
@@ -164,7 +164,7 @@ export class SummarizeTaskHandler implements IToolHandler, IPartialBlockHandler 
 						break
 					}
 
-					// Check .diracignore first and skip ignored files
+					// Check .isaacignore first and skip ignored files
 					const accessValidation = this.validator.checkIsaacIgnorePath(relPath)
 					if (!accessValidation.ok) {
 						continue

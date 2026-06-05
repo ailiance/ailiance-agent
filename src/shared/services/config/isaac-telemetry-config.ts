@@ -2,7 +2,7 @@
 // Upstream Isaac sends PostHog events to dirac.run / us.posthog.com.
 // The ailiance-agent fork is EU-sovereign by design and MUST NOT phone home.
 // To re-enable for testing only, restore the upstream apiKey and host
-// values from `git show upstream/master:src/shared/services/config/dirac-telemetry-config.ts`.
+// values from `git show upstream/master:src/shared/services/config/isaac-telemetry-config.ts`.
 import { BUILD_CONSTANTS } from "../../constants"
 
 export interface IsaacTelemetryClientConfig {
@@ -33,7 +33,7 @@ export interface IsaacTelemetryClientValidConfig extends IsaacTelemetryClientCon
  * process.env.CI will always be true in the CI environment, during both testing and publishing step,
  * so it is not a reliable indicator of the environment.
  */
-const _useDevEnv = process.env.IS_DEV === "true" || process.env.DIRAC_ENVIRONMENT === "local"
+const _useDevEnv = process.env.IS_DEV === "true" || process.env.ISAAC_ENVIRONMENT === "local"
 
 /**
  * Isaac telemetry configuration.
@@ -41,7 +41,7 @@ const _useDevEnv = process.env.IS_DEV === "true" || process.env.DIRAC_ENVIRONMEN
  * `isIsaacTelemetryConfigValid` always returns false and consumers (telemetry,
  * error tracking, feature flags) skip remote writes / fetches.
  */
-export const diracTelemetryConfig: IsaacTelemetryClientConfig = {
+export const isaacTelemetryConfig: IsaacTelemetryClientConfig = {
 	apiKey: BUILD_CONSTANTS.TELEMETRY_SERVICE_API_KEY || undefined,
 	errorTrackingApiKey: BUILD_CONSTANTS.ERROR_SERVICE_API_KEY || undefined,
 	host: "",

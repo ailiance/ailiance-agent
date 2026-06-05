@@ -46,8 +46,8 @@ export async function updateApiConfigurationProto(
 			planModeOpenRouterModelInfo: protoApiConfiguration.planModeOpenRouterModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.planModeOpenRouterModelInfo)
 				: undefined,
-			planModeDiracModelInfo: protoApiConfiguration.planModeDiracModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.planModeDiracModelInfo)
+			planModeIsaacModelInfo: protoApiConfiguration.planModeIsaacModelInfo
+				? fromProtobufModelInfo(protoApiConfiguration.planModeIsaacModelInfo)
 				: undefined,
 			planModeOpenAiModelInfo: protoApiConfiguration.planModeOpenAiModelInfo
 				? fromProtobufOpenAiCompatibleModelInfo(protoApiConfiguration.planModeOpenAiModelInfo)
@@ -81,8 +81,8 @@ export async function updateApiConfigurationProto(
 			actModeOpenRouterModelInfo: protoApiConfiguration.actModeOpenRouterModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.actModeOpenRouterModelInfo)
 				: undefined,
-			actModeDiracModelInfo: protoApiConfiguration.actModeDiracModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.actModeDiracModelInfo)
+			actModeIsaacModelInfo: protoApiConfiguration.actModeIsaacModelInfo
+				? fromProtobufModelInfo(protoApiConfiguration.actModeIsaacModelInfo)
 				: undefined,
 			actModeOpenAiModelInfo: protoApiConfiguration.actModeOpenAiModelInfo
 				? fromProtobufOpenAiCompatibleModelInfo(protoApiConfiguration.actModeOpenAiModelInfo)

@@ -1,5 +1,5 @@
 import type { Banner, BannerAction, BannerRules, BannersResponse } from "@shared/IsaacBanner"
-import { BannerActionType, type BannerCardData } from "@shared/dirac/banner"
+import { BannerActionType, type BannerCardData } from "@shared/isaac/banner"
 import { IsaacEnv } from "@/config"
 import { Controller } from "@/core/controller"
 import { StateManager } from "@/core/storage/StateManager"
@@ -156,13 +156,13 @@ export class BannerService {
 	 * so the webview falls back to hardcoded welcome items.
 	 */
 	public getWelcomeBanners(): BannerCardData[] | undefined {
-		const isLocal = process.env.IS_DEV === "true" || process.env.DIRAC_ENVIRONMENT === "local"
+		const isLocal = process.env.IS_DEV === "true" || process.env.ISAAC_ENVIRONMENT === "local"
 		const flagEnabled = isLocal || featureFlagsService.getBooleanFlagEnabled(FeatureFlag.REMOTE_WELCOME_BANNERS)
 
 		if (!flagEnabled) {
 			return undefined
 		}
-		const bypassDismissals = process.env.IS_DEV === "true" || process.env.DIRAC_ENVIRONMENT === "local"
+		const bypassDismissals = process.env.IS_DEV === "true" || process.env.ISAAC_ENVIRONMENT === "local"
 
 		this.ensureFreshCache()
 

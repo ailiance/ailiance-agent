@@ -17,7 +17,7 @@ export async function openWalkthrough(_controller: Controller, _request: EmptyRe
 		// ailiance-agent fork: walkthrough id rebrand
 		await vscode.commands.executeCommand(
 			"workbench.action.openWalkthrough",
-			`dirac-run.${ExtensionRegistryInfo.name}#AgentKikiWalkthrough`,
+			`isaac-run.${ExtensionRegistryInfo.name}#AgentKikiWalkthrough`,
 		)
 		telemetryService.captureButtonClick("webview_openWalkthrough")
 		return Empty.create({})

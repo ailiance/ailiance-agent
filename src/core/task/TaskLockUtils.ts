@@ -4,7 +4,7 @@ import type { FolderLockOptions, FolderLockWithRetryResult } from "@/core/locks/
 /**
  * Base path for task folders
  */
-const TASKS_BASE_PATH = "~/.dirac/data/tasks"
+const TASKS_BASE_PATH = "~/.isaac/data/tasks"
 
 /**
  * Attempt to acquire task folder lock with retry logic.

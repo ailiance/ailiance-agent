@@ -402,7 +402,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				isYolo || config.isSubagentExecution,
 			)
 			if (!permissionResult.allowed && !wasManuallyApproved && !isYolo && !config.isSubagentExecution) {
-				let errorMessage = `Command "${actualCommand}" was denied by DIRAC_COMMAND_PERMISSIONS.`
+				let errorMessage = `Command "${actualCommand}" was denied by ISAAC_COMMAND_PERMISSIONS.`
 				if (permissionResult.failedSegment) {
 					errorMessage += ` Segment "${permissionResult.failedSegment}" ${permissionResult.reason}.`
 				} else {
@@ -422,7 +422,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			}
 
 			// Isaacignore validation
-			const ignoredFileAttemptedToAccess = config.services.diracIgnoreController.validateCommand(actualCommand)
+			const ignoredFileAttemptedToAccess = config.services.isaacIgnoreController.validateCommand(actualCommand)
 			if (ignoredFileAttemptedToAccess) {
 				cmdState.status = "failed"
 				cmdState.output = `Isaacignore error: ${ignoredFileAttemptedToAccess}`
@@ -736,7 +736,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 	}
 
 	private wrapScript(script: string, language: string): string {
-		const delimiter = `EOF_DIRAC_SCRIPT_${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+		const delimiter = `EOF_ISAAC_SCRIPT_${Math.random().toString(36).substring(2, 10).toUpperCase()}`
 		const normalizedLanguage = language.toLowerCase().trim()
 
 		const interpreter = ExecuteCommandToolHandler.ALLOWED_INTERPRETERS[normalizedLanguage]

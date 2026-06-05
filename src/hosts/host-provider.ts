@@ -6,7 +6,7 @@ import { HostBridgeClientProvider } from "./host-provider-types"
 /**
  * Singleton class that manages host-specific providers for dependency injection.
  *
- * This system runs on two different platforms (VSCode extension and dirac-core),
+ * This system runs on two different platforms (VSCode extension and isaac-core),
  * so all the host-specific classes and properties are contained in here. The
  * rest of the codebase can use the host provider interface to access platform-specific
  * implementations in a platform-agnostic way.
@@ -19,7 +19,7 @@ import { HostBridgeClientProvider } from "./host-provider-types"
 export class HostProvider {
 	private static instance: HostProvider | null = null
 
-	diracType: "cli" | "extension"
+	isaacType: "cli" | "extension"
 	createIsaacWebviewProvider: IsaacWebviewProviderCreator
 	createDiffViewProvider: DiffViewProviderCreator
 	createCommentReviewController: CommentReviewControllerCreator
@@ -51,7 +51,7 @@ export class HostProvider {
 
 	// Private constructor to enforce singleton pattern
 	private constructor(
-		diracType: "cli" | "extension",
+		isaacType: "cli" | "extension",
 		createIsaacWebviewProvider: IsaacWebviewProviderCreator,
 		createDiffViewProvider: DiffViewProviderCreator,
 		createCommentReviewController: CommentReviewControllerCreator,
@@ -64,7 +64,7 @@ export class HostProvider {
 		globalStorageFsPath: string,
 		getEnvironmentVariables: GetEnvironmentVariables,
 	) {
-		this.diracType = diracType
+		this.isaacType = isaacType
 		this.createIsaacWebviewProvider = createIsaacWebviewProvider
 		this.createDiffViewProvider = createDiffViewProvider
 		this.createCommentReviewController = createCommentReviewController
@@ -79,7 +79,7 @@ export class HostProvider {
 	}
 
 	public static initialize(
-		diracType: "cli" | "extension",
+		isaacType: "cli" | "extension",
 		webviewProviderCreator: IsaacWebviewProviderCreator,
 		diffViewProviderCreator: DiffViewProviderCreator,
 		commentReviewControllerCreator: CommentReviewControllerCreator,
@@ -96,7 +96,7 @@ export class HostProvider {
 			throw new Error("Host provider has already been initialized.")
 		}
 		HostProvider.instance = new HostProvider(
-			diracType,
+			isaacType,
 			webviewProviderCreator,
 			diffViewProviderCreator,
 			commentReviewControllerCreator,

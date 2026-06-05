@@ -1,24 +1,24 @@
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
-import { DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
-import { Environment } from "@shared/config-types"
-import type { IsaacMessage, ExtensionState } from "@shared/ExtensionMessage"
-import { SkillMetadata } from "@shared/skills"
-import { DEFAULT_PLATFORM } from "@shared/ExtensionMessage"
 import {
 	basetenDefaultModelId,
 	basetenModels,
 	groqDefaultModelId,
 	groqModels,
+	liteLlmModelInfoSaneDefaults,
 	openRouterDefaultModelId,
 	openRouterDefaultModelInfo,
 	requestyDefaultModelId,
 	requestyDefaultModelInfo,
-	liteLlmModelInfoSaneDefaults,
 } from "@shared/api"
-import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
+import { DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
+import { Environment } from "@shared/config-types"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
+import { DEFAULT_PLATFORM } from "@shared/ExtensionMessage"
 import { EmptyRequest } from "@shared/proto/isaac/common"
-import { ModelsServiceClient } from "@/shared/api/grpc-client"
+import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
+import { SkillMetadata } from "@shared/skills"
 import { create } from "zustand"
+import { ModelsServiceClient } from "@/shared/api/grpc-client"
 
 interface SettingsState {
 	version: string
@@ -26,7 +26,7 @@ interface SettingsState {
 	navigateToAccount: () => void
 	setShowWelcome: (show: boolean) => void
 	availableTerminalProfiles: any[]
-	diracModels: any
+	isaacModels: any
 	refreshIsaacModels: () => void
 	openRouterModels: any
 	refreshOpenRouterModels: () => void
@@ -71,7 +71,7 @@ interface SettingsState {
 	customPrompt?: string
 	useAutoCondense: boolean
 	subagentsEnabled: boolean
-	diracWebToolsEnabled: { user: boolean; featureFlag: boolean }
+	isaacWebToolsEnabled: { user: boolean; featureFlag: boolean }
 	worktreesEnabled: { user: boolean; featureFlag: boolean }
 	favoritedModelIds: string[]
 	lastDismissedInfoBannerVersion: number
@@ -85,8 +85,8 @@ interface SettingsState {
 	doubleCheckCompletionEnabled: boolean
 
 	// Toggles
-	globalDiracRulesToggles: Record<string, boolean>
-	localDiracRulesToggles: Record<string, boolean>
+	globalIsaacRulesToggles: Record<string, boolean>
+	localIsaacRulesToggles: Record<string, boolean>
 	localCursorRulesToggles: Record<string, boolean>
 	localWindsurfRulesToggles: Record<string, boolean>
 	localAgentsRulesToggles: Record<string, boolean>
@@ -110,7 +110,7 @@ interface SettingsState {
 	writePromptMetadataDirectory?: string
 
 	// Chat & History (Moved from other stores)
-	diracMessages: IsaacMessage[]
+	isaacMessages: IsaacMessage[]
 	taskHistory: any[]
 	currentTaskItem?: any
 	checkpointManagerErrorMessage?: string
@@ -176,7 +176,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	customPrompt: undefined,
 	useAutoCondense: false,
 	subagentsEnabled: false,
-	diracWebToolsEnabled: { user: true, featureFlag: false },
+	isaacWebToolsEnabled: { user: true, featureFlag: false },
 	worktreesEnabled: { user: true, featureFlag: false },
 	favoritedModelIds: [],
 	lastDismissedInfoBannerVersion: 0,
@@ -189,8 +189,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	backgroundEditEnabled: false,
 	doubleCheckCompletionEnabled: false,
 
-	globalDiracRulesToggles: {},
-	localDiracRulesToggles: {},
+	globalIsaacRulesToggles: {},
+	localIsaacRulesToggles: {},
 	localCursorRulesToggles: {},
 	localWindsurfRulesToggles: {},
 	localAgentsRulesToggles: {},
@@ -217,12 +217,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	navigateToAccount: () => {},
 	setShowWelcome: () => {},
 	availableTerminalProfiles: [],
-	diracModels: {},
+	isaacModels: {},
 	refreshIsaacModels: async () => {
 		try {
 			const response = await ModelsServiceClient.refreshIsaacModelsRpc(EmptyRequest.create())
 			set({
-				diracModels: {
+				isaacModels: {
 					[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 					...fromProtobufModels(response.models),
 				},
@@ -295,7 +295,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	openAiCodexEmail: undefined,
 
 	triggerNativeToolCall: false,
-	diracMessages: [],
+	isaacMessages: [],
 	taskHistory: [],
 	currentTaskItem: undefined,
 	checkpointManagerErrorMessage: undefined,
@@ -310,22 +310,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	navigateToChat: () => {},
 	navigateToWorktrees: () => {},
 	onRelinquishControl: () => () => {},
-	setIsaacMessages: (messages) => set({ diracMessages: messages }),
+	setIsaacMessages: (messages) => set({ isaacMessages: messages }),
 	updatePartialMessage: (message) =>
 		set((state) => {
-			const lastIndex = state.diracMessages.findLastIndex((msg) => msg.ts === message.ts)
+			const lastIndex = state.isaacMessages.findLastIndex((msg) => msg.ts === message.ts)
 			if (lastIndex !== -1) {
-				const newMessages = [...state.diracMessages]
+				const newMessages = [...state.isaacMessages]
 				newMessages[lastIndex] = message
-				return { diracMessages: newMessages }
+				return { isaacMessages: newMessages }
 			}
 			return state
 		}),
 	setTaskHistory: (history) => set({ taskHistory: history }),
 	setExpandTaskHeader: (expand) => set({ expandTaskHeader: expand }),
 	setTotalTasksSize: (size) => set({ totalTasksSize: size }),
-	setGlobalIsaacRulesToggles: (toggles) => set({ globalDiracRulesToggles: toggles }),
-	setLocalIsaacRulesToggles: (toggles) => set({ localDiracRulesToggles: toggles }),
+	setGlobalIsaacRulesToggles: (toggles) => set({ globalIsaacRulesToggles: toggles }),
+	setLocalIsaacRulesToggles: (toggles) => set({ localIsaacRulesToggles: toggles }),
 	setLocalCursorRulesToggles: (toggles) => set({ localCursorRulesToggles: toggles }),
 	setLocalWindsurfRulesToggles: (toggles) => set({ localWindsurfRulesToggles: toggles }),
 	setLocalAgentsRulesToggles: (toggles) => set({ localAgentsRulesToggles: toggles }),

@@ -22,7 +22,7 @@ export async function validateWorkspacePath(workspacePath: string): Promise<void
 
 	// Check if the directory is writable
 	try {
-		const testFile = path.join(workspacePath, ".dirac_write_test")
+		const testFile = path.join(workspacePath, ".isaac_write_test")
 		await execa("touch", [testFile])
 		await execa("rm", [testFile])
 	} catch (error) {
@@ -75,7 +75,7 @@ export async function initializeGitRepository(workspacePath: string): Promise<bo
 	try {
 		await execa("git", ["init"], { cwd: workspacePath })
 		await execa("git", ["config", "user.name", "Isaac Evaluation"], { cwd: workspacePath })
-		await execa("git", ["config", "user.email", "dirac@example.com"], { cwd: workspacePath })
+		await execa("git", ["config", "user.email", "isaac@example.com"], { cwd: workspacePath })
 
 		// Try to create an initial commit, but don't fail if there are no files to commit
 		try {

@@ -9,13 +9,13 @@ const _errorColor = "var(--vscode-errorForeground)"
 
 interface ErrorRowProps {
 	message: IsaacMessage
-	errorType: "error" | "mistake_limit_reached" | "diff_error" | "diracignore_error"
+	errorType: "error" | "mistake_limit_reached" | "diff_error" | "isaacignore_error"
 	apiRequestFailedMessage?: string
 	apiReqStreamingFailedMessage?: string
 }
 
 const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStreamingFailedMessage }: ErrorRowProps) => {
-	const { diracUser } = useIsaacAuth()
+	const { isaacUser } = useIsaacAuth()
 	const rawApiError = apiRequestFailedMessage || apiReqStreamingFailedMessage
 
 	const { isLoginLoading, handleSignIn } = useIsaacSignIn()
@@ -26,16 +26,16 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 			case "mistake_limit_reached":
 				// Handle API request errors with special error parsing
 				if (rawApiError) {
-					// FIXME: IsaacError parsing should not be applied to non-Isaac providers, but it seems we're using diracErrorMessage below in the default error display
-					const diracError = IsaacError.parse(rawApiError)
-					const errorMessage = diracError?._error?.message || diracError?.message || rawApiError
-					const requestId = diracError?._error?.request_id
-					const providerId = diracError?.providerId || diracError?._error?.providerId
-					const isIsaacProvider = providerId === "dirac"
-					const errorCode = diracError?._error?.code
+					// FIXME: IsaacError parsing should not be applied to non-Isaac providers, but it seems we're using isaacErrorMessage below in the default error display
+					const isaacError = IsaacError.parse(rawApiError)
+					const errorMessage = isaacError?._error?.message || isaacError?.message || rawApiError
+					const requestId = isaacError?._error?.request_id
+					const providerId = isaacError?.providerId || isaacError?._error?.providerId
+					const isIsaacProvider = providerId === "isaac"
+					const errorCode = isaacError?._error?.code
 
-					if (diracError?.isErrorType(IsaacErrorType.Balance)) {
-						const errorDetails = diracError._error?.details
+					if (isaacError?.isErrorType(IsaacErrorType.Balance)) {
+						const errorDetails = isaacError._error?.details
 						return (
 							<CreditLimitError
 								buyCreditsUrl={errorDetails?.buy_credits_url}
@@ -47,7 +47,7 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 						)
 					}
 
-					if (diracError?.isErrorType(IsaacErrorType.RateLimit)) {
+					if (isaacError?.isErrorType(IsaacErrorType.RateLimit)) {
 						return (
 							<p className="m-0 whitespace-pre-wrap text-error wrap-anywhere">
 								{errorMessage}
@@ -85,8 +85,8 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 
 							{/* Display Login button for non-logged in users using the Isaac provider */}
 							<div>
-								{/* The user is signed in or not using dirac provider */}
-								{isIsaacProvider && !diracUser ? (
+								{/* The user is signed in or not using isaac provider */}
+								{isIsaacProvider && !isaacUser ? (
 									<Button className="w-full mb-4" disabled={isLoginLoading} onClick={handleSignIn}>
 										Sign in to Isaac
 										{isLoginLoading && (
@@ -113,11 +113,11 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 					</div>
 				)
 
-			case "diracignore_error":
+			case "isaacignore_error":
 				return (
 					<div className="flex flex-col p-2 rounded text-xs opacity-80 bg-quote text-foreground">
 						<div>
-							Isaac tried to access <code>{message.text}</code> which is blocked by the <code>.diracignore</code>
+							Isaac tried to access <code>{message.text}</code> which is blocked by the <code>.isaacignore</code>
 							file.
 						</div>
 					</div>
@@ -128,8 +128,8 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 		}
 	}
 
-	// For diff_error and diracignore_error, we don't show the header separately
-	if (errorType === "diff_error" || errorType === "diracignore_error") {
+	// For diff_error and isaacignore_error, we don't show the header separately
+	if (errorType === "diff_error" || errorType === "isaacignore_error") {
 		return renderErrorContent()
 	}
 

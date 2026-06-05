@@ -1,7 +1,7 @@
 import { version as CLI_VERSION } from "../package.json"
-import { window } from "./vscode-shim"
 import type { CliContext, InitOptions } from "./types"
 import { setActiveContext } from "./utils/state"
+import { window } from "./vscode-shim"
 
 /**
  * Initialize all CLI infrastructure and return context needed for commands
@@ -20,7 +20,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const { CliCommentReviewController } = await import("./controllers/CliCommentReviewController")
 	const { StandaloneTerminalManager } = await import("@/integrations/terminal/standalone/StandaloneTerminalManager")
 	const { createCliHostBridgeProvider } = await import("./controllers")
-	const { getCliBinaryPath, DIRAC_CLI_DIR } = await import("./utils/path")
+	const { getCliBinaryPath, ISAAC_CLI_DIR } = await import("./utils/path")
 	const { StateManager } = await import("@/core/storage/StateManager")
 	const { ErrorService } = await import("@/services/error/ErrorService")
 	const { telemetryService } = await import("@/services/telemetry")
@@ -29,7 +29,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const workspacePath = options.cwd || process.cwd()
 	setRuntimeHooksDir(options.hooksDir)
 	const { extensionContext, storageContext, DATA_DIR, EXTENSION_DIR } = initializeCliContext({
-		diracDir: options.config,
+		isaacDir: options.config,
 		workspaceDir: workspacePath,
 	})
 
@@ -53,7 +53,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	}
 
 	outputChannel.appendLine(
-		`ISAAC CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${DIRAC_CLI_DIR.log}`,
+		`ISAAC CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${ISAAC_CLI_DIR.log}`,
 	)
 
 	HostProvider.initialize(
@@ -87,9 +87,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const { applyAilianceDefault } = await import("./utils/ailiance-default")
 	const ailianceDecision = applyAilianceDefault(stateManager)
 	if (ailianceDecision.applied) {
-		outputChannel.appendLine(
-			`ailiance default applied (${ailianceDecision.reason}) gateway=${ailianceDecision.gatewayUrl}`,
-		)
+		outputChannel.appendLine(`ailiance default applied (${ailianceDecision.reason}) gateway=${ailianceDecision.gatewayUrl}`)
 	}
 	await ErrorService.initialize()
 

@@ -34,7 +34,7 @@ export async function refreshHooks(
 	const workspaceHooksList: WorkspaceHooks[] = []
 
 	for (const workspacePath of workspacePaths.paths) {
-		const workspaceHooksDir = path.join(workspacePath, ".diracrules", "hooks")
+		const workspaceHooksDir = path.join(workspacePath, ".isaacrules", "hooks")
 		const hooks: HookInfo[] = []
 
 		for (const hookName of VALID_HOOK_TYPES) {

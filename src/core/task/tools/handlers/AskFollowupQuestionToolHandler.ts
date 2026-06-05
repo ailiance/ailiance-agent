@@ -91,8 +91,8 @@ export class AskFollowupQuestionToolHandler implements IToolHandler, IPartialBlo
 			telemetryService.captureOptionSelected(config.ulid, options.length, "act")
 
 			// Valid option selected, update last followup message with selected option
-			const diracMessages = config.messageState.getIsaacMessages()
-			const lastFollowupMessage = findLast(diracMessages, (m: any) => m.ask === "followup")
+			const isaacMessages = config.messageState.getIsaacMessages()
+			const lastFollowupMessage = findLast(isaacMessages, (m: any) => m.ask === "followup")
 			if (lastFollowupMessage) {
 				lastFollowupMessage.text = JSON.stringify({
 					...sharedMessage,

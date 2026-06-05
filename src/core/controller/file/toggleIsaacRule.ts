@@ -26,15 +26,15 @@ export async function toggleIsaacRule(controller: Controller, request: ToggleIsa
 	// Handle the three different scopes
 	switch (scope) {
 		case RuleScope.GLOBAL: {
-			const toggles = controller.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
+			const toggles = controller.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
 			toggles[rulePath] = enabled
-			controller.stateManager.setGlobalState("globalDiracRulesToggles", toggles)
+			controller.stateManager.setGlobalState("globalIsaacRulesToggles", toggles)
 			break
 		}
 		case RuleScope.LOCAL: {
-			const toggles = controller.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
+			const toggles = controller.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
 			toggles[rulePath] = enabled
-			controller.stateManager.setWorkspaceState("localDiracRulesToggles", toggles)
+			controller.stateManager.setWorkspaceState("localIsaacRulesToggles", toggles)
 			break
 		}
 		case RuleScope.REMOTE: {
@@ -56,13 +56,13 @@ export async function toggleIsaacRule(controller: Controller, request: ToggleIsa
 	}
 
 	// Get the current state to return in the response
-	const globalToggles = controller.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
-	const localToggles = controller.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
+	const globalToggles = controller.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
+	const localToggles = controller.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
 	const remoteToggles = controller.stateManager.getGlobalStateKey("remoteRulesToggles")
 
 	return ToggleIsaacRules.create({
-		globalDiracRulesToggles: { toggles: globalToggles },
-		localDiracRulesToggles: { toggles: localToggles },
+		globalIsaacRulesToggles: { toggles: globalToggles },
+		localIsaacRulesToggles: { toggles: localToggles },
 		remoteRulesToggles: { toggles: remoteToggles },
 	})
 }

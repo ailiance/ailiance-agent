@@ -81,7 +81,7 @@ export class LifecycleManager {
 
 	public async startTask(task?: string, images?: string[], files?: string[]): Promise<void> {
 		try {
-			await this.dependencies.diracIgnoreController.initialize()
+			await this.dependencies.isaacIgnoreController.initialize()
 			await this.dependencies.commandPermissionController.initialize(this.dependencies.cwd)
 		} catch (error) {
 			Logger.error("Failed to initialize IsaacIgnoreController:", error)
@@ -209,7 +209,7 @@ export class LifecycleManager {
 
 	public async resumeTaskFromHistory() {
 		try {
-			await this.dependencies.diracIgnoreController.initialize()
+			await this.dependencies.isaacIgnoreController.initialize()
 			await this.dependencies.commandPermissionController.initialize(this.dependencies.cwd)
 		} catch (error) {
 			Logger.error("Failed to initialize IsaacIgnoreController:", error)
@@ -264,7 +264,7 @@ export class LifecycleManager {
 
 		const hooksEnabled = getHooksEnabledSafe(this.dependencies.stateManager.getGlobalSettingsKey("hooksEnabled"))
 		if (hooksEnabled) {
-			const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+			const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
 			const taskResumeResult = await executeHook({
 				hookName: "TaskResume",
 				hookInput: {
@@ -275,7 +275,7 @@ export class LifecycleManager {
 						},
 						previousState: {
 							lastMessageTs: lastIsaacMessage?.ts?.toString() || "",
-							messageCount: diracMessages.length.toString(),
+							messageCount: isaacMessages.length.toString(),
 							conversationHistoryDeleted: (
 								this.dependencies.taskState.conversationHistoryDeletedRange !== undefined
 							).toString(),
@@ -515,7 +515,7 @@ export class LifecycleManager {
 			this.dependencies.terminalManager.disposeAll()
 			this.dependencies.urlContentFetcher.closeBrowser()
 			await this.dependencies.browserSession.dispose()
-			this.dependencies.diracIgnoreController.dispose()
+			this.dependencies.isaacIgnoreController.dispose()
 			this.dependencies.fileContextTracker.dispose()
 			await this.dependencies.diffViewProvider.revertChanges()
 			AnchorStateManager.reset(this.dependencies.taskId)

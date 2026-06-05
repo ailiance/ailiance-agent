@@ -9,7 +9,7 @@ import { findLastIndex } from "@shared/array"
 import { IsaacApiReqCancelReason } from "@shared/ExtensionMessage"
 import { IsaacContent, IsaacUserContent } from "@shared/messages/content"
 import { IsaacMessageModelInfo } from "@shared/messages/metrics"
-import { convertIsaacMessageToProto } from "@shared/proto-conversions/dirac-message"
+import { convertIsaacMessageToProto } from "@shared/proto-conversions/isaac-message"
 import { Logger } from "@shared/services/Logger"
 import { Session } from "@shared/services/Session"
 import { isLocalModel } from "@utils/model-utils"
@@ -226,8 +226,8 @@ export class AgentLoopRunner {
 						await this.ctx.diffViewProvider.revertChanges()
 					}
 
-					const diracMessages = this.ctx.messageStateHandler.getIsaacMessages()
-					diracMessages.forEach((msg) => {
+					const isaacMessages = this.ctx.messageStateHandler.getIsaacMessages()
+					isaacMessages.forEach((msg) => {
 						if (msg.partial) {
 							msg.partial = false
 							Logger.log("updating partial message", msg)
@@ -487,8 +487,8 @@ export class AgentLoopRunner {
 				} catch (error) {
 					await streamCoordinator?.stop()
 					if (!this.taskState.abandoned) {
-						const diracError = ErrorService.get().toIsaacError(error, this.ctx.api.getModel().id)
-						const errorMessage = diracError.serialize()
+						const isaacError = ErrorService.get().toIsaacError(error, this.ctx.api.getModel().id)
+						const errorMessage = isaacError.serialize()
 						// ailiance-agent fork: tracing — record the failed roundtrip
 						try {
 							this.ctx.toolExecutor.recordPlannerTurn(assistantMessage, Date.now() - plannerStartedAt, [
@@ -617,7 +617,6 @@ export class AgentLoopRunner {
 					// defaults to false on every continuation turn.
 					userContent = this.taskState.userMessageContent
 					includeFileDetails = false
-					continue
 				} else {
 					return await this.ctx.handleEmptyAssistantResponse({
 						modelInfo,

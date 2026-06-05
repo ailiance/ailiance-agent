@@ -8,9 +8,9 @@ import { IsaacDataMock } from "./data"
 
 const E2E_API_SERVER_PORT = 7777
 
-export const MOCK_DIRAC_API_SERVER_URL = `http://localhost:${E2E_API_SERVER_PORT}`
+export const MOCK_ISAAC_API_SERVER_URL = `http://localhost:${E2E_API_SERVER_PORT}`
 
-const useVerboseLogging = process.env.DIRAC_E2E_TESTS_VERBOSE === "true"
+const useVerboseLogging = process.env.ISAAC_E2E_TESTS_VERBOSE === "true"
 function log(...args: unknown[]) {
 	if (useVerboseLogging) {
 		console.log("[IsaacApiServerMock]", ...args)
@@ -320,7 +320,7 @@ export class IsaacApiServerMock {
 								subject: user.id,
 								email: user.email,
 								name: user.displayName,
-								diracUserId: user.id,
+								isaacUserId: user.id,
 								accounts: null,
 								organizations: user.organizations,
 							},
@@ -354,7 +354,7 @@ export class IsaacApiServerMock {
 								subject: user.id,
 								email: user.email,
 								name: user.displayName,
-								diracUserId: user.id,
+								isaacUserId: user.id,
 								accounts: null,
 							},
 						})

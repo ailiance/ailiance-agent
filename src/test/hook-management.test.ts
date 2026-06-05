@@ -37,7 +37,7 @@ describe("Hook Management", () => {
 		// Create temporary directories
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hook-mgmt-test-"))
 		globalHooksDir = path.join(tempDir, "global", "Documents", "Isaac", "Hooks")
-		workspaceHooksDir = path.join(tempDir, "workspace", ".diracrules", "hooks")
+		workspaceHooksDir = path.join(tempDir, "workspace", ".isaacrules", "hooks")
 
 		await fs.mkdir(globalHooksDir, { recursive: true })
 		await fs.mkdir(workspaceHooksDir, { recursive: true })
@@ -520,7 +520,7 @@ describe("Hook Management", () => {
 	})
 
 	describe("Edge Cases", () => {
-		it("should handle missing .diracrules directory gracefully", async function () {
+		it("should handle missing .isaacrules directory gracefully", async function () {
 			this.timeout(5000)
 
 			// Remove workspace hooks directory

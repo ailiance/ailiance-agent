@@ -15,7 +15,7 @@ export const workspace = {
 		return {
 			get: (key: string, defaultValue?: any) => {
 				// Return default values for common configuration keys
-				if (section === "dirac" && key === "telemetrySetting") {
+				if (section === "isaac" && key === "telemetrySetting") {
 					return "enabled"
 				}
 				if (section === "telemetry" && key === "telemetryLevel") {

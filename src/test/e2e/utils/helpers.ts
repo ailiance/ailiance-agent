@@ -89,7 +89,7 @@ export class E2ETestHelper {
 					// Accept either an explicit title match or any non-empty webview URL frame
 					// that is not the main host window.
 					const isWebviewUrl = /vscode-webview:\/\/|webview\/index\.html/i.test(url)
-					const titleMatches = /dirac|ailiance-agent|isaac|webview/i.test(title)
+					const titleMatches = /isaac|ailiance-agent|isaac|webview/i.test(title)
 					if (isWebviewUrl || titleMatches) {
 						this.cachedFrame = frame
 						return frame
@@ -254,7 +254,7 @@ export const e2e = test
 
 			await use(async (workspacePath: string) => {
 				// Create isolated Isaac data directory for this test
-				const diracTestDir = mkdtempSync(path.join(os.tmpdir(), "dirac-e2e-"))
+				const isaacTestDir = mkdtempSync(path.join(os.tmpdir(), "isaac-e2e-"))
 
 				const app = await _electron.launch({
 					executablePath,
@@ -262,8 +262,8 @@ export const e2e = test
 						...process.env,
 						TEMP_PROFILE: "true",
 						E2E_TEST: "true",
-						DIRAC_ENVIRONMENT: "local",
-						DIRAC_DIR: diracTestDir, // Isolate test data from user's ~/.dirac
+						ISAAC_ENVIRONMENT: "local",
+						ISAAC_DIR: isaacTestDir, // Isolate test data from user's ~/.isaac
 						GRPC_RECORDER_FILE_NAME: E2ETestHelper.generateTestFileName(testInfo.title, testInfo.project.name),
 						// GRPC_RECORDER_ENABLED: "true",
 						// GRPC_RECORDER_TESTS_FILTERS_ENABLED: "true"
@@ -294,16 +294,16 @@ export const e2e = test
 			})
 		},
 	})
-	.extend<{ app: ElectronApplication; diracTestDir: string }>({
+	.extend<{ app: ElectronApplication; isaacTestDir: string }>({
 		app: async ({ openVSCode, userDataDir, extensionsDir, workspaceType, workspaceDir, multiRootWorkspaceDir }, use) => {
 			const workspacePath = workspaceType === "single" ? workspaceDir : multiRootWorkspaceDir
 
-			// Track the diracTestDir created in openVSCode
-			let diracTestDir: string | undefined
+			// Track the isaacTestDir created in openVSCode
+			let isaacTestDir: string | undefined
 			const originalOpenVSCode = openVSCode
 			const wrappedOpenVSCode = async (wp: string) => {
 				const app = await originalOpenVSCode(wp)
-				// Extract DIRAC_DIR from the launched app's environment
+				// Extract ISAAC_DIR from the launched app's environment
 				// We'll need to pass it through the fixture chain
 				return app
 			}
@@ -314,7 +314,7 @@ export const e2e = test
 				await use(app)
 			} finally {
 				await app.close()
-				// Cleanup in parallel - include diracTestDir if it was created
+				// Cleanup in parallel - include isaacTestDir if it was created
 				const cleanupTasks = [
 					E2ETestHelper.rmForRetries(userDataDir, { recursive: true }),
 					E2ETestHelper.rmForRetries(extensionsDir, { recursive: true }),
@@ -326,7 +326,7 @@ export const e2e = test
 				try {
 					const entries = require("node:fs").readdirSync(tmpDir)
 					for (const entry of entries) {
-						if (entry.startsWith("dirac-e2e-")) {
+						if (entry.startsWith("isaac-e2e-")) {
 							cleanupTasks.push(E2ETestHelper.rmForRetries(path.join(tmpDir, entry), { recursive: true }))
 						}
 					}
@@ -337,7 +337,7 @@ export const e2e = test
 				await Promise.allSettled(cleanupTasks)
 			}
 		},
-		diracTestDir: async ({}, use) => {
+		isaacTestDir: async ({}, use) => {
 			// This will be set by the openVSCode fixture
 			await use("")
 		},

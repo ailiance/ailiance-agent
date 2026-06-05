@@ -10,7 +10,7 @@ function normalizeForComparison(value: string): string {
 }
 
 describe("listFiles ignore patterns", () => {
-	const tmpDir = path.join(os.tmpdir(), `dirac-list-files-ignore-test-${Math.random().toString(36).slice(2)}`)
+	const tmpDir = path.join(os.tmpdir(), `isaac-list-files-ignore-test-${Math.random().toString(36).slice(2)}`)
 
 	after(async () => {
 		await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined)
@@ -18,12 +18,12 @@ describe("listFiles ignore patterns", () => {
 
 	it("ignores .log files and node_modules recursively", async () => {
 		await fs.mkdir(tmpDir, { recursive: true })
-		
+
 		const logFile = path.join(tmpDir, "test.log")
 		const txtFile = path.join(tmpDir, "test.txt")
 		const nodeModulesDir = path.join(tmpDir, "node_modules")
 		const nodeModulesFile = path.join(nodeModulesDir, "index.js")
-		
+
 		await fs.writeFile(logFile, "log content")
 		await fs.writeFile(txtFile, "txt content")
 		await fs.mkdir(nodeModulesDir)

@@ -1,13 +1,13 @@
 import { name, publisher, version } from "../package.json"
 import { HostProvider } from "./hosts/host-provider"
 
-const prefix = name === "claude-dev" || name === "dirac" ? "dirac" : name
+const prefix = name === "claude-dev" || name === "isaac" ? "isaac" : name
 
 /**
  * List of commands with the name of the extension they are registered under.
  * These should match the command IDs defined in package.json.
  * For Nightly build, the publish script has updated all the commands to use the extension name as prefix.
- * In production, all commands are registered under "dirac" for consistency.
+ * In production, all commands are registered under "isaac" for consistency.
  */
 const IsaacCommands = {
 	PlusButton: prefix + ".plusButtonClicked",
@@ -63,7 +63,7 @@ export interface HostInfo {
 	 */
 	os: string
 	/**
-	 * The type of the dirac host environment, e.g. 'VSCode Extension', 'Isaac for JetBrains', 'CLI'
+	 * The type of the isaac host environment, e.g. 'VSCode Extension', 'Isaac for JetBrains', 'CLI'
 	 * This is different from the platform because there are many JetBrains IDEs, but they all use the same
 	 * plugin.
 	 */
@@ -88,10 +88,10 @@ export const HostRegistryInfo = {
 	init: async (distinctId: string) => {
 		const host = await HostProvider.env.getHostVersion({})
 		const hostVersion = host.version
-		const extensionVersion = host.diracVersion || ExtensionRegistryInfo.version
+		const extensionVersion = host.isaacVersion || ExtensionRegistryInfo.version
 		const platform = host.platform || "unknown"
 		const os = process.platform || "unknown"
-		const ide = host.diracType || "unknown"
+		const ide = host.isaacType || "unknown"
 		hostInfo = { hostVersion, extensionVersion, platform, os, ide, distinctId }
 	},
 	get: () => hostInfo,

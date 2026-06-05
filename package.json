@@ -1,7 +1,7 @@
 {
 	"name": "isaac",
 	"displayName": "ISAAC",
-	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Isaac, routed to ailiance LLM gateway by default",
 	"version": "0.9.1-beta",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
@@ -36,7 +36,7 @@
 		"high-bandwidth",
 		"isaac",
 		"ailiance",
-		"dirac",
+		"isaac",
 		"ast",
 		"hash-anchor",
 		"claude",
@@ -58,7 +58,7 @@
 	"main": "./dist/extension.js",
 	"contributes": {
 		"icons": {
-			"dirac-icon": {
+			"isaac-icon": {
 				"description": "ISAAC",
 				"default": {
 					"fontPath": "node_modules/@vscode/codicons/dist/codicon.ttf",
@@ -70,7 +70,7 @@
 			{
 				"id": "AgentKikiWalkthrough",
 				"title": "ISAAC, the EU-sovereign autonomous coding agent",
-				"description": "ISAAC is a Dirac fork routed to the ailiance LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
+				"description": "ISAAC is a Isaac fork routed to the ailiance LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
 				"steps": [
 					{
 						"id": "hash-anchored-edits",
@@ -113,17 +113,17 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "dirac-ActivityBar",
+					"id": "isaac-ActivityBar",
 					"title": "ISAAC",
 					"icon": "assets/icons/icon.svg"
 				}
 			]
 		},
 		"views": {
-			"dirac-ActivityBar": [
+			"isaac-ActivityBar": [
 				{
 					"type": "webview",
-					"id": "dirac.SidebarProvider",
+					"id": "isaac.SidebarProvider",
 					"name": "",
 					"icon": "assets/icons/icon.svg"
 				}
@@ -131,115 +131,115 @@
 		},
 		"commands": [
 			{
-				"command": "dirac.plusButtonClicked",
+				"command": "isaac.plusButtonClicked",
 				"title": "New Task",
 				"icon": "$(add)"
 			},
 			{
-				"command": "dirac.historyButtonClicked",
+				"command": "isaac.historyButtonClicked",
 				"title": "History",
 				"icon": "$(history)"
 			},
 			{
-				"command": "dirac.settingsButtonClicked",
+				"command": "isaac.settingsButtonClicked",
 				"title": "Settings",
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "dirac.dev.createTestTasks",
+				"command": "isaac.dev.createTestTasks",
 				"title": "Create Test Tasks",
 				"category": "ISAAC",
-				"when": "dirac.isDevMode"
+				"when": "isaac.isDevMode"
 			},
 			{
-				"command": "dirac.addToChat",
+				"command": "isaac.addToChat",
 				"title": "Add to ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.addTerminalOutputToChat",
+				"command": "isaac.addTerminalOutputToChat",
 				"title": "Add to ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.focusChatInput",
+				"command": "isaac.focusChatInput",
 				"title": "Jump to Chat Input",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.generateGitCommitMessage",
+				"command": "isaac.generateGitCommitMessage",
 				"title": "Generate Commit Message with ISAAC",
 				"category": "ISAAC",
-				"icon": "$(dirac-icon)"
+				"icon": "$(isaac-icon)"
 			},
 			{
-				"command": "dirac.abortGitCommitMessage",
+				"command": "isaac.abortGitCommitMessage",
 				"title": "Generate Commit Message with ISAAC - Stop",
 				"category": "ISAAC",
 				"icon": "$(debug-stop)"
 			},
 			{
-				"command": "dirac.explainCode",
+				"command": "isaac.explainCode",
 				"title": "Explain with ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.improveCode",
+				"command": "isaac.improveCode",
 				"title": "Improve with ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.jupyterGenerateCell",
+				"command": "isaac.jupyterGenerateCell",
 				"title": "Generate Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(sparkle)"
 			},
 			{
-				"command": "dirac.jupyterExplainCell",
+				"command": "isaac.jupyterExplainCell",
 				"title": "Explain Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(question)"
 			},
 			{
-				"command": "dirac.jupyterImproveCell",
+				"command": "isaac.jupyterImproveCell",
 				"title": "Improve Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(lightbulb)"
 			},
 			{
-				"command": "dirac.openWalkthrough",
+				"command": "isaac.openWalkthrough",
 				"title": "Open Walkthrough",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.reconstructTaskHistory",
+				"command": "isaac.reconstructTaskHistory",
 				"title": "Reconstruct Task History",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.reviewComment.reply",
+				"command": "isaac.reviewComment.reply",
 				"title": "Reply",
 				"category": "ISAAC",
 				"enablement": "!commentIsEmpty"
 			},
 			{
-				"command": "dirac.reviewComment.addToChat",
+				"command": "isaac.reviewComment.addToChat",
 				"title": "Add to ISAAC Chat",
 				"category": "ISAAC",
 				"icon": "$(link-external)"
 			},
 			{
-				"command": "dirac.acceptEdit",
+				"command": "isaac.acceptEdit",
 				"title": "Accept",
 				"icon": "assets/icons/review-accept.svg"
 			},
 			{
-				"command": "dirac.saveWithMyChanges",
+				"command": "isaac.saveWithMyChanges",
 				"title": "Save with My Changes",
 				"icon": "assets/icons/review-save.svg"
 			},
 			{
-				"command": "dirac.rejectEdit",
+				"command": "isaac.rejectEdit",
 				"title": "Reject",
 				"icon": "assets/icons/review-reject.svg"
 			}
@@ -248,10 +248,10 @@
 			{
 				"command": "editor.action.submitComment",
 				"key": "enter",
-				"when": "commentEditorFocused && commentController == dirac-ai-review && !commentIsEmpty"
+				"when": "commentEditorFocused && commentController == isaac-ai-review && !commentIsEmpty"
 			},
 			{
-				"command": "dirac.addToChat",
+				"command": "isaac.addToChat",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -259,11 +259,11 @@
 				"when": "editorHasSelection"
 			},
 			{
-				"command": "dirac.generateGitCommitMessage",
+				"command": "isaac.generateGitCommitMessage",
 				"when": "config.git.enabled && scmProvider == git"
 			},
 			{
-				"command": "dirac.focusChatInput",
+				"command": "isaac.focusChatInput",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -274,108 +274,108 @@
 		"menus": {
 			"editor/title": [
 				{
-					"command": "dirac.acceptEdit",
+					"command": "isaac.acceptEdit",
 					"group": "navigation@1",
-					"when": "dirac.isFileUnderReview && !dirac.isFileModified"
+					"when": "isaac.isFileUnderReview && !isaac.isFileModified"
 				},
 				{
-					"command": "dirac.saveWithMyChanges",
+					"command": "isaac.saveWithMyChanges",
 					"group": "navigation@1",
-					"when": "dirac.isFileUnderReview && dirac.isFileModified"
+					"when": "isaac.isFileUnderReview && isaac.isFileModified"
 				},
 				{
-					"command": "dirac.rejectEdit",
+					"command": "isaac.rejectEdit",
 					"group": "navigation@2",
-					"when": "dirac.isFileUnderReview"
+					"when": "isaac.isFileUnderReview"
 				}
 			],
 			"view/title": [
 				{
-					"command": "dirac.plusButtonClicked",
+					"command": "isaac.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				},
 				{
-					"command": "dirac.historyButtonClicked",
+					"command": "isaac.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				},
 				{
-					"command": "dirac.settingsButtonClicked",
+					"command": "isaac.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				}
 			],
 			"editor/context": [
 				{
-					"command": "dirac.addToChat",
+					"command": "isaac.addToChat",
 					"group": "navigation",
 					"when": "editorHasSelection"
 				}
 			],
 			"terminal/context": [
 				{
-					"command": "dirac.addTerminalOutputToChat",
+					"command": "isaac.addTerminalOutputToChat",
 					"group": "navigation"
 				}
 			],
 			"scm/title": [
 				{
-					"command": "dirac.generateGitCommitMessage",
+					"command": "isaac.generateGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && !dirac.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && !isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.abortGitCommitMessage",
+					"command": "isaac.abortGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && dirac.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && isaac.isGeneratingCommit"
 				}
 			],
 			"notebook/toolbar": [
 				{
-					"command": "dirac.jupyterGenerateCell",
+					"command": "isaac.jupyterGenerateCell",
 					"group": "navigation/add@1",
 					"when": "notebookType == 'jupyter-notebook'"
 				}
 			],
 			"notebook/cell/title": [
 				{
-					"command": "dirac.jupyterExplainCell",
+					"command": "isaac.jupyterExplainCell",
 					"group": "inline@1",
 					"when": "notebookType == 'jupyter-notebook'"
 				},
 				{
-					"command": "dirac.jupyterImproveCell",
+					"command": "isaac.jupyterImproveCell",
 					"group": "inline@2",
 					"when": "notebookType == 'jupyter-notebook'"
 				}
 			],
 			"commandPalette": [
 				{
-					"command": "dirac.generateGitCommitMessage",
-					"when": "config.git.enabled && !dirac.isGeneratingCommit"
+					"command": "isaac.generateGitCommitMessage",
+					"when": "config.git.enabled && !isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.abortGitCommitMessage",
-					"when": "config.git.enabled && dirac.isGeneratingCommit"
+					"command": "isaac.abortGitCommitMessage",
+					"when": "config.git.enabled && isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.reviewComment.reply",
+					"command": "isaac.reviewComment.reply",
 					"when": "false"
 				}
 			],
 			"comments/commentThread/context": [
 				{
-					"command": "dirac.reviewComment.reply",
+					"command": "isaac.reviewComment.reply",
 					"group": "inline",
-					"when": "commentController == dirac-ai-review"
+					"when": "commentController == isaac-ai-review"
 				}
 			],
 			"comments/commentThread/title": [
 				{
-					"command": "dirac.reviewComment.addToChat",
+					"command": "isaac.reviewComment.addToChat",
 					"group": "inline",
-					"when": "commentController == dirac-ai-review"
+					"when": "commentController == isaac-ai-review"
 				}
 			]
 		},
@@ -393,7 +393,6 @@
 		"cli:build:production": "npm run protos && cd cli && npm run build:production",
 		"cli:watch": "cd cli && npm run watch",
 		"cli:test": "cd cli && npm run test",
-		"test:install": "bash scripts/test-install.sh",
 		"cli:dev": "cd cli && npm run dev",
 		"dev": "npm run protos && npm run watch",
 		"watch": "npx npm-run-all -p watch:*",
@@ -462,7 +461,6 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
 		"@bufbuild/buf": "^1.54.0",
-		"@microsoft/tui-test": "0.0.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/chai": "^5.0.1",
 		"@types/clone-deep": "^4.0.4",

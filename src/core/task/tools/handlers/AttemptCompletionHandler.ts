@@ -478,10 +478,10 @@ Please verify the task manually or try again.`
 
 	private async addNewChangesFlagToLastCompletionResultMessage(config: TaskConfig) {
 		const hasNewChanges = await config.callbacks.doesLatestTaskCompletionHaveNewChanges()
-		const diracMessages = config.messageState.getIsaacMessages()
-		const lastCompletionResultMessageIndex = findLastIndex(diracMessages, (m: any) => m.say === "completion_result")
+		const isaacMessages = config.messageState.getIsaacMessages()
+		const lastCompletionResultMessageIndex = findLastIndex(isaacMessages, (m: any) => m.say === "completion_result")
 		const lastCompletionResultMessage =
-			lastCompletionResultMessageIndex !== -1 ? diracMessages[lastCompletionResultMessageIndex] : undefined
+			lastCompletionResultMessageIndex !== -1 ? isaacMessages[lastCompletionResultMessageIndex] : undefined
 
 		if (
 			lastCompletionResultMessage &&

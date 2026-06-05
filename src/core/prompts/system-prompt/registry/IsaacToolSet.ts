@@ -82,7 +82,7 @@ export class IsaacToolSet {
 
 	/**
 	 * Get the appropriate native tool converter for the given provider.
-	 * All supported providers (openai, dirac, openrouter, lmstudio, litellm, vscode-lm)
+	 * All supported providers (openai, isaac, openrouter, lmstudio, litellm, vscode-lm)
 	 * use the OpenAI-compatible tool schema.
 	 */
 	public static getNativeConverter(_providerId: string, _modelId?: string) {

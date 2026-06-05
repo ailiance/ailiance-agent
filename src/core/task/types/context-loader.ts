@@ -16,7 +16,7 @@ export interface ContextLoaderDependencies {
 	urlContentFetcher: UrlContentFetcher
 	fileContextTracker: FileContextTracker
 	workspaceManager?: WorkspaceRootManager
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	commandPermissionController: CommandPermissionController
 	taskState: TaskState
 	extensionPath: string

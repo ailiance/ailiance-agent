@@ -22,22 +22,22 @@ import { COMMAND_CANCEL_TOKEN } from "@shared/ExtensionMessage"
 import * as fs from "fs"
 import { Logger } from "@/shared/services/Logger"
 import {
-    BUFFER_STUCK_TIMEOUT_MS,
-    CHUNK_BYTE_SIZE,
-    CHUNK_DEBOUNCE_MS,
-    CHUNK_LINE_COUNT,
-    COMPLETION_TIMEOUT_MS,
-    MAX_BYTES_BEFORE_FILE,
-    MAX_LINES_BEFORE_FILE,
-    SUMMARY_LINES_TO_KEEP,
+	BUFFER_STUCK_TIMEOUT_MS,
+	CHUNK_BYTE_SIZE,
+	CHUNK_DEBOUNCE_MS,
+	CHUNK_LINE_COUNT,
+	COMPLETION_TIMEOUT_MS,
+	MAX_BYTES_BEFORE_FILE,
+	MAX_LINES_BEFORE_FILE,
+	SUMMARY_LINES_TO_KEEP,
 } from "./constants"
 import type {
-    CommandExecutorCallbacks,
-    ITerminalManager,
-    OrchestrationOptions,
-    OrchestrationResult,
-    TerminalCompletionDetails,
-    TerminalProcessResultPromise,
+	CommandExecutorCallbacks,
+	ITerminalManager,
+	OrchestrationOptions,
+	OrchestrationResult,
+	TerminalCompletionDetails,
+	TerminalProcessResultPromise,
 } from "./types"
 
 /**
@@ -97,8 +97,8 @@ export async function orchestrateCommandExecution(
 		callbacks.updateBackgroundCommandState(false)
 
 		// Mark the command message as completed
-		const diracMessages = callbacks.getIsaacMessages()
-		const lastCommandIndex = findLastIndex(diracMessages, (m) => m.ask === "command" || m.say === "command")
+		const isaacMessages = callbacks.getIsaacMessages()
+		const lastCommandIndex = findLastIndex(isaacMessages, (m) => m.ask === "command" || m.say === "command")
 		if (lastCommandIndex !== -1) {
 			await callbacks.updateIsaacMessage(lastCommandIndex, {
 				commandCompleted: true,

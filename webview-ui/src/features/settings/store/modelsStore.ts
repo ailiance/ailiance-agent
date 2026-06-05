@@ -1,20 +1,20 @@
 import type { ModelInfo } from "@shared/api"
 import {
-    basetenDefaultModelId,
-    basetenModels,
-    groqDefaultModelId,
-    groqModels,
-    openRouterDefaultModelId,
-    openRouterDefaultModelInfo,
-    requestyDefaultModelId,
-    requestyDefaultModelInfo,
+	basetenDefaultModelId,
+	basetenModels,
+	groqDefaultModelId,
+	groqModels,
+	openRouterDefaultModelId,
+	openRouterDefaultModelInfo,
+	requestyDefaultModelId,
+	requestyDefaultModelInfo,
 } from "@shared/api"
 import type { OnboardingModelGroup } from "@shared/proto/isaac/state"
 import { create } from "zustand"
 
 interface ModelsState {
 	onboardingModels?: OnboardingModelGroup
-	diracModels: Record<string, ModelInfo> | null
+	isaacModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
 	liteLlmModels: Record<string, ModelInfo>
@@ -39,7 +39,7 @@ interface ModelsState {
 
 export const useModelsStore = create<ModelsState>((set) => ({
 	onboardingModels: undefined,
-	diracModels: null,
+	isaacModels: null,
 	openRouterModels: {
 		[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 	},
@@ -59,7 +59,7 @@ export const useModelsStore = create<ModelsState>((set) => ({
 	huggingFaceModels: {},
 
 	setOnboardingModels: (models) => set({ onboardingModels: models }),
-	setIsaacModels: (models) => set({ diracModels: models }),
+	setIsaacModels: (models) => set({ isaacModels: models }),
 	setOpenRouterModels: (models) => set({ openRouterModels: models }),
 	setVercelAiGatewayModels: (models) => set({ vercelAiGatewayModels: models }),
 	setLiteLlmModels: (models) => set({ liteLlmModels: models }),

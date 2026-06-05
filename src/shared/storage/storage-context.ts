@@ -31,7 +31,7 @@ export interface StorageContext {
 	/** Workspace-scoped state — per-project toggles, rules, etc. */
 	readonly workspaceState: IsaacFileStorage
 
-	/** The resolved path to the data directory (~/.dirac/data) */
+	/** The resolved path to the data directory (~/.isaac/data) */
 	readonly dataDir: string
 
 	/** The resolved path to the workspace storage directory (contains workspaceState.json) */
@@ -40,9 +40,9 @@ export interface StorageContext {
 
 export interface StorageContextOptions {
 	/**
-	 * Override the Isaac home directory. Defaults to DIRAC_DIR env var or ~/.dirac.
+	 * Override the Isaac home directory. Defaults to ISAAC_DIR env var or ~/.isaac.
 	 */
-	diracDir?: string
+	isaacDir?: string
 
 	/**
 	 * The workspace/project directory path. Used to compute a hash-based
@@ -84,16 +84,16 @@ function hashString(str: string): string {
  * construct paths to these storage files themselves.
  *
  * File layout:
- *   ~/.dirac/data/globalState.json    — global state
- *   ~/.dirac/data/secrets.json        — secrets (mode 0o600)
- *   ~/.dirac/data/workspaces/<hash>/workspaceState.json — per-workspace state
+ *   ~/.isaac/data/globalState.json    — global state
+ *   ~/.isaac/data/secrets.json        — secrets (mode 0o600)
+ *   ~/.isaac/data/workspaces/<hash>/workspaceState.json — per-workspace state
  *
  * @param opts Configuration options for path resolution
  * @returns A StorageContext ready for use by StateManager
  */
 export function createStorageContext(opts: StorageContextOptions = {}): StorageContext {
-	const diracDir = opts.diracDir || process.env.DIRAC_DIR || path.join(os.homedir(), ".dirac")
-	const dataDir = path.join(diracDir, SETTINGS_SUBFOLDER)
+	const isaacDir = opts.isaacDir || process.env.ISAAC_DIR || path.join(os.homedir(), ".isaac")
+	const dataDir = path.join(isaacDir, SETTINGS_SUBFOLDER)
 
 	// Resolve workspace storage directory
 	let workspaceDir: string

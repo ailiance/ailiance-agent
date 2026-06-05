@@ -4,12 +4,12 @@ import { getHookModelContext } from "@core/hooks/hook-model-context"
 import { getHooksEnabledSafe } from "@core/hooks/hooks-utils"
 import { formatResponse } from "@core/prompts/responses"
 import { IsaacAsk, IsaacSay, MultiCommandState } from "@shared/ExtensionMessage"
-import { convertIsaacMessageToProto } from "@shared/proto-conversions/dirac-message"
+import { convertIsaacMessageToProto } from "@shared/proto-conversions/isaac-message"
 import { Logger } from "@shared/services/Logger"
 import { IsaacDefaultTool } from "@shared/tools"
-import { TOOL_EXAMPLES } from "../prompts/tool-examples"
 import { IsaacAskResponse } from "@shared/WebviewMessage"
 import pWaitFor from "p-wait-for"
+import { TOOL_EXAMPLES } from "../prompts/tool-examples"
 import { TaskMessengerDependencies } from "./types/task-messenger"
 
 export class TaskMessenger {
@@ -35,18 +35,18 @@ export class TaskMessenger {
 
 		let askTs: number
 		if (partial !== undefined) {
-			const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+			const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
 			// Search backwards for the last partial message of the same type and subtype
 			let lastMessageIndex = -1
-			for (let i = diracMessages.length - 1; i >= 0; i--) {
-				const msg = diracMessages[i]
+			for (let i = isaacMessages.length - 1; i >= 0; i--) {
+				const msg = isaacMessages[i]
 				if (msg.partial && msg.type === "ask" && msg.ask === type) {
 					lastMessageIndex = i
 					break
 				}
 			}
 			const isUpdatingPreviousPartial = lastMessageIndex !== -1
-			const lastMessage = isUpdatingPreviousPartial ? diracMessages[lastMessageIndex] : undefined
+			const lastMessage = isUpdatingPreviousPartial ? isaacMessages[lastMessageIndex] : undefined
 
 			if (partial) {
 				if (isUpdatingPreviousPartial) {
@@ -211,7 +211,13 @@ export class TaskMessenger {
 		}
 	}
 
-	async handleWebviewAskResponse(askResponse: IsaacAskResponse, text?: string, images?: string[], files?: string[], userEdits?: Record<string, string>) {
+	async handleWebviewAskResponse(
+		askResponse: IsaacAskResponse,
+		text?: string,
+		images?: string[],
+		files?: string[],
+		userEdits?: Record<string, string>,
+	) {
 		this.dependencies.taskState.askResponse = askResponse
 		this.dependencies.taskState.askResponseText = text
 		this.dependencies.taskState.askResponseImages = images
@@ -240,18 +246,18 @@ export class TaskMessenger {
 		}
 
 		if (partial !== undefined) {
-			const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+			const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
 			// Search backwards for the last partial message of the same type and subtype
 			let lastIndex = -1
-			for (let i = diracMessages.length - 1; i >= 0; i--) {
-				const msg = diracMessages[i]
+			for (let i = isaacMessages.length - 1; i >= 0; i--) {
+				const msg = isaacMessages[i]
 				if (msg.partial && msg.type === "say" && msg.say === type) {
 					lastIndex = i
 					break
 				}
 			}
 			const isUpdatingPreviousPartial = lastIndex !== -1
-			const lastMessage = isUpdatingPreviousPartial ? diracMessages[lastIndex] : undefined
+			const lastMessage = isUpdatingPreviousPartial ? isaacMessages[lastIndex] : undefined
 
 			if (partial) {
 				if (isUpdatingPreviousPartial) {
@@ -350,12 +356,12 @@ export class TaskMessenger {
 		return formatResponse.toolError(formatResponse.missingToolParameterError(paramName, example))
 	}
 
-	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: IsaacAsk | IsaacSay, onlyPartial: boolean = true) {
-		const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: IsaacAsk | IsaacSay, onlyPartial = true) {
+		const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
 		// Search backwards for the last partial message of the same type and subtype
 		let indexToRemove = -1
-		for (let i = diracMessages.length - 1; i >= 0; i--) {
-			const msg = diracMessages[i]
+		for (let i = isaacMessages.length - 1; i >= 0; i--) {
+			const msg = isaacMessages[i]
 			if ((!onlyPartial || msg.partial) && msg.type === type && (msg.ask === askOrSay || msg.say === askOrSay)) {
 				indexToRemove = i
 				break
@@ -363,7 +369,7 @@ export class TaskMessenger {
 		}
 
 		if (indexToRemove !== -1) {
-			const newMessages = [...diracMessages]
+			const newMessages = [...isaacMessages]
 			newMessages.splice(indexToRemove, 1)
 			this.dependencies.messageStateHandler.setIsaacMessages(newMessages)
 			await this.dependencies.messageStateHandler.saveIsaacMessagesAndUpdateHistory()

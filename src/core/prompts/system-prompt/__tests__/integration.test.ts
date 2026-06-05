@@ -20,8 +20,8 @@
 
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import { SymbolIndexService } from "@/services/symbol-index/SymbolIndexService"
 import { expect } from "chai"
+import { SymbolIndexService } from "@/services/symbol-index/SymbolIndexService"
 import { getSystemPrompt } from "../index"
 import type { SystemPromptContext } from "../types"
 
@@ -127,7 +127,7 @@ const baseContext: SystemPromptContext = {
 	cwd: "/test/project",
 	ide: "TestIde",
 	supportsBrowserUse: true,
-	diracWebToolsEnabled: true,
+	isaacWebToolsEnabled: true,
 	subagentsEnabled: true,
 	browserSettings: { viewport: { width: 1280, height: 720 } },
 	globalIsaacRulesFileInstructions: "Follow global rules",
@@ -235,9 +235,7 @@ describe("Prompt System Integration Tests", () => {
 	})
 
 	describe("Context-Specific Features", () => {
-		const featureTests = [
-			{ name: "user instructions when provided", context: {}, check: "USER'S CUSTOM INSTRUCTIONS" },
-		]
+		const featureTests = [{ name: "user instructions when provided", context: {}, check: "USER'S CUSTOM INSTRUCTIONS" }]
 
 		for (const { name, context, check } of featureTests) {
 			it(`should include ${name}`, async function () {

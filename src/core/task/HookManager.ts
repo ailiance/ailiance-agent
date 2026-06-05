@@ -40,8 +40,8 @@ export class HookManager {
 			abortController.abort()
 
 			// Update hook message status to "cancelled"
-			const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
-			const hookMessageIndex = diracMessages.findIndex((m) => m.ts === messageTs)
+			const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+			const hookMessageIndex = isaacMessages.findIndex((m) => m.ts === messageTs)
 			if (hookMessageIndex !== -1) {
 				const cancelledMetadata = {
 					hookName,
@@ -88,8 +88,8 @@ export class HookManager {
 		}
 
 		// Check if we're at a button-only state (no active work, just waiting for user action)
-		const diracMessages = this.dependencies.messageStateHandler.getIsaacMessages()
-		const lastMessage = diracMessages.at(-1)
+		const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+		const lastMessage = isaacMessages.at(-1)
 		const isAtButtonOnlyState =
 			lastMessage?.type === "ask" &&
 			(lastMessage.ask === "resume_task" ||

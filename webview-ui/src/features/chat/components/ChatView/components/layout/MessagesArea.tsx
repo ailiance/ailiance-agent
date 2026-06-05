@@ -29,8 +29,8 @@ export const MessagesArea: React.FC<MessagesAreaProps> = ({
 	messageHandlers,
 }) => {
 	const parentRef = useRef<HTMLDivElement>(null)
-	const { diracMessages } = useSettingsStore()
-	const lastRawMessage = useMemo(() => diracMessages.at(-1), [diracMessages])
+	const { isaacMessages } = useSettingsStore()
+	const lastRawMessage = useMemo(() => isaacMessages.at(-1), [isaacMessages])
 
 	const {
 		virtuosoRef,
@@ -80,8 +80,7 @@ export const MessagesArea: React.FC<MessagesAreaProps> = ({
 	}, [isWaitingForResponse, lastRawMessage, lastVisibleMessage?.say])
 
 	const displayedGroupedMessages = useMemo<(IsaacMessage | IsaacMessage[])[]>(() => {
-		let baseMessages = groupedMessages
-
+		const baseMessages = groupedMessages
 
 		if (!showThinkingLoaderRow) {
 			return baseMessages

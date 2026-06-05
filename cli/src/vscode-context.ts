@@ -3,12 +3,12 @@
  * Provides mock implementations of VSCode extension context.
  */
 
+import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import os from "os"
 import path from "path"
-import fs from "node:fs"
 import { ExtensionRegistryInfo } from "@/registry"
-import { IsaacExtensionContext } from "@/shared/dirac"
+import { IsaacExtensionContext } from "@/shared/isaac"
 import type { IsaacMemento } from "@/shared/storage/IsaacStorage"
 import { createStorageContext, type StorageContext } from "@/shared/storage/storage-context"
 import { EnvironmentVariableCollection, ExtensionKind, ExtensionMode, readJson, URI } from "./vscode-shim"
@@ -79,7 +79,7 @@ class MementoAdapter implements IsaacMemento {
 }
 
 export interface CliContextConfig {
-	diracDir?: string
+	isaacDir?: string
 	/** The workspace directory being worked in (used to compute workspace storage hash) */
 	workspaceDir?: string
 }
@@ -100,12 +100,12 @@ export interface CliContextResult {
  * expect the VSCode ExtensionContext shape.
  */
 export function initializeCliContext(config: CliContextConfig = {}): CliContextResult {
-	const DIRAC_DIR = config.diracDir || process.env.DIRAC_DIR || path.join(os.homedir(), ".dirac")
+	const ISAAC_DIR = config.isaacDir || process.env.ISAAC_DIR || path.join(os.homedir(), ".isaac")
 
 	// Create the shared StorageContext — this owns all IsaacFileStorage instances.
 	// CLI, JetBrains, and VSCode all share this same file-backed implementation.
 	let storageContext = createStorageContext({
-		diracDir: DIRAC_DIR,
+		isaacDir: ISAAC_DIR,
 		workspacePath: config.workspaceDir || process.cwd(),
 		workspaceStorageDir: process.env.WORKSPACE_STORAGE_DIR || undefined,
 	})

@@ -210,19 +210,19 @@ export async function createTestServer(controller: Controller): Promise<http.Ser
 						// Update API configuration with API key
 						const updatedConfig = {
 							...apiConfiguration,
-							apiProvider: "dirac" as ApiProvider,
+							apiProvider: "isaac" as ApiProvider,
 						}
 
 						// Store the API key securely
 
 						visibleWebview.controller.stateManager.setApiConfiguration(updatedConfig)
 
-						// Update cache service to use dirac provider
+						// Update cache service to use isaac provider
 						const currentConfig = visibleWebview.controller.stateManager.getApiConfiguration()
 						visibleWebview.controller.stateManager.setApiConfiguration({
 							...currentConfig,
-							planModeApiProvider: "dirac",
-							actModeApiProvider: "dirac",
+							planModeApiProvider: "isaac",
+							actModeApiProvider: "isaac",
 						})
 
 						// Post state to webview to reflect changes

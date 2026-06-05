@@ -6,7 +6,7 @@ import ErrorRow from "./ErrorRow"
 // Mock the auth context
 vi.mock("@/context/IsaacAuthContext", () => ({
 	useIsaacAuth: () => ({
-		diracUser: null,
+		isaacUser: null,
 	}),
 	useIsaacSignIn: () => ({
 		isLoginLoading: false,
@@ -64,9 +64,9 @@ describe("ErrorRow", () => {
 		).toBeInTheDocument()
 	})
 
-	it("renders diracignore error", () => {
-		const diracignoreMessage = { ...mockMessage, text: "/path/to/file.txt" }
-		render(<ErrorRow errorType="diracignore_error" message={diracignoreMessage} />)
+	it("renders isaacignore error", () => {
+		const isaacignoreMessage = { ...mockMessage, text: "/path/to/file.txt" }
+		render(<ErrorRow errorType="isaacignore_error" message={isaacignoreMessage} />)
 
 		expect(screen.getByText(/Isaac tried to access/)).toBeInTheDocument()
 		expect(screen.getByText("/path/to/file.txt")).toBeInTheDocument()
@@ -119,7 +119,7 @@ describe("ErrorRow", () => {
 			const mockIsaacError = {
 				message: "Authentication failed",
 				isErrorType: vi.fn((type) => type === "auth"),
-				providerId: "dirac",
+				providerId: "isaac",
 				_error: {},
 			}
 
@@ -154,7 +154,7 @@ describe("ErrorRow", () => {
 			expect(screen.getByText("troubleshooting guide")).toBeInTheDocument()
 			expect(screen.getByRole("link", { name: "troubleshooting guide" })).toHaveAttribute(
 				"href",
-				"https://github.com/dirac/dirac/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
+				"https://github.com/isaac/isaac/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
 			)
 		})
 
@@ -180,7 +180,7 @@ describe("ErrorRow", () => {
 			render(<ErrorRow apiRequestFailedMessage="Some API error" errorType="error" message={mockMessage} />)
 
 			// When IsaacError.parse returns null, we display the raw error message for non-Isaac providers
-			// Since diracError is undefined, isIsaacProvider is false, so we show the raw apiRequestFailedMessage
+			// Since isaacError is undefined, isIsaacProvider is false, so we show the raw apiRequestFailedMessage
 			expect(screen.getByText("Some API error")).toBeInTheDocument()
 		})
 

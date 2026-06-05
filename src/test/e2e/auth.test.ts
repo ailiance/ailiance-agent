@@ -26,8 +26,8 @@ e2e.skip("Views - can set up API keys and navigate to Settings from Chat", async
 	// Test Isaac provider option
 	await providerSelectorInput.click({ delay: 100 })
 	// Wait for dropdown to appear and find Isaac option
-	await expect(sidebar.getByTestId("provider-option-dirac")).toBeVisible()
-	await sidebar.getByTestId("provider-option-dirac").click({ delay: 100 })
+	await expect(sidebar.getByTestId("provider-option-isaac")).toBeVisible()
+	await sidebar.getByTestId("provider-option-isaac").click({ delay: 100 })
 	await expect(sidebar.getByRole("button", { name: "Sign Up with Isaac" })).toBeVisible()
 
 	// Switch to OpenRouter and complete setup
@@ -57,9 +57,9 @@ e2e.skip("Views - can set up API keys and navigate to Settings from Chat", async
 	await expect(dialog).not.toBeVisible()
 
 	// Verify you are now in the chat page after setup was completed and the dialog was closed.
-	// dirac logo container
-	const diracLogo = sidebar.locator(".size-20")
-	await expect(diracLogo).toBeVisible()
+	// isaac logo container
+	const isaacLogo = sidebar.locator(".size-20")
+	await expect(isaacLogo).toBeVisible()
 	const chatInputBox = sidebar.getByTestId("chat-input")
 	await expect(chatInputBox).toBeVisible()
 

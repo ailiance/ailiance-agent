@@ -611,7 +611,7 @@ export class BatchProcessor {
 			config.taskState.consecutiveMistakeCount = 0
 			config.taskState.didEditFile = true
 			config.services.fileContextTracker.markFileAsEditedByIsaac(displayPath)
-			await config.services.fileContextTracker.trackFileContext(displayPath, "dirac_edited")
+			await config.services.fileContextTracker.trackFileContext(displayPath, "isaac_edited")
 
 			const newLineHashes = AnchorStateManager.reconcile(absolutePath, finalLines, config.ulid)
 
@@ -868,7 +868,7 @@ export class BatchProcessor {
 		config.taskState.consecutiveMistakeCount = 0
 		config.taskState.didEditFile = true
 		config.services.fileContextTracker.markFileAsEditedByIsaac(displayPath)
-		await config.services.fileContextTracker.trackFileContext(displayPath, "dirac_edited")
+		await config.services.fileContextTracker.trackFileContext(displayPath, "isaac_edited")
 
 		return {
 			finalContent: actualFinalContent,

@@ -12,7 +12,7 @@ const alertVariants = cva(
 				default: "bg-banner-background text-banner-foreground border-foreground/20",
 				warning: "bg-warning/50 border-foreground/20 [&>svg]:text-warning-foreground",
 				danger: "bg-input-error-background text-foreground border-foreground/20 [&>svg]:text-input-error-foreground",
-				dirac: "bg-dirac/20 text-fg-dirac border-dirac [&>svg]:text-fg-dirac",
+				isaac: "bg-isaac/20 text-fg-isaac border-isaac [&>svg]:text-fg-isaac",
 			},
 		},
 		defaultVariants: {

@@ -43,8 +43,8 @@ export interface TaskDependencies {
 	/** Fetches remote URL content for context injection. */
 	urlContentFetcher: UrlContentFetcher
 
-	/** Respects .diracignore rules for file access. */
-	diracIgnoreController: IsaacIgnoreController
+	/** Respects .isaacignore rules for file access. */
+	isaacIgnoreController: IsaacIgnoreController
 
 	/** Manages shell-command permission prompts. */
 	commandPermissionController: CommandPermissionController

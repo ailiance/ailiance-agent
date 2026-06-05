@@ -49,7 +49,7 @@ export class SymbolIndexService {
 		".github",
 		".vscode",
 		".cursor",
-		".dirac",
+		".isaac",
 		"out",
 		"dist",
 		"dist-standalone",
@@ -112,7 +112,7 @@ export class SymbolIndexService {
 	// Performance and behavior constants
 	private static readonly FILES_PER_BATCH = 10
 	private static readonly PARALLEL_PARSING_LIMIT = 10
-	private static readonly INDEX_DIR = ".dirac-symbol-index"
+	private static readonly INDEX_DIR = ".isaac-symbol-index"
 	private static readonly INDEX_FILE = "data.db"
 	private static readonly SAVE_DEBOUNCE_MS = 2000
 	private static readonly VERSION = 1
@@ -167,10 +167,11 @@ export class SymbolIndexService {
 
 		const isRepo = this.skipRepoCheck || (await this.isRepository(projectRoot))
 		if (!isRepo) {
-			Logger.info(`[SymbolIndexService] ${projectRoot} is not a repository. Skipping indexing to prevent performance issues.`)
+			Logger.info(
+				`[SymbolIndexService] ${projectRoot} is not a repository. Skipping indexing to prevent performance issues.`,
+			)
 			return
 		}
-
 
 		this.isScanningInternal = true
 		try {
@@ -246,7 +247,8 @@ export class SymbolIndexService {
 			const entry = SymbolIndexService.INDEX_DIR + "/"
 			if (!lines.some((line) => line.trim() === entry || line.trim() === SymbolIndexService.INDEX_DIR)) {
 				Logger.info(`[SymbolIndexService] Adding ${entry} to .git/info/exclude`)
-				const newContent = content.endsWith("\n") || content === "" ? content + entry + "\n" : content + "\n" + entry + "\n"
+				const newContent =
+					content.endsWith("\n") || content === "" ? content + entry + "\n" : content + "\n" + entry + "\n"
 				await fs.writeFile(excludePath, newContent)
 			}
 		} catch (error) {
@@ -257,7 +259,7 @@ export class SymbolIndexService {
 	private isExcluded(name: string): boolean {
 		if (SymbolIndexService.EXCLUDED_DIRS.has(name)) return true
 		if (name === SymbolIndexService.INDEX_DIR) return true
-		if (name.startsWith(".") && !name.startsWith(".dirac")) return true
+		if (name.startsWith(".") && !name.startsWith(".isaac")) return true
 		return false
 	}
 
@@ -390,7 +392,7 @@ export class SymbolIndexService {
 	private async indexFile(
 		absolutePath: string,
 		languageParsers: Record<string, { parser: Parser; query: Parser.Query }>,
-		nameCache?: Map<string, string>
+		nameCache?: Map<string, string>,
 	): Promise<FileIndexEntry | null> {
 		try {
 			const stats = await fs.stat(absolutePath)
@@ -450,7 +452,7 @@ export class SymbolIndexService {
 		}
 	}
 
-		public getSymbols(symbol: string, type?: "definition" | "reference", limit?: number): SymbolLocation[] {
+	public getSymbols(symbol: string, type?: "definition" | "reference", limit?: number): SymbolLocation[] {
 		return this.db?.getSymbolsByName(symbol, type, limit) || []
 	}
 

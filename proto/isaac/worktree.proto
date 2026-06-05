@@ -107,7 +107,7 @@ message BranchList {
 
 // Suggested defaults for creating a new worktree
 message WorktreeDefaults {
-  string suggested_branch = 1; // Auto-generated branch name like "worktree/dirac-abc12"
+  string suggested_branch = 1; // Auto-generated branch name like "worktree/isaac-abc12"
   string suggested_path = 2; // Path in Documents/Isaac/Worktrees/<project>-<suffix>
 }
 

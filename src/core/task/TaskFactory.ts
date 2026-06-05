@@ -28,9 +28,9 @@ import type { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { telemetryService } from "@services/telemetry"
 import type { ApiConfiguration } from "@shared/api"
 import { findLastIndex } from "@shared/array"
-import { getExtensionSourceDir } from "@shared/dirac/constants"
 import type { IsaacApiReqInfo, IsaacAsk, IsaacSay, MultiCommandState } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
+import { getExtensionSourceDir } from "@shared/isaac/constants"
 import type { IsaacContent, IsaacTextContentBlock } from "@shared/messages/content"
 import { ShowMessageType } from "@shared/proto/index.host"
 import { Logger } from "@shared/services/Logger"
@@ -185,11 +185,11 @@ export function buildTaskServices(inputs: TaskServiceInputs): TaskServices {
 		...apiConfiguration,
 		ulid,
 		onRetryAttempt: async (attempt: number, maxRetries: number, delay: number, error: any) => {
-			const diracMessages = messageStateHandler.getIsaacMessages()
-			const lastApiReqStartedIndex = findLastIndex(diracMessages, (m) => m.say === "api_req_started")
+			const isaacMessages = messageStateHandler.getIsaacMessages()
+			const lastApiReqStartedIndex = findLastIndex(isaacMessages, (m) => m.say === "api_req_started")
 			if (lastApiReqStartedIndex !== -1) {
 				try {
-					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(diracMessages[lastApiReqStartedIndex].text || "{}")
+					const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(isaacMessages[lastApiReqStartedIndex].text || "{}")
 					currentApiReqInfo.retryStatus = {
 						attempt,
 						maxAttempts: maxRetries,
@@ -285,7 +285,7 @@ export interface TaskManagerInputs {
 	browserSession: BrowserSession
 	diffViewProvider: DiffViewProvider
 	fileContextTracker: import("@core/context/context-tracking/FileContextTracker").FileContextTracker
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	commandPermissionController: CommandPermissionController
 	contextManager: import("@core/context/context-management/ContextManager").ContextManager
 	streamHandler: StreamResponseHandler
@@ -376,7 +376,7 @@ export function buildTaskManagers(inputs: TaskManagerInputs): TaskManagers {
 		browserSession,
 		diffViewProvider,
 		fileContextTracker,
-		diracIgnoreController,
+		isaacIgnoreController,
 		commandPermissionController,
 		contextManager,
 		streamHandler,
@@ -419,7 +419,7 @@ export function buildTaskManagers(inputs: TaskManagerInputs): TaskManagers {
 		browserSession,
 		diffViewProvider,
 		fileContextTracker,
-		diracIgnoreController,
+		isaacIgnoreController,
 		commandPermissionController,
 		contextManager,
 		stateManager,
@@ -465,7 +465,7 @@ export function buildTaskManagers(inputs: TaskManagerInputs): TaskManagers {
 		urlContentFetcher,
 		fileContextTracker,
 		workspaceManager,
-		diracIgnoreController,
+		isaacIgnoreController,
 		taskState,
 		getCurrentProviderInfo,
 		extensionPath: HostProvider.get().extensionFsPath,
@@ -510,7 +510,7 @@ export function buildTaskManagers(inputs: TaskManagerInputs): TaskManagers {
 		postStateToWebview,
 		cancelTask,
 		checkpointManager,
-		diracIgnoreController,
+		isaacIgnoreController,
 		terminalManager,
 		urlContentFetcher,
 		browserSession,

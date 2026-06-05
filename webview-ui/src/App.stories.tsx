@@ -199,7 +199,8 @@ const mockActiveMessages: IsaacMessage[] = [
 		JSON.stringify({
 			tool: "listFilesTopLevel",
 			paths: ["src/components", "src/utils"],
-			content: "Contents of src/components:\n2 out of 2 elements listed below:\nNavigation/\nUserProfile/\n\n====================\n\nContents of src/utils:\n1 out of 1 elements listed below:\nmath.ts",
+			content:
+				"Contents of src/components:\n2 out of 2 elements listed below:\nNavigation/\nUserProfile/\n\n====================\n\nContents of src/utils:\n1 out of 1 elements listed below:\nmath.ts",
 		}),
 	),
 	createApiReqMessage(4.2, "Component creation request", { tokensIn: 12020, tokensOut: 6180, cost: 0.042 }),
@@ -246,7 +247,7 @@ const createMockState = (overrides: any = {}) => ({
 	version: "0.0.1-stories",
 	welcomeViewCompleted: true,
 	showWelcome: false,
-	diracMessages: mockActiveMessages,
+	isaacMessages: mockActiveMessages,
 	taskHistory: mockTaskHistory,
 	apiConfiguration: mockApiConfiguration,
 	onboardingModels: undefined,
@@ -272,7 +273,7 @@ const createStoryDecorator =
 	}
 
 export const EmptyState: Story = {
-	decorators: [createStoryDecorator({ diracMessages: [], taskHistory: [], isNewUser: true, showAnnouncement: true })],
+	decorators: [createStoryDecorator({ isaacMessages: [], taskHistory: [], isNewUser: true, showAnnouncement: true })],
 	parameters: {
 		docs: {
 			description: {
@@ -284,7 +285,7 @@ export const EmptyState: Story = {
 
 export const ReturnUser: Story = {
 	decorators: [
-		createStoryDecorator({ diracMessages: [], taskHistory: mockTaskHistory, isNewUser: true, showAnnouncement: false }),
+		createStoryDecorator({ isaacMessages: [], taskHistory: mockTaskHistory, isNewUser: true, showAnnouncement: false }),
 	],
 	parameters: {
 		docs: {
@@ -307,7 +308,7 @@ export const ActiveConversation: Story = {
 }
 
 export const StreamingResponse: Story = {
-	decorators: [createStoryDecorator({ diracMessages: mockStreamingMessages })],
+	decorators: [createStoryDecorator({ isaacMessages: mockStreamingMessages })],
 	parameters: {
 		docs: {
 			description: {
@@ -372,7 +373,7 @@ const createLongMessages = (): IsaacMessage[] => [
 ]
 
 export const LongConversation: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createLongMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createLongMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -418,7 +419,7 @@ const createAskMessage = (type: string, text: string, streamingFailedMessage?: s
 })
 
 export const ErrorState: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createErrorMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createErrorMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -465,7 +466,7 @@ const createPlanModeMessages = () => [
 export const PlanMode: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: createPlanModeMessages(),
+			isaacMessages: createPlanModeMessages(),
 			apiConfiguration: mockApiConfigurationPlan,
 			mode: "plan" as const,
 		}),
@@ -505,7 +506,7 @@ const createBrowserMessages = () => [
 ]
 
 export const BrowserAutomation: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createBrowserMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createBrowserMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -523,7 +524,7 @@ const createToolApprovalMessages = () => [
 ]
 
 export const ToolApproval: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createToolApprovalMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createToolApprovalMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -536,7 +537,7 @@ export const ToolApproval: Story = {
 export const ToolSave: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Update the README file with new instructions"),
 				createMessage(4.7, "say", "text", "I'll update your README file with the new instructions."),
 				createAskMessage("tool", JSON.stringify({ tool: "editedExistingFile", path: "README.md" })),
@@ -562,7 +563,7 @@ const quickStory = (
 ): Story => ({
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				...createLongMessages(),
 				createMessage(6, "say", "task", `Help with ${name.toLowerCase()}`),
 				createMessage(5, "say", "reasoning", `Thinking about helping user with ${name.toLowerCase()}`),
@@ -584,7 +585,7 @@ export const CommandExecution: Story = quickStory(
 export const CommandOutput: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createAskMessage("command", "npm install"),
 				createAskMessage("command_output", "Installing packages... This may take a few minutes."),
 			],
@@ -645,7 +646,7 @@ export const NewTaskWithContext = quickStory(
 export const ApiRequestActive: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "text", "Processing your request...", { partial: true }),
 				createApiReqMessage(4.7, "Making API request to generate response", { partial: true }),
 			],
@@ -684,7 +685,7 @@ export const ResumeCompletedTask = quickStory(
 export const ShellIntegrationWarningWithSuggestion: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning_with_suggestion", ""),
@@ -704,7 +705,7 @@ export const ShellIntegrationWarningWithSuggestion: Story = {
 export const ShellIntegrationWarningBackgroundEnabled: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning_with_suggestion", ""),
@@ -724,7 +725,7 @@ export const ShellIntegrationWarningBackgroundEnabled: Story = {
 export const ShellIntegrationWarning: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning", ""),
@@ -743,7 +744,7 @@ export const ShellIntegrationWarning: Story = {
 export const ErrorRetryInProgress: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Process a request"),
 				createMessage(4.7, "say", "text", "Attempting to process your request."),
 				createMessage(
@@ -767,7 +768,7 @@ export const ErrorRetryInProgress: Story = {
 export const ErrorRetryFailed: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Process a request"),
 				createMessage(4.7, "say", "text", "Attempting to process your request."),
 				createMessage(
@@ -791,7 +792,7 @@ export const ErrorRetryFailed: Story = {
 export const GenerateExplanationInProgress: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -820,7 +821,7 @@ export const GenerateExplanationInProgress: Story = {
 export const GenerateExplanationComplete: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -849,7 +850,7 @@ export const GenerateExplanationComplete: Story = {
 export const GenerateExplanationError: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -879,7 +880,7 @@ export const GenerateExplanationError: Story = {
 export const GenerateExplanationCancelled: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -954,7 +955,7 @@ const createNewFormatMultiFileMessages = () => [
 ]
 
 export const DiffEditNewFormat: Story = {
-	decorators: [createStoryDecorator({ backgroundEditEnabled: true, diracMessages: createNewFormatMultiFileMessages() })],
+	decorators: [createStoryDecorator({ backgroundEditEnabled: true, isaacMessages: createNewFormatMultiFileMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -971,7 +972,7 @@ export const DiffEditNewFormatStreaming: Story = {
 				createMessage(5, "say", "task", "Add TypeScript types to the user module"),
 				createMessage(4.7, "say", "text", "I'll add TypeScript types to improve type safety."),
 			])
-			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, diracMessages: messages }), [messages])
+			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, isaacMessages: messages }), [messages])
 
 			useEffect(() => {
 				// Simulate streaming: progressively add more content
@@ -1094,7 +1095,7 @@ function validateEmail(email: string): boolean {
 ]
 
 export const DiffEditReplaceDiffFormat: Story = {
-	decorators: [createStoryDecorator({ backgroundEditEnabled: true, diracMessages: createReplaceDiffFormatPatchMessages() })],
+	decorators: [createStoryDecorator({ backgroundEditEnabled: true, isaacMessages: createReplaceDiffFormatPatchMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -1111,7 +1112,7 @@ export const DiffEditReplaceDiffFormatStreaming: Story = {
 				createMessage(5, "say", "task", "Update error handling"),
 				createMessage(4.7, "say", "text", "I'll improve the error handling in the API client."),
 			])
-			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, diracMessages: messages }), [messages])
+			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, isaacMessages: messages }), [messages])
 
 			useEffect(() => {
 				const completePatch = `------- SEARCH
@@ -1229,7 +1230,7 @@ async function login(username: string, password: string): Promise<AuthResult> {
 ]
 
 export const DiffEditMixedFormats: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createMixedFormatMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createMixedFormatMessages() })],
 	parameters: {
 		docs: {
 			description: {

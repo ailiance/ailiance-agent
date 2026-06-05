@@ -2,7 +2,7 @@
  * Terminal display utilities for rendering Isaac messages in the CLI
  */
 
-import type { IsaacAsk, IsaacMessage, IsaacSay, ExtensionState } from "@shared/ExtensionMessage"
+import type { ExtensionState, IsaacAsk, IsaacMessage, IsaacSay } from "@shared/ExtensionMessage"
 import { originalConsoleError, originalConsoleLog } from "./console"
 
 // ANSI color codes for terminal output
@@ -52,7 +52,6 @@ export function centerText(text: string, terminalWidth?: number): string {
 	const padding = Math.max(0, Math.floor((width - text.length) / 2))
 	return " ".repeat(padding) + text
 }
-
 
 export function colorize(text: string, ...colorCodes: string[]): string {
 	return colorCodes.join("") + text + colors.reset
@@ -270,14 +269,7 @@ function getToolType(message: IsaacMessage): string | null {
 		return "tool"
 	}
 	if (message.type === "ask") {
-		const toolAsks = [
-			"tool",
-			"command",
-			"browser_action_launch",
-			"plan_mode_respond",
-			"act_mode_respond",
-			"use_subagents",
-		]
+		const toolAsks = ["tool", "command", "browser_action_launch", "plan_mode_respond", "act_mode_respond", "use_subagents"]
 		if (message.ask && toolAsks.includes(message.ask)) {
 			return message.ask
 		}
@@ -349,10 +341,10 @@ export function formatState(state: ExtensionState, verbose = false): string {
 	}
 
 	// Show messages
-	if (state.diracMessages && state.diracMessages.length > 0) {
+	if (state.isaacMessages && state.isaacMessages.length > 0) {
 		const messagesToShow = verbose
-			? state.diracMessages
-			: state.diracMessages.filter((m) => {
+			? state.isaacMessages
+			: state.isaacMessages.filter((m) => {
 					// Filter out noisy messages in non-verbose mode
 					// if (m.say === "api_req_started" || m.say === "api_req_finished") return false
 					return true
@@ -502,7 +494,6 @@ export function createContextBar(used: number, total: number, width = 8): { fill
 	const emptyCount = width - filledCount
 	return { filled: "█".repeat(filledCount), empty: "█".repeat(emptyCount) }
 }
-
 
 /**
  * Set the terminal session title using OSC escape sequence.

@@ -87,5 +87,5 @@ export async function sendStateUpdate(state: ExtensionState): Promise<void> {
 }
 
 function recordStateSizeTelemetry(sizeBytes: number): void {
-	telemetryService.captureGrpcResponseSize(sizeBytes, "dirac.StateService", "subscribeToState")
+	telemetryService.captureGrpcResponseSize(sizeBytes, "isaac.StateService", "subscribeToState")
 }

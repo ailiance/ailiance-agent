@@ -14,9 +14,9 @@ describe("IsaacIgnoreController", () => {
 		tempDir = path.join(os.tmpdir(), `llm-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 		await fs.mkdir(tempDir)
 
-		// Create default .diracignore file
+		// Create default .isaacignore file
 		await fs.writeFile(
-			path.join(tempDir, ".diracignore"),
+			path.join(tempDir, ".isaacignore"),
 			[".env", "*.secret", "private/", "# This is a comment", "", "temp.*", "file-with-space-at-end.* ", "**/.git/**"].join(
 				"\n",
 			),
@@ -50,8 +50,8 @@ describe("IsaacIgnoreController", () => {
 			results.forEach((result) => result.should.be.true())
 		})
 
-		it("should block access to .diracignore file", async () => {
-			const result = controller.validateAccess(".diracignore")
+		it("should block access to .isaacignore file", async () => {
+			const result = controller.validateAccess(".isaacignore")
 			result.should.be.false()
 		})
 	})
@@ -81,7 +81,7 @@ describe("IsaacIgnoreController", () => {
 
 		it("should handle pattern edge cases", async () => {
 			await fs.writeFile(
-				path.join(tempDir, ".diracignore"),
+				path.join(tempDir, ".isaacignore"),
 				["*.secret", "private/", "*.tmp", "data-*.json", "temp/*"].join("\n"),
 			)
 
@@ -103,7 +103,7 @@ describe("IsaacIgnoreController", () => {
 
 		// it("should handle negation patterns", async () => {
 		// 	await fs.writeFile(
-		// 		path.join(tempDir, ".diracignore"),
+		// 		path.join(tempDir, ".isaacignore"),
 		// 		[
 		// 			"temp/*", // Ignore everything in temp
 		// 			"!temp/allowed/*", // But allow files in temp/allowed
@@ -148,10 +148,10 @@ describe("IsaacIgnoreController", () => {
 		// 	results[9].should.be.true() // assets/public/data.json
 		// })
 
-		it("should handle comments in .diracignore", async () => {
-			// Create a new .diracignore with comments
+		it("should handle comments in .isaacignore", async () => {
+			// Create a new .isaacignore with comments
 			await fs.writeFile(
-				path.join(tempDir, ".diracignore"),
+				path.join(tempDir, ".isaacignore"),
 				["# Comment line", "*.secret", "private/", "temp.*"].join("\n"),
 			)
 
@@ -217,8 +217,8 @@ describe("IsaacIgnoreController", () => {
 			result.should.be.true()
 		})
 
-		it("should handle missing .diracignore gracefully", async () => {
-			// Create a new controller in a directory without .diracignore
+		it("should handle missing .isaacignore gracefully", async () => {
+			// Create a new controller in a directory without .isaacignore
 			const emptyDir = path.join(os.tmpdir(), `llm-test-empty-${Date.now()}`)
 			await fs.mkdir(emptyDir)
 
@@ -232,8 +232,8 @@ describe("IsaacIgnoreController", () => {
 			}
 		})
 
-		it("should handle empty .diracignore", async () => {
-			await fs.writeFile(path.join(tempDir, ".diracignore"), "")
+		it("should handle empty .isaacignore", async () => {
+			await fs.writeFile(path.join(tempDir, ".isaacignore"), "")
 
 			controller = new IsaacIgnoreController(tempDir)
 			await controller.initialize()
@@ -248,10 +248,10 @@ describe("IsaacIgnoreController", () => {
 			// Create a .gitignore file with patterns "*.log" and "debug/"
 			await fs.writeFile(path.join(tempDir, ".gitignore"), ["*.log", "debug/"].join("\n"))
 
-			// Create a .diracignore file that includes .gitignore and adds an extra pattern "secret.txt"
-			await fs.writeFile(path.join(tempDir, ".diracignore"), ["!include .gitignore", "secret.txt"].join("\n"))
+			// Create a .isaacignore file that includes .gitignore and adds an extra pattern "secret.txt"
+			await fs.writeFile(path.join(tempDir, ".isaacignore"), ["!include .gitignore", "secret.txt"].join("\n"))
 
-			// Initialize the controller to load the updated .diracignore
+			// Initialize the controller to load the updated .isaacignore
 			controller = new IsaacIgnoreController(tempDir)
 			await controller.initialize()
 
@@ -259,15 +259,15 @@ describe("IsaacIgnoreController", () => {
 			controller.validateAccess("server.log").should.be.false()
 			// "debug/app.js" should be ignored due to the "debug/" pattern from .gitignore
 			controller.validateAccess("debug/app.js").should.be.false()
-			// "secret.txt" should be ignored as specified directly in .diracignore
+			// "secret.txt" should be ignored as specified directly in .isaacignore
 			controller.validateAccess("secret.txt").should.be.false()
 			// Other files should be allowed
 			controller.validateAccess("app.js").should.be.true()
 		})
 
 		it("should handle non-existent included file gracefully", async () => {
-			// Create a .diracignore file that includes a non-existent file
-			await fs.writeFile(path.join(tempDir, ".diracignore"), ["!include missing-file.txt"].join("\n"))
+			// Create a .isaacignore file that includes a non-existent file
+			await fs.writeFile(path.join(tempDir, ".isaacignore"), ["!include missing-file.txt"].join("\n"))
 
 			// Initialize the controller
 			controller = new IsaacIgnoreController(tempDir)
@@ -279,7 +279,7 @@ describe("IsaacIgnoreController", () => {
 
 		it("should handle non-existent included file gracefully alongside a valid pattern", async () => {
 			// Test with an include directive for a non-existent file alongside a valid pattern ("*.tmp")
-			await fs.writeFile(path.join(tempDir, ".diracignore"), ["!include non-existent.txt", "*.tmp"].join("\n"))
+			await fs.writeFile(path.join(tempDir, ".isaacignore"), ["!include non-existent.txt", "*.tmp"].join("\n"))
 
 			controller = new IsaacIgnoreController(tempDir)
 			await controller.initialize()
@@ -294,7 +294,7 @@ describe("IsaacIgnoreController", () => {
 	describe("YOLO Mode", () => {
 		it("should waive all restrictions when yoloMode is enabled", async () => {
 			// Setup controller with some ignored patterns
-			await fs.writeFile(path.join(tempDir, ".diracignore"), "*.secret\nprivate/")
+			await fs.writeFile(path.join(tempDir, ".isaacignore"), "*.secret\nprivate/")
 			controller = new IsaacIgnoreController(tempDir)
 			await controller.initialize()
 

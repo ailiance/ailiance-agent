@@ -1,10 +1,10 @@
-import type { IsaacMessage, ExtensionState } from "@shared/ExtensionMessage"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
 import { EmptyRequest } from "@shared/proto/isaac/common"
 import { create } from "zustand"
 import { StateServiceClient } from "@/shared/api/grpc-client"
 
 interface ChatState {
-	diracMessages: IsaacMessage[]
+	isaacMessages: IsaacMessage[]
 
 	// Actions
 	setIsaacMessages: (messages: IsaacMessage[]) => void
@@ -15,18 +15,17 @@ interface ChatState {
 }
 
 export const useChatStore = create<ChatState>((set) => ({
-	diracMessages: [],
+	isaacMessages: [],
 
-	setIsaacMessages: (messages) => set({ diracMessages: messages }),
-
+	setIsaacMessages: (messages) => set({ isaacMessages: messages }),
 
 	updatePartialMessage: (message) =>
 		set((state) => {
-			const lastIndex = state.diracMessages.findLastIndex((msg) => msg.ts === message.ts)
+			const lastIndex = state.isaacMessages.findLastIndex((msg) => msg.ts === message.ts)
 			if (lastIndex !== -1) {
-				const newMessages = [...state.diracMessages]
+				const newMessages = [...state.isaacMessages]
 				newMessages[lastIndex] = message
-				return { diracMessages: newMessages }
+				return { isaacMessages: newMessages }
 			}
 			return state
 		}),
@@ -37,12 +36,11 @@ export const useChatStore = create<ChatState>((set) => ({
 				if (!state.stateJson) return
 				const parsedState = JSON.parse(state.stateJson) as ExtensionState
 
-				if (parsedState.diracMessages) {
-					const lastUserMessage = parsedState.diracMessages.filter((m) => m.type === "say" && m.say === "text").at(-1)
+				if (parsedState.isaacMessages) {
+					const lastUserMessage = parsedState.isaacMessages.filter((m) => m.type === "say" && m.say === "text").at(-1)
 
 					set((state) => {
-
-						return { diracMessages: parsedState.diracMessages }
+						return { isaacMessages: parsedState.isaacMessages }
 					})
 				}
 			},

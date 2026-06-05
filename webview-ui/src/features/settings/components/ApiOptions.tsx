@@ -49,20 +49,13 @@ declare module "vscode" {
 	}
 }
 
-const ApiOptions = ({
-	showModelOptions,
-	apiErrorMessage,
-	modelIdErrorMessage,
-	isPopup,
-	currentMode,
-}: ApiOptionsProps) => {
+const ApiOptions = ({ showModelOptions, apiErrorMessage, modelIdErrorMessage, isPopup, currentMode }: ApiOptionsProps) => {
 	// Use full context state for immediate save payload
 	const { apiConfiguration, remoteConfigSettings } = useSettingsStore()
 
 	const { selectedProvider } = normalizeApiConfiguration(apiConfiguration, currentMode)
 
 	const { handleModeFieldChange } = useApiConfigurationHandlers()
-
 
 	// Poll vscode-lm models
 
@@ -293,15 +286,9 @@ const ApiOptions = ({
 				</ProviderDropdownWrapper>
 			</DropdownContainer>
 
-
-			{apiConfiguration && selectedProvider === "dirac" && (
-				<IsaacProvider
-					currentMode={currentMode}
-					isPopup={isPopup}
-					showModelOptions={showModelOptions}
-				/>
+			{apiConfiguration && selectedProvider === "isaac" && (
+				<IsaacProvider currentMode={currentMode} isPopup={isPopup} showModelOptions={showModelOptions} />
 			)}
-
 
 			{apiConfiguration && selectedProvider === "openrouter" && (
 				<OpenRouterProvider currentMode={currentMode} isPopup={isPopup} showModelOptions={showModelOptions} />

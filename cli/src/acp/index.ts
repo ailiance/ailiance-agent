@@ -98,7 +98,7 @@ export async function runAcpMode(options: AcpModeOptions = {}): Promise<void> {
 	new AgentSideConnection((conn) => {
 		agent = new AcpAgent(conn, {
 			debug: Boolean(options.verbose),
-			diracDir: options.config,
+			isaacDir: options.config,
 			cwd: options.cwd,
 			hooksDir: options.hooksDir,
 		})

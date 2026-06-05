@@ -1,31 +1,31 @@
 import { IsaacEndpoint } from "@/config"
+import { isaacTelemetryConfig, isIsaacTelemetryConfigValid } from "@/shared/services/config/isaac-telemetry-config"
 import {
 	getValidOpenTelemetryConfig,
 	getValidRuntimeOpenTelemetryConfig,
 	OpenTelemetryClientValidConfig,
 } from "@/shared/services/config/otel-config"
-import { isIsaacTelemetryConfigValid, diracTelemetryConfig } from "@/shared/services/config/dirac-telemetry-config"
 import { Logger } from "@/shared/services/Logger"
+import { IsaacTelemetryProvider } from "./providers/IsaacTelemetryProvider"
 import type { ITelemetryProvider, TelemetryProperties, TelemetrySettings } from "./providers/ITelemetryProvider"
 import { OpenTelemetryClientProvider } from "./providers/opentelemetry/OpenTelemetryClientProvider"
 import { OpenTelemetryTelemetryProvider } from "./providers/opentelemetry/OpenTelemetryTelemetryProvider"
-import { IsaacTelemetryProvider } from "./providers/IsaacTelemetryProvider"
 
 /**
  * Supported telemetry provider types
  */
-export type TelemetryProviderType = "dirac" | "no-op" | "opentelemetry"
+export type TelemetryProviderType = "isaac" | "no-op" | "opentelemetry"
 
 /**
  * Configuration for telemetry providers
  */
 export type TelemetryProviderConfig =
-	| { type: "dirac"; apiKey?: string; host?: string }
+	| { type: "isaac"; apiKey?: string; host?: string }
 	/** OpenTelemetry collector
 	 * @param config - Config for this specific collector
 	 * @param bypassUserSettings - When true, telemetry is sent regardless of the user's Isaac telemetry opt-in/opt-out settings.
 	 * This is used for:
-	 * 	- User-controlled collectors configured via environment variables (e.g., DIRAC_OTEL_TELEMETRY_ENABLED).
+	 * 	- User-controlled collectors configured via environment variables (e.g., ISAAC_OTEL_TELEMETRY_ENABLED).
 	 * 	- Organization-controlled collectors configured via remote config.
 	 */
 	| { type: "opentelemetry"; config: OpenTelemetryClientValidConfig; bypassUserSettings: boolean }
@@ -69,7 +69,7 @@ export class TelemetryProviderFactory {
 	 */
 	private static async createProvider(config: TelemetryProviderConfig): Promise<ITelemetryProvider> {
 		switch (config.type) {
-			case "dirac": {
+			case "isaac": {
 				return await new IsaacTelemetryProvider().initialize()
 			}
 			case "opentelemetry": {
@@ -102,8 +102,8 @@ export class TelemetryProviderFactory {
 		const configs: TelemetryProviderConfig[] = []
 
 		// Skip Isaac in selfHosted mode - enterprise customers should not send telemetry to Isaac
-		if (!IsaacEndpoint.isSelfHosted() && isIsaacTelemetryConfigValid(diracTelemetryConfig)) {
-			configs.push({ type: "dirac", ...diracTelemetryConfig })
+		if (!IsaacEndpoint.isSelfHosted() && isIsaacTelemetryConfigValid(isaacTelemetryConfig)) {
+			configs.push({ type: "isaac", ...isaacTelemetryConfig })
 		}
 
 		// Skip build-time OTEL in selfHosted mode - enterprise customers should not send telemetry to Isaac's collector
@@ -122,7 +122,7 @@ export class TelemetryProviderFactory {
 			configs.push({
 				type: "opentelemetry",
 				config: runtimeOtelConfig,
-				// If the user has `DIRAC_OTEL_TELEMETRY_ENABLED` in his environment, enable
+				// If the user has `ISAAC_OTEL_TELEMETRY_ENABLED` in his environment, enable
 				// OTEL regardless of his Isaac telemetry settings
 				bypassUserSettings: true,
 			})

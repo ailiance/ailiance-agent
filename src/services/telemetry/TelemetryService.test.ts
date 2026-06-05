@@ -11,8 +11,8 @@ import * as assert from "assert"
 import * as sinon from "sinon"
 import { IsaacEndpoint } from "@/config"
 import { HostProvider } from "@/hosts/host-provider"
+import * as isaacConfigModule from "@/shared/services/config/isaac-telemetry-config"
 import * as otelConfigModule from "@/shared/services/config/otel-config"
-import * as diracConfigModule from "@/shared/services/config/dirac-telemetry-config"
 import { setVscodeHostProviderMock } from "@/test/host-provider-test-utils"
 import { NoOpTelemetryProvider, TelemetryProviderFactory } from "./TelemetryProviderFactory"
 import { TelemetryMetadata, TelemetryService } from "./TelemetryService"
@@ -44,7 +44,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 	}
 	const MOCK_METADATA: TelemetryMetadata = {
 		extension_version: "1.2.3",
-		dirac_type: "dirac-unit-test",
+		isaac_type: "isaac-unit-test",
 		platform: "Test-IDE",
 		platform_version: "9.8.7-abc",
 		os_type: "win32",
@@ -178,28 +178,28 @@ describe("Telemetry system is abstracted and can easily switch between providers
 		it("should create Isaac provider and track events", async () => {
 			console.log("=== Testing Isaac Provider ===")
 			const providers = await TelemetryProviderFactory.createProviders()
-			const diracProvider = providers.find((p) => !(p instanceof NoOpTelemetryProvider)) || providers[0]
+			const isaacProvider = providers.find((p) => !(p instanceof NoOpTelemetryProvider)) || providers[0]
 
-			const diracTelemetryService = new TelemetryService([diracProvider], MOCK_METADATA)
+			const isaacTelemetryService = new TelemetryService([isaacProvider], MOCK_METADATA)
 
 			// Test various telemetry methods
-			diracTelemetryService.captureTaskCreated("task-123", "anthropic")
-			diracTelemetryService.identifyAccount(MOCK_USER_INFO)
-			diracTelemetryService.captureTaskCompleted("task-123")
-			diracTelemetryService.captureModelSelected("claude-3", "anthropic", "task-123")
+			isaacTelemetryService.captureTaskCreated("task-123", "anthropic")
+			isaacTelemetryService.identifyAccount(MOCK_USER_INFO)
+			isaacTelemetryService.captureTaskCompleted("task-123")
+			isaacTelemetryService.captureModelSelected("claude-3", "anthropic", "task-123")
 
 			// Test provider methods directly
-			diracProvider.log("test_event", { test: "property" })
-			diracProvider.identifyUser(MOCK_USER_INFO, { additional: "data" })
+			isaacProvider.log("test_event", { test: "property" })
+			isaacProvider.identifyUser(MOCK_USER_INFO, { additional: "data" })
 
 			// Verify provider state
-			const isEnabled = diracProvider.isEnabled()
-			const settings = diracProvider.getSettings()
+			const isEnabled = isaacProvider.isEnabled()
+			const settings = isaacProvider.getSettings()
 
 			console.log("Isaac Provider enabled:", isEnabled)
 			console.log("Isaac Provider settings:", settings)
 
-			await diracProvider.dispose()
+			await isaacProvider.dispose()
 		})
 	})
 
@@ -276,7 +276,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 	describe("Factory Configuration", () => {
 		it("should return default configurations", () => {
 			// Mock Isaac config validation to return true for this test
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(true)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(true)
 			const isSelfHostedStub = sinon.stub(IsaacEndpoint, "isSelfHosted").returns(false)
 
 			const defaultConfigs = TelemetryProviderFactory.getDefaultConfigs()
@@ -284,7 +284,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 			// Should include at least Isaac
 			assert.ok(defaultConfigs.length > 0, "Should return at least one configuration")
 			assert.ok(
-				defaultConfigs.some((c) => c.type === "dirac"),
+				defaultConfigs.some((c) => c.type === "isaac"),
 				"Should include Isaac configuration",
 			)
 
@@ -297,12 +297,12 @@ describe("Telemetry system is abstracted and can easily switch between providers
 			// Stub IsaacEndpoint.isSelfHosted() to return true (selfHosted mode)
 			const isSelfHostedStub = sinon.stub(IsaacEndpoint, "isSelfHosted").returns(true)
 			// Even if Isaac config is valid, it should be skipped
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(true)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(true)
 
 			const configs = TelemetryProviderFactory.getDefaultConfigs()
 
 			// Should NOT include Isaac when in selfHosted mode
-			const hasPosthog = configs.some((c) => c.type === "dirac")
+			const hasPosthog = configs.some((c) => c.type === "isaac")
 			assert.strictEqual(hasPosthog, false, "Should NOT include Isaac configuration in selfHosted mode")
 
 			// Restore the stubs
@@ -313,12 +313,12 @@ describe("Telemetry system is abstracted and can easily switch between providers
 		it("should include Isaac config when NOT in selfHosted mode and config is valid", () => {
 			// Stub IsaacEndpoint.isSelfHosted() to return false (normal mode)
 			const isSelfHostedStub = sinon.stub(IsaacEndpoint, "isSelfHosted").returns(false)
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(true)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(true)
 
 			const configs = TelemetryProviderFactory.getDefaultConfigs()
 
 			// Should include Isaac when NOT in selfHosted mode and config is valid
-			const hasPosthog = configs.some((c) => c.type === "dirac")
+			const hasPosthog = configs.some((c) => c.type === "isaac")
 			assert.strictEqual(hasPosthog, true, "Should include Isaac configuration when not in selfHosted mode")
 
 			// Restore the stubs
@@ -337,7 +337,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 			// Disable runtime OTEL to isolate test
 			const getRuntimeOtelConfigStub = sinon.stub(otelConfigModule, "getValidRuntimeOpenTelemetryConfig").returns(null)
 			// Disable Isaac to isolate test
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(false)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(false)
 
 			const configs = TelemetryProviderFactory.getDefaultConfigs()
 
@@ -362,7 +362,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 			// Disable runtime OTEL to isolate test
 			const getRuntimeOtelConfigStub = sinon.stub(otelConfigModule, "getValidRuntimeOpenTelemetryConfig").returns(null)
 			// Disable Isaac to isolate test
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(false)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(false)
 
 			const configs = TelemetryProviderFactory.getDefaultConfigs()
 
@@ -389,7 +389,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 				otlpEndpoint: "http://user-collector:4317",
 			})
 			// Disable Isaac to isolate test
-			const isIsaacConfigValidStub = sinon.stub(diracConfigModule, "isIsaacTelemetryConfigValid").returns(false)
+			const isIsaacConfigValidStub = sinon.stub(isaacConfigModule, "isIsaacTelemetryConfigValid").returns(false)
 
 			const configs = TelemetryProviderFactory.getDefaultConfigs()
 
@@ -562,7 +562,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 				skillSource: "global",
 				skillsAvailableGlobal: 2,
 				skillsAvailableProject: 3,
-				provider: "dirac",
+				provider: "isaac",
 				modelId: "anthropic/claude-sonnet-4.5",
 			})
 
@@ -575,7 +575,7 @@ describe("Telemetry system is abstracted and can easily switch between providers
 			assert.strictEqual(properties.skillSource, "global", "Properties should include skillSource")
 			assert.strictEqual(properties.skillsAvailableGlobal, 2, "Properties should include global skill count")
 			assert.strictEqual(properties.skillsAvailableProject, 3, "Properties should include project skill count")
-			assert.strictEqual(properties.provider, "dirac", "Properties should include provider")
+			assert.strictEqual(properties.provider, "isaac", "Properties should include provider")
 			assert.strictEqual(properties.modelId, "anthropic/claude-sonnet-4.5", "Properties should include modelId")
 
 			logSpy.restore()

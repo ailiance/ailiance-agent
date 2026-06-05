@@ -45,7 +45,6 @@ function createConfig() {
 		undoUserEdits: sinon.stub().resolves(),
 	}
 
-
 	const callbacks = {
 		say: sinon.stub().resolves(undefined),
 		ask: sinon.stub().resolves({ response: "yesButtonClicked" }),
@@ -117,7 +116,7 @@ function createConfig() {
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			contextManager: {},
 		},
@@ -135,13 +134,15 @@ describe("EditFileToolHandler.execute – validation", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-edit-val-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-edit-val-test-"))
 
 		sandbox.stub(getDiagnosticsProvidersModule, "getDiagnosticsProviders").returns([
 			{
 				capturePreSaveState: sandbox.stub().resolves([]),
 				getDiagnosticsFeedback: sandbox.stub().resolves({ newProblemsMessage: "", fixedCount: 0 }),
-				getDiagnosticsFeedbackForFiles: sandbox.stub().callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
+				getDiagnosticsFeedbackForFiles: sandbox
+					.stub()
+					.callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
 			} as any,
 		])
 
@@ -231,6 +232,10 @@ describe("EditFileToolHandler.execute – validation", () => {
 		// Verify tool response indicates error
 		assert.ok(typeof result === "string")
 		assert.ok(result.includes("The tool execution failed with the following error"))
-		assert.ok(result.includes("The 'edits' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON."))
+		assert.ok(
+			result.includes(
+				"The 'edits' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON.",
+			),
+		)
 	})
 })

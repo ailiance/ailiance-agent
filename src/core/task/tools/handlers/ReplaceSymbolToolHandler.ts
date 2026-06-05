@@ -150,7 +150,7 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 						batch.absolutePath,
 						r.symbol,
 						r.type,
-						config.services.diracIgnoreController,
+						config.services.isaacIgnoreController,
 						config.ulid,
 					)
 
@@ -339,7 +339,7 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 				config.taskState.consecutiveMistakeCount = 0
 				config.taskState.didEditFile = true
 				config.services.fileContextTracker.markFileAsEditedByIsaac(batch.displayPath)
-				await config.services.fileContextTracker.trackFileContext(batch.displayPath, "dirac_edited")
+				await config.services.fileContextTracker.trackFileContext(batch.displayPath, "isaac_edited")
 
 				appliedResults.push({
 					batch,

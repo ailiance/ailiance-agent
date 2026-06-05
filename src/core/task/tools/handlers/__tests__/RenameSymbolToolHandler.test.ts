@@ -114,7 +114,7 @@ function createConfig() {
 			urlContentFetcher: {},
 			institution: {},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			father: {},
 			requests: {},
@@ -138,7 +138,7 @@ describe("RenameSymbolToolHandler", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-rename-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-rename-test-"))
 		getDiagnosticsStub = sandbox.stub().resolves({ fileDiagnostics: [] })
 
 		// Mock getDiagnosticsProviders

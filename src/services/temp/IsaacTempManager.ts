@@ -2,7 +2,7 @@
  * IsaacTempManager - Manages temporary files for Isaac with automatic cleanup.
  *
  * Simple approach:
- * - Uses a "dirac" subdirectory inside the system temp dir (falls back to system temp if creation fails)
+ * - Uses a "isaac" subdirectory inside the system temp dir (falls back to system temp if creation fails)
  * - Cleans up files older than 50 hours on extension activation
  * - Enforces 2GB total size cap to prevent disk bloat
  * - Cross-platform (macOS, Windows, Linux)
@@ -32,16 +32,16 @@ class IsaacTempManagerImpl {
 	private cleanupIntervalId: NodeJS.Timeout | null = null
 
 	constructor() {
-		// Uses system temp directory with a dedicated "dirac" subdirectory when possible:
-		// macOS: /var/folders/xx/.../T/dirac
-		// Windows: C:\Users\{user}\AppData\Local\Temp\dirac
-		// Linux: /tmp/dirac
+		// Uses system temp directory with a dedicated "isaac" subdirectory when possible:
+		// macOS: /var/folders/xx/.../T/isaac
+		// Windows: C:\Users\{user}\AppData\Local\Temp\isaac
+		// Linux: /tmp/isaac
 		const baseTempDir = os.tmpdir()
-		const diracTempDir = path.join(baseTempDir, "dirac")
+		const isaacTempDir = path.join(baseTempDir, "isaac")
 
 		try {
-			fs.mkdirSync(diracTempDir, { recursive: true })
-			this.tempDir = diracTempDir
+			fs.mkdirSync(isaacTempDir, { recursive: true })
+			this.tempDir = isaacTempDir
 		} catch {
 			this.tempDir = baseTempDir
 		}

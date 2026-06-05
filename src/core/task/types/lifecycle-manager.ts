@@ -1,5 +1,4 @@
 import { IsaacContent } from "@shared/messages/content"
-import { CommandPermissionController } from "../../permissions/CommandPermissionController"
 import { ApiHandler } from "../../../core/api"
 import { ICheckpointManager } from "../../../integrations/checkpoints/types"
 import { DiffViewProvider } from "../../../integrations/editor/DiffViewProvider"
@@ -10,6 +9,7 @@ import { UrlContentFetcher } from "../../../services/browser/UrlContentFetcher"
 import { ContextManager } from "../../context/context-management/ContextManager"
 import { FileContextTracker } from "../../context/context-tracking/FileContextTracker"
 import { IsaacIgnoreController } from "../../ignore/IsaacIgnoreController"
+import { CommandPermissionController } from "../../permissions/CommandPermissionController"
 import { StateManager } from "../../storage/StateManager"
 import { HookManager } from "../HookManager"
 import { MessageStateHandler } from "../message-state"
@@ -28,7 +28,7 @@ export interface LifecycleManagerDependencies {
 	postStateToWebview: () => Promise<void>
 	cancelTask: () => Promise<void>
 	checkpointManager?: ICheckpointManager
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	terminalManager: ITerminalManager
 	urlContentFetcher: UrlContentFetcher
 	browserSession: BrowserSession

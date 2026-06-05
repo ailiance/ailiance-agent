@@ -24,7 +24,7 @@ const AboutSection = ({ version, renderSectionHeader }: AboutSectionProps) => {
 						{" • "}
 						<VSCodeLink href="https://discord.gg/mWkzrF4h">Discord</VSCodeLink>
 						{" • "}
-						<VSCodeLink href="https://www.reddit.com/r/IsaacDelta/"> r/dirac</VSCodeLink>
+						<VSCodeLink href="https://www.reddit.com/r/IsaacDelta/"> r/isaac</VSCodeLink>
 					</p>
 
 					<h3 className="text-md font-semibold">Development</h3>

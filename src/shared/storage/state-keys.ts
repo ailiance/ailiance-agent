@@ -14,8 +14,8 @@ interface WorkerEndpoint {
 }
 
 import { BrowserSettings, DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
-import { IsaacRulesToggles } from "@shared/dirac-rules"
 import { HistoryItem } from "@shared/HistoryItem"
+import { IsaacRulesToggles } from "@shared/isaac-rules"
 import { WorkspaceRoot } from "@shared/multi-root/types"
 import { Mode } from "@shared/storage/types"
 import { TelemetrySetting } from "@shared/TelemetrySetting"
@@ -51,8 +51,8 @@ type FieldDefinitions = Record<string, FieldDefinition<any>>
 export type ConfiguredAPIKeys = Partial<Record<ApiProvider, boolean>>
 
 const GLOBAL_STATE_FIELDS = {
-	diracVersion: { default: undefined as string | undefined },
-	"dirac.generatedMachineId": { default: undefined as string | undefined }, // Note, distinctId reads/writes this directly from/to StorageContext before StateManager is initialized.
+	isaacVersion: { default: undefined as string | undefined },
+	"isaac.generatedMachineId": { default: undefined as string | undefined }, // Note, distinctId reads/writes this directly from/to StorageContext before StateManager is initialized.
 	lastShownAnnouncementId: { default: undefined as string | undefined },
 	taskHistory: { default: [] as HistoryItem[], isAsync: true },
 	favoritedModelIds: { default: [] as string[] },
@@ -139,8 +139,8 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	planModeAwsBedrockCustomModelBaseId: { default: undefined as string | undefined },
 	planModeOpenRouterModelId: { default: undefined as string | undefined },
 	planModeOpenRouterModelInfo: { default: undefined as ModelInfo | undefined },
-	planModeDiracModelId: { default: undefined as string | undefined },
-	planModeDiracModelInfo: { default: undefined as ModelInfo | undefined },
+	planModeIsaacModelId: { default: undefined as string | undefined },
+	planModeIsaacModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeOpenAiModelId: { default: undefined as string | undefined },
 	planModeOpenAiModelInfo: { default: undefined as OpenAiCompatibleModelInfo | undefined },
 	planModeLmStudioModelId: { default: undefined as string | undefined },
@@ -177,8 +177,8 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	actModeAwsBedrockCustomModelBaseId: { default: undefined as string | undefined },
 	actModeOpenRouterModelId: { default: undefined as string | undefined },
 	actModeOpenRouterModelInfo: { default: undefined as ModelInfo | undefined },
-	actModeDiracModelId: { default: undefined as string | undefined },
-	actModeDiracModelInfo: { default: undefined as ModelInfo | undefined },
+	actModeIsaacModelId: { default: undefined as string | undefined },
+	actModeIsaacModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeOpenAiModelId: { default: undefined as string | undefined },
 	actModeOpenAiModelInfo: { default: undefined as OpenAiCompatibleModelInfo | undefined },
 	actModeLmStudioModelId: { default: undefined as string | undefined },
@@ -217,7 +217,7 @@ const USER_SETTINGS_FIELDS = {
 	autoApprovalSettings: {
 		default: DEFAULT_AUTO_APPROVAL_SETTINGS as AutoApprovalSettings,
 	},
-	globalDiracRulesToggles: { default: {} as IsaacRulesToggles },
+	globalIsaacRulesToggles: { default: {} as IsaacRulesToggles },
 	globalWorkflowToggles: { default: {} as IsaacRulesToggles },
 	globalSkillsToggles: { default: {} as Record<string, boolean> },
 	browserSettings: {
@@ -237,7 +237,7 @@ const USER_SETTINGS_FIELDS = {
 	autoApproveAllToggled: { default: false as boolean },
 	useAutoCondense: { default: true as boolean },
 	subagentsEnabled: { default: false as boolean },
-	diracWebToolsEnabled: { default: true as boolean },
+	isaacWebToolsEnabled: { default: true as boolean },
 	worktreesEnabled: { default: false as boolean },
 	preferredLanguage: { default: "English" as string },
 	mode: { default: "act" as Mode },
@@ -282,8 +282,8 @@ const GLOBAL_STATE_AND_SETTINGS_FIELDS = { ...GLOBAL_STATE_FIELDS, ...SETTINGS_F
 // Secret keys used in Api Configuration
 const SECRETS_KEYS = [
 	"apiKey",
-	"dirac:diracAccountId",
-	"diracApiKey",
+	"isaac:isaacAccountId",
+	"isaacApiKey",
 	"openRouterApiKey",
 	"awsAccessKey",
 	"awsSecretKey",
@@ -325,7 +325,7 @@ const SECRETS_KEYS = [
 // WARNING, these are not ALL of the local state keys in practice. For example, FileContextTracker
 // uses dynamic keys like pendingFileContextWarning_${taskId}.
 export const LocalStateKeys = [
-	"localDiracRulesToggles",
+	"localIsaacRulesToggles",
 	"localCursorRulesToggles",
 	"localWindsurfRulesToggles",
 	"localAgentsRulesToggles",

@@ -19,7 +19,7 @@ export async function testPromptUploading(_controller: Controller, _: EmptyReque
 			})
 		}
 
-		const testKey = `dirac-test-${Date.now()}.json`
+		const testKey = `isaac-test-${Date.now()}.json`
 		const testContent = JSON.stringify({
 			test: true,
 			timestamp: new Date().toISOString(),

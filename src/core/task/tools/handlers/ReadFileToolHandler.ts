@@ -205,13 +205,13 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 			const header = relPaths.length > 1 ? `--- ${relPath} ---\n` : ""
 
 			try {
-				// 1. Check diracignore access
+				// 1. Check isaacignore access
 				const accessValidation = this.validator.checkIsaacIgnorePath(relPath)
 				if (!accessValidation.ok) {
 					if (!config.isSubagentExecution) {
-						await config.callbacks.say("diracignore_error", relPath)
+						await config.callbacks.say("isaacignore_error", relPath)
 					}
-					results.push(`${header}${formatResponse.diracIgnoreError(relPath)}`)
+					results.push(`${header}${formatResponse.isaacIgnoreError(relPath)}`)
 					readFileResults.push({
 						path: relPath,
 						status: "error",

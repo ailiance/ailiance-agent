@@ -1,16 +1,16 @@
 import { IsaacApiReqInfo, IsaacMessage, Mode } from "@shared/ExtensionMessage"
-import { useChatStore } from "@/features/chat/store/chatStore"
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import React, { useCallback, useLayoutEffect, useMemo, useState } from "react"
+import { useChatStore } from "@/features/chat/store/chatStore"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/features/settings/components/utils/providerUtils"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { cn } from "@/lib/utils"
 import { getEnvironmentColor } from "@/shared/lib/environmentColors"
+import { formatLargeNumber as formatTokenNumber } from "@/shared/lib/format"
 import Thumbnails from "@/shared/ui/Thumbnails"
 import CopyTaskButton from "./buttons/CopyTaskButton"
 import DeleteTaskButton from "./buttons/DeleteTaskButton"
 import OpenDiskConversationHistoryButton from "./buttons/OpenDiskConversationHistoryButton"
-import { formatLargeNumber as formatTokenNumber } from "@/shared/lib/format"
 import { CheckpointError } from "./CheckpointError"
 import ContextWindow from "./ContextWindow"
 import { highlightText } from "./Highlights"
@@ -32,13 +32,7 @@ const getUsageColor = (percentage: number) => {
 
 const BUTTON_CLASS = "max-h-3 border-0 font-bold bg-transparent hover:opacity-100 text-foreground"
 
-const TaskHeader: React.FC<TaskHeaderProps> = ({
-	task,
-	totalCost,
-	lastApiReqInfo,
-	onClose,
-	onSendMessage,
-}) => {
+const TaskHeader: React.FC<TaskHeaderProps> = ({ task, totalCost, lastApiReqInfo, onClose, onSendMessage }) => {
 	const {
 		apiConfiguration,
 		currentTaskItem,
@@ -52,7 +46,7 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 
 	const { selectedModelInfo } = normalizeApiConfiguration(apiConfiguration, mode as Mode)
 	const modeFields = getModeSpecificFields(apiConfiguration, mode as Mode)
-	const { diracMessages } = useChatStore()
+	const { isaacMessages } = useChatStore()
 
 	const [isHighlightedTextExpanded, setIsHighlightedTextExpanded] = useState(false)
 	const [isTextOverflowing, setIsTextOverflowing] = useState(false)
@@ -95,7 +89,10 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 				lastApiReqInfo.tokensOut,
 				lastApiReqInfo.cacheWrites,
 				lastApiReqInfo.cacheReads,
-				(lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0),
+				(lastApiReqInfo.tokensIn || 0) +
+					(lastApiReqInfo.tokensOut || 0) +
+					(lastApiReqInfo.cacheWrites || 0) +
+					(lastApiReqInfo.cacheReads || 0),
 			]
 		}
 		return [0, 0, 0, 0, 0]
@@ -105,7 +102,6 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 		if (!contextWindow || !lastApiReqTotalTokens) return 0
 		return (lastApiReqTotalTokens / contextWindow) * 100
 	}, [contextWindow, lastApiReqTotalTokens])
-
 
 	const isCostAvailable =
 		(totalCost &&
@@ -186,8 +182,17 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 							{isTaskExpanded && (
 								<>
 									<CopyTaskButton className={BUTTON_CLASS} taskText={task.text} />
-									<DeleteTaskButton className={BUTTON_CLASS} taskId={currentTaskItem?.id} taskSize={currentTaskItem?.size} />
-									{IS_DEV && <OpenDiskConversationHistoryButton className={BUTTON_CLASS} taskId={currentTaskItem?.id} />}
+									<DeleteTaskButton
+										className={BUTTON_CLASS}
+										taskId={currentTaskItem?.id}
+										taskSize={currentTaskItem?.size}
+									/>
+									{IS_DEV && (
+										<OpenDiskConversationHistoryButton
+											className={BUTTON_CLASS}
+											taskId={currentTaskItem?.id}
+										/>
+									)}
 								</>
 							)}
 						</div>
@@ -196,7 +201,9 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 
 				{/* Expanded Content */}
 				{isTaskExpanded && (
-					<div className="flex flex-col gap-3 mt-1 animate-in fade-in slide-in-from-top-1 duration-200" key={`task-details-${currentTaskItem?.id}`}>
+					<div
+						className="flex flex-col gap-3 mt-1 animate-in fade-in slide-in-from-top-1 duration-200"
+						key={`task-details-${currentTaskItem?.id}`}>
 						<div className="ph-no-capture whitespace-pre-wrap break-words px-1 text-sm leading-relaxed opacity-90 max-h-[40vh] overflow-y-auto custom-scrollbar">
 							{highlightedText}
 						</div>
@@ -208,12 +215,11 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 						)}
 
 						<div className="border-t border-foreground/5 pt-2">
-							<ContextWindow onSendMessage={onSendMessage} lastApiReqInfo={lastApiReqInfo} />
+							<ContextWindow lastApiReqInfo={lastApiReqInfo} onSendMessage={onSendMessage} />
 						</div>
 					</div>
 				)}
 			</div>
-
 		</div>
 	)
 }

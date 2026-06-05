@@ -1,12 +1,12 @@
 import { ensureRulesDirectoryExists, ensureWorkflowsDirectoryExists, GlobalFileNames } from "@core/storage/disk"
-import { IsaacRulesToggles } from "@shared/dirac-rules"
+import { IsaacRulesToggles } from "@shared/isaac-rules"
 import { GlobalInstructionsFile } from "@shared/remote-config/schema"
+import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { fileExistsAtPath, isDirectory, readDirectory } from "@utils/fs"
 import fs from "fs/promises"
 import * as path from "path"
 import { Controller } from "@/core/controller"
 import { Logger } from "@/shared/services/Logger"
-import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { evaluateRuleConditionals, RuleEvaluationContext } from "./rule-conditionals"
 
 /**
@@ -275,31 +275,31 @@ export function getRemoteRulesTotalContentWithMetadata(
 }
 
 /**
- * Handles converting any directory into a file (specifically used for .diracrules and .diracrules/workflows)
- * The old .diracrules file or .diracrules/workflows file will be renamed to a default filename
+ * Handles converting any directory into a file (specifically used for .isaacrules and .isaacrules/workflows)
+ * The old .isaacrules file or .isaacrules/workflows file will be renamed to a default filename
  * Doesn't do anything if the dir already exists or doesn't exist
  * Returns whether there are any uncaught errors
  */
-export async function ensureLocalIsaacDirExists(diracrulePath: string, defaultRuleFilename: string): Promise<boolean> {
+export async function ensureLocalIsaacDirExists(isaacrulePath: string, defaultRuleFilename: string): Promise<boolean> {
 	try {
-		const exists = await fileExistsAtPath(diracrulePath)
+		const exists = await fileExistsAtPath(isaacrulePath)
 
-		if (exists && !(await isDirectory(diracrulePath))) {
-			// logic to convert .diracrules file into directory, and rename the rules file to {defaultRuleFilename}
-			const content = await fs.readFile(diracrulePath, "utf8")
-			const tempPath = diracrulePath + ".bak"
-			await fs.rename(diracrulePath, tempPath) // create backup
+		if (exists && !(await isDirectory(isaacrulePath))) {
+			// logic to convert .isaacrules file into directory, and rename the rules file to {defaultRuleFilename}
+			const content = await fs.readFile(isaacrulePath, "utf8")
+			const tempPath = isaacrulePath + ".bak"
+			await fs.rename(isaacrulePath, tempPath) // create backup
 			try {
-				await fs.mkdir(diracrulePath, { recursive: true })
-				await fs.writeFile(path.join(diracrulePath, defaultRuleFilename), content, "utf8")
+				await fs.mkdir(isaacrulePath, { recursive: true })
+				await fs.writeFile(path.join(isaacrulePath, defaultRuleFilename), content, "utf8")
 				await fs.unlink(tempPath).catch(() => {}) // delete backup
 
 				return false // conversion successful with no errors
 			} catch (_conversionError) {
 				// attempt to restore backup on conversion failure
 				try {
-					await fs.rm(diracrulePath, { recursive: true, force: true }).catch(() => {})
-					await fs.rename(tempPath, diracrulePath) // restore backup
+					await fs.rm(isaacrulePath, { recursive: true, force: true }).catch(() => {})
+					await fs.rename(tempPath, isaacrulePath) // restore backup
 				} catch (_restoreError) {}
 				return true // in either case here we consider this an error
 			}
@@ -326,7 +326,7 @@ export const createRuleFile = async (isGlobal: boolean, filename: string, cwd: s
 				filePath = path.join(globalIsaacRulesFilePath, filename)
 			}
 		} else {
-			const localIsaacRulesFilePath = path.resolve(cwd, GlobalFileNames.diracRules)
+			const localIsaacRulesFilePath = path.resolve(cwd, GlobalFileNames.isaacRules)
 
 			const hasError = await ensureLocalIsaacDirExists(localIsaacRulesFilePath, "default-rules.md")
 			if (hasError === true) {
@@ -347,7 +347,7 @@ export const createRuleFile = async (isGlobal: boolean, filename: string, cwd: s
 
 				filePath = path.join(localWorkflowsFilePath, filename)
 			} else {
-				// diracrules file creation
+				// isaacrules file creation
 				filePath = path.join(localIsaacRulesFilePath, filename)
 			}
 		}
@@ -398,9 +398,9 @@ export async function deleteRuleFile(
 				delete toggles[rulePath]
 				controller.stateManager.setGlobalState("globalWorkflowToggles", toggles)
 			} else {
-				const toggles = controller.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
+				const toggles = controller.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
 				delete toggles[rulePath]
-				controller.stateManager.setGlobalState("globalDiracRulesToggles", toggles)
+				controller.stateManager.setGlobalState("globalIsaacRulesToggles", toggles)
 			}
 		} else {
 			if (type === "workflow") {
@@ -420,9 +420,9 @@ export async function deleteRuleFile(
 				delete toggles[rulePath]
 				controller.stateManager.setWorkspaceState("localAgentsRulesToggles", toggles)
 			} else {
-				const toggles = controller.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
+				const toggles = controller.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
 				delete toggles[rulePath]
-				controller.stateManager.setWorkspaceState("localDiracRulesToggles", toggles)
+				controller.stateManager.setWorkspaceState("localIsaacRulesToggles", toggles)
 			}
 		}
 

@@ -72,7 +72,7 @@ export interface TaskServices {
 	urlContentFetcher: UrlContentFetcher
 	diffViewProvider: DiffViewProvider
 	fileContextTracker: FileContextTracker
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	commandPermissionController: CommandPermissionController
 	contextManager: ContextManager
 	stateManager: StateManager
@@ -82,7 +82,14 @@ export interface TaskServices {
  * All callback functions available to tool handlers
  */
 export interface TaskCallbacks {
-	say: (type: IsaacSay, text?: string, images?: string[], files?: string[], partial?: boolean, multiCommandState?: MultiCommandState) => Promise<number | undefined>
+	say: (
+		type: IsaacSay,
+		text?: string,
+		images?: string[],
+		files?: string[],
+		partial?: boolean,
+		multiCommandState?: MultiCommandState,
+	) => Promise<number | undefined>
 
 	ask: (
 		type: IsaacAsk,
@@ -102,7 +109,11 @@ export interface TaskCallbacks {
 
 	sayAndCreateMissingParamError: (toolName: IsaacDefaultTool, paramName: string, relPath?: string) => Promise<any>
 
-	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: IsaacAsk | IsaacSay, onlyPartial?: boolean) => Promise<void>
+	removeLastPartialMessageIfExistsWithType: (
+		type: "ask" | "say",
+		askOrSay: IsaacAsk | IsaacSay,
+		onlyPartial?: boolean,
+	) => Promise<void>
 
 	executeCommandTool: (
 		command: string,
@@ -112,7 +123,6 @@ export interface TaskCallbacks {
 	cancelRunningCommandTool?: () => Promise<boolean>
 
 	doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>
-
 
 	shouldAutoApproveTool: (toolName: IsaacDefaultTool) => boolean | [boolean, boolean]
 	shouldAutoApproveToolWithPath: (toolName: IsaacDefaultTool, path?: string) => Promise<boolean>

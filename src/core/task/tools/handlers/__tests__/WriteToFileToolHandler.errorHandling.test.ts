@@ -57,7 +57,7 @@ function createConfig() {
 				markFileAsEditedByIsaac: sinon.stub(),
 				trackFileContext: sinon.stub().resolves(),
 			},
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 		},
 		callbacks,
 	} as unknown as TaskConfig
@@ -72,7 +72,7 @@ describe("WriteToFileToolHandler – Error Handling", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-write-err-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-write-err-test-"))
 	})
 
 	afterEach(async () => {
@@ -103,8 +103,14 @@ describe("WriteToFileToolHandler – Error Handling", () => {
 		const result = await handler.execute(config, block)
 
 		assert.ok(typeof result === "string")
-		assert.ok(result.includes("Cannot write to 'parent-is-file/test.txt' because one of the parent components is a file, not a directory."))
-		assert.ok((config.callbacks.say as sinon.SinonStub).calledWith("error", sinon.match(/parent component is not a directory/)))
+		assert.ok(
+			result.includes(
+				"Cannot write to 'parent-is-file/test.txt' because one of the parent components is a file, not a directory.",
+			),
+		)
+		assert.ok(
+			(config.callbacks.say as sinon.SinonStub).calledWith("error", sinon.match(/parent component is not a directory/)),
+		)
 	})
 
 	it("handles EACCES on stat (permission denied for access)", async () => {

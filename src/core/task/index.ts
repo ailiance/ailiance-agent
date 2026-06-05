@@ -119,7 +119,7 @@ export class Task {
 	contextManager: ContextManager
 	diffViewProvider: DiffViewProvider
 	public checkpointManager?: ICheckpointManager
-	diracIgnoreController: IsaacIgnoreController
+	isaacIgnoreController: IsaacIgnoreController
 	private commandPermissionController: CommandPermissionController
 	toolExecutor: ToolExecutor
 	/**
@@ -213,8 +213,8 @@ export class Task {
 		this.postStateToWebview = postStateToWebview
 		this.reinitExistingTaskFromId = reinitExistingTaskFromId
 		this.cancelTask = cancelTask
-		this.diracIgnoreController = new IsaacIgnoreController(cwd)
-		this.diracIgnoreController.yoloMode = !!stateManager.getGlobalSettingsKey("yoloModeToggled")
+		this.isaacIgnoreController = new IsaacIgnoreController(cwd)
+		this.isaacIgnoreController.yoloMode = !!stateManager.getGlobalSettingsKey("yoloModeToggled")
 
 		this.commandPermissionController = new CommandPermissionController()
 		this.taskLockAcquired = taskLockAcquired
@@ -323,7 +323,7 @@ export class Task {
 			browserSession: this.browserSession,
 			diffViewProvider: this.diffViewProvider,
 			fileContextTracker: this.fileContextTracker,
-			diracIgnoreController: this.diracIgnoreController,
+			isaacIgnoreController: this.isaacIgnoreController,
 			commandPermissionController: this.commandPermissionController,
 			contextManager: this.contextManager,
 			streamHandler: this.streamHandler,
@@ -377,7 +377,7 @@ export class Task {
 			diffViewProvider: this.diffViewProvider,
 			checkpointManager: this.checkpointManager,
 			urlContentFetcher: this.urlContentFetcher,
-			diracIgnoreController: this.diracIgnoreController,
+			isaacIgnoreController: this.isaacIgnoreController,
 			commandPermissionController: this.commandPermissionController,
 			stateManager: this.stateManager,
 			commandExecutor: this.commandExecutor,
@@ -392,7 +392,7 @@ export class Task {
 			taskState: this.taskState,
 			api: this.api,
 			contextManager: this.contextManager,
-			diracIgnoreController: this.diracIgnoreController,
+			isaacIgnoreController: this.isaacIgnoreController,
 			stateManager: this.stateManager,
 			messageStateHandler: this.messageStateHandler,
 			workspaceManager: this.workspaceManager,

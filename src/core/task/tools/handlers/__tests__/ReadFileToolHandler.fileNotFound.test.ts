@@ -99,7 +99,7 @@ function createConfig() {
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider: {},
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			contextManager: {},
 		},
@@ -126,7 +126,7 @@ describe("ReadFileToolHandler.execute – file not found", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-read-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-read-test-"))
 		sandbox.stub(pathUtils, "isLocatedInWorkspace").resolves(true)
 	})
 

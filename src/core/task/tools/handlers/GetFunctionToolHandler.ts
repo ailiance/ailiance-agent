@@ -154,7 +154,7 @@ export class GetFunctionToolHandler implements IFullyManagedTool {
 					absolutePath,
 					displayPath,
 					functionNames,
-					config.services.diracIgnoreController,
+					config.services.isaacIgnoreController,
 					config.ulid,
 				)
 

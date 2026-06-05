@@ -88,7 +88,7 @@ async function listFilesWithNodeFs(workspacePath: string, limit: number): Promis
 				if (entry.isDirectory() && EXCLUDED_DIRS.has(name)) {
 					continue
 				}
-				if (name.startsWith(".") && !name.startsWith(".dirac")) {
+				if (name.startsWith(".") && !name.startsWith(".isaac")) {
 					continue
 				}
 
@@ -268,6 +268,6 @@ export function insertMention(text: string, atIndex: number, filePath: string): 
 	// Ensure path starts with / for proper mention format
 	const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`
 	// Quote the path if it contains spaces or other special characters that might break parsing
-	const mention = /[\s()\[\]]/.test(normalizedPath) ? `@"${normalizedPath}"` : `@${normalizedPath}`
+	const mention = /[\s()[\]]/.test(normalizedPath) ? `@"${normalizedPath}"` : `@${normalizedPath}`
 	return text.slice(0, atIndex) + mention + " " + text.slice(end).trimStart()
 }

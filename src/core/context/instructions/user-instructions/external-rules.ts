@@ -1,13 +1,13 @@
 import {
-    combineRuleToggles,
-    getRuleFilesTotalContent,
-    readDirectoryRecursive,
-    synchronizeRuleToggles,
+	combineRuleToggles,
+	getRuleFilesTotalContent,
+	readDirectoryRecursive,
+	synchronizeRuleToggles,
 } from "@core/context/instructions/user-instructions/rule-helpers"
 import { formatResponse } from "@core/prompts/responses"
 import { GlobalFileNames } from "@core/storage/disk"
 import { listFiles } from "@services/glob/list-files"
-import { IsaacRulesToggles } from "@shared/dirac-rules"
+import { IsaacRulesToggles } from "@shared/isaac-rules"
 import { fileExistsAtPath, isDirectory } from "@utils/fs"
 import fs from "fs/promises"
 import path from "path"

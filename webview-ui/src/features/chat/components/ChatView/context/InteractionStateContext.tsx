@@ -11,7 +11,7 @@ interface InteractionStateContextType {
 const InteractionStateContext = createContext<InteractionStateContextType | undefined>(undefined)
 
 export const InteractionStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const messages = useChatStore((state: any) => state.diracMessages)
+	const messages = useChatStore((state: any) => state.isaacMessages)
 	const mode = useSettingsStore((state: any) => state.mode)
 
 	const interactionState = useMemo((): InteractionState => {

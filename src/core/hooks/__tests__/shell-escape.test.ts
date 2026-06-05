@@ -111,9 +111,9 @@ describe("Shell Path Escaping", () => {
 		})
 
 		it("should handle workspace hooks with spaces in root", () => {
-			const path = "/Users/user/My Example Project/.diracrules/hooks/PreToolUse"
+			const path = "/Users/user/My Example Project/.isaacrules/hooks/PreToolUse"
 			const escaped = escapeShellPath(path)
-			escaped.should.equal("'/Users/user/My Example Project/.diracrules/hooks/PreToolUse'")
+			escaped.should.equal("'/Users/user/My Example Project/.isaacrules/hooks/PreToolUse'")
 		})
 
 		it("should handle paths with newlines (edge case)", () => {
@@ -200,9 +200,9 @@ describe("Shell Path Escaping", () => {
 		})
 
 		it("should handle workspace hooks with spaces in root", () => {
-			const path = "C:\\Users\\user\\My Example Project\\.diracrules\\hooks\\PreToolUse"
+			const path = "C:\\Users\\user\\My Example Project\\.isaacrules\\hooks\\PreToolUse"
 			const escaped = escapeShellPath(path)
-			escaped.should.equal('"C:\\Users\\user\\My Example Project\\.diracrules\\hooks\\PreToolUse"')
+			escaped.should.equal('"C:\\Users\\user\\My Example Project\\.isaacrules\\hooks\\PreToolUse"')
 		})
 
 		it("should handle UNC paths with spaces", () => {
@@ -229,23 +229,23 @@ describe("Shell Path Escaping", () => {
 
 		it("should handle workspace with company name and spaces", () => {
 			setPlatform("darwin")
-			const path = "/Users/user/Projects/ACME Corp Project/.diracrules/hooks/PreToolUse"
+			const path = "/Users/user/Projects/ACME Corp Project/.isaacrules/hooks/PreToolUse"
 			const escaped = escapeShellPath(path)
-			escaped.should.equal("'/Users/user/Projects/ACME Corp Project/.diracrules/hooks/PreToolUse'")
+			escaped.should.equal("'/Users/user/Projects/ACME Corp Project/.isaacrules/hooks/PreToolUse'")
 		})
 
 		it("should handle workspace with version numbers and spaces", () => {
 			setPlatform("darwin")
-			const path = "/Users/user/Projects/My Project v2.0/.diracrules/hooks/PreToolUse"
+			const path = "/Users/user/Projects/My Project v2.0/.isaacrules/hooks/PreToolUse"
 			const escaped = escapeShellPath(path)
-			escaped.should.equal("'/Users/user/Projects/My Project v2.0/.diracrules/hooks/PreToolUse'")
+			escaped.should.equal("'/Users/user/Projects/My Project v2.0/.isaacrules/hooks/PreToolUse'")
 		})
 
 		it("should handle workspace with mixed special characters", () => {
 			setPlatform("darwin")
-			const path = "/Users/user/Projects/Test's (New) Project v2.0/.diracrules/hooks/PreToolUse"
+			const path = "/Users/user/Projects/Test's (New) Project v2.0/.isaacrules/hooks/PreToolUse"
 			const escaped = escapeShellPath(path)
-			escaped.should.equal("'/Users/user/Projects/Test'\\''s (New) Project v2.0/.diracrules/hooks/PreToolUse'")
+			escaped.should.equal("'/Users/user/Projects/Test'\\''s (New) Project v2.0/.isaacrules/hooks/PreToolUse'")
 		})
 	})
 
@@ -253,32 +253,32 @@ describe("Shell Path Escaping", () => {
 		it("should handle multiple roots with spaces (macOS)", () => {
 			setPlatform("darwin")
 			const roots = [
-				"/Users/user/My Frontend Project/.diracrules/hooks/PreToolUse",
-				"/Users/user/My Backend Project/.diracrules/hooks/PreToolUse",
-				"/Users/user/Shared Utils/.diracrules/hooks/PreToolUse",
+				"/Users/user/My Frontend Project/.isaacrules/hooks/PreToolUse",
+				"/Users/user/My Backend Project/.isaacrules/hooks/PreToolUse",
+				"/Users/user/Shared Utils/.isaacrules/hooks/PreToolUse",
 			]
 
 			const escaped = roots.map(escapeShellPath)
 			escaped.should.deepEqual([
-				"'/Users/user/My Frontend Project/.diracrules/hooks/PreToolUse'",
-				"'/Users/user/My Backend Project/.diracrules/hooks/PreToolUse'",
-				"'/Users/user/Shared Utils/.diracrules/hooks/PreToolUse'",
+				"'/Users/user/My Frontend Project/.isaacrules/hooks/PreToolUse'",
+				"'/Users/user/My Backend Project/.isaacrules/hooks/PreToolUse'",
+				"'/Users/user/Shared Utils/.isaacrules/hooks/PreToolUse'",
 			])
 		})
 
 		it("should handle multiple roots with spaces (Windows)", () => {
 			setPlatform("win32")
 			const roots = [
-				"C:\\Users\\user\\My Frontend Project\\.diracrules\\hooks\\PreToolUse",
-				"C:\\Users\\user\\My Backend Project\\.diracrules\\hooks\\PreToolUse",
-				"C:\\Users\\user\\Shared Utils\\.diracrules\\hooks\\PreToolUse",
+				"C:\\Users\\user\\My Frontend Project\\.isaacrules\\hooks\\PreToolUse",
+				"C:\\Users\\user\\My Backend Project\\.isaacrules\\hooks\\PreToolUse",
+				"C:\\Users\\user\\Shared Utils\\.isaacrules\\hooks\\PreToolUse",
 			]
 
 			const escaped = roots.map(escapeShellPath)
 			escaped.should.deepEqual([
-				'"C:\\Users\\user\\My Frontend Project\\.diracrules\\hooks\\PreToolUse"',
-				'"C:\\Users\\user\\My Backend Project\\.diracrules\\hooks\\PreToolUse"',
-				'"C:\\Users\\user\\Shared Utils\\.diracrules\\hooks\\PreToolUse"',
+				'"C:\\Users\\user\\My Frontend Project\\.isaacrules\\hooks\\PreToolUse"',
+				'"C:\\Users\\user\\My Backend Project\\.isaacrules\\hooks\\PreToolUse"',
+				'"C:\\Users\\user\\Shared Utils\\.isaacrules\\hooks\\PreToolUse"',
 			])
 		})
 	})

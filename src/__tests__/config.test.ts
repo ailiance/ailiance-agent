@@ -4,7 +4,7 @@ import fs from "fs/promises"
 import os from "os"
 import path from "path"
 import sinon from "sinon"
-import { IsaacConfigurationError, IsaacEndpoint, IsaacEnv, Environment } from "../config"
+import { Environment, IsaacConfigurationError, IsaacEndpoint, IsaacEnv } from "../config"
 
 describe("IsaacEndpoint configuration", () => {
 	let sandbox: sinon.SinonSandbox
@@ -16,8 +16,8 @@ describe("IsaacEndpoint configuration", () => {
 		tempDir = path.join(os.tmpdir(), `config-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 		await fs.mkdir(tempDir, { recursive: true })
 
-		// Create .dirac directory
-		await fs.mkdir(path.join(tempDir, ".dirac"), { recursive: true })
+		// Create .isaac directory
+		await fs.mkdir(path.join(tempDir, ".isaac"), { recursive: true })
 
 		// Stub os.homedir to return our temp directory
 		originalHomedir = os.homedir
@@ -48,7 +48,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -76,7 +76,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "http://localhost:7777",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -87,22 +87,22 @@ describe("IsaacEndpoint configuration", () => {
 
 		it("should accept URLs with paths", async () => {
 			const validConfig = {
-				appBaseUrl: "https://proxy.enterprise.com/dirac/app",
-				apiBaseUrl: "https://proxy.enterprise.com/dirac/api",
+				appBaseUrl: "https://proxy.enterprise.com/isaac/app",
+				apiBaseUrl: "https://proxy.enterprise.com/isaac/api",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(validConfig), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
 			const config = IsaacEndpoint.config
-			config.appBaseUrl.should.equal("https://proxy.enterprise.com/dirac/app")
+			config.appBaseUrl.should.equal("https://proxy.enterprise.com/isaac/app")
 		})
 	})
 
 	describe("invalid JSON handling", () => {
 		it("should throw IsaacConfigurationError for invalid JSON syntax", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), "{ invalid json }", "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), "{ invalid json }", "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -114,7 +114,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError for truncated JSON", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), '{"appBaseUrl": "https://test.com"', "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), '{"appBaseUrl": "https://test.com"', "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -126,7 +126,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError for empty file", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), "", "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), "", "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -137,7 +137,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError for non-object JSON", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), '"just a string"', "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), '"just a string"', "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -149,7 +149,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError for array JSON", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), "[]", "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), "[]", "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -162,7 +162,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError for null JSON", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), "null", "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), "null", "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -180,7 +180,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -196,7 +196,7 @@ describe("IsaacEndpoint configuration", () => {
 				appBaseUrl: "https://app.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -208,7 +208,7 @@ describe("IsaacEndpoint configuration", () => {
 		})
 
 		it("should throw IsaacConfigurationError when all fields are missing", async () => {
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), "{}", "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), "{}", "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -225,7 +225,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -242,7 +242,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -259,7 +259,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -276,7 +276,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -295,7 +295,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -312,7 +312,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -329,7 +329,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -347,7 +347,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			try {
 				await IsaacEndpoint.initialize(tempDir)
@@ -366,7 +366,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -388,7 +388,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -430,7 +430,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://api.enterprise.com",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -444,7 +444,7 @@ describe("IsaacEndpoint configuration", () => {
 				apiBaseUrl: "https://custom-api.internal",
 			}
 
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(customConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(customConfig), "utf8")
 
 			await IsaacEndpoint.initialize(tempDir)
 
@@ -487,7 +487,7 @@ describe("IsaacEndpoint configuration", () => {
 				appBaseUrl: "https://app.enterprise.com",
 				apiBaseUrl: "https://api.enterprise.com",
 			}
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(config), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(config), "utf8")
 			await IsaacEndpoint.initialize(tempDir)
 
 			IsaacEndpoint.isSelfHosted().should.be.true()
@@ -553,7 +553,7 @@ describe("IsaacEndpoint configuration", () => {
 
 			// Set up both configs
 			await fs.writeFile(path.join(bundledDir, "endpoints.json"), JSON.stringify(bundledConfig), "utf8")
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(userConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(userConfig), "utf8")
 
 			await IsaacEndpoint.initialize(bundledDir)
 
@@ -570,7 +570,7 @@ describe("IsaacEndpoint configuration", () => {
 			}
 
 			// Only create user config, no bundled config
-			await fs.writeFile(path.join(tempDir, ".dirac", "endpoints.json"), JSON.stringify(userConfig), "utf8")
+			await fs.writeFile(path.join(tempDir, ".isaac", "endpoints.json"), JSON.stringify(userConfig), "utf8")
 
 			await IsaacEndpoint.initialize(bundledDir)
 

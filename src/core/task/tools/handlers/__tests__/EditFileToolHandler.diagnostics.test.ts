@@ -47,7 +47,6 @@ function createConfig() {
 		undoUserEdits: sinon.stub().resolves(),
 	}
 
-
 	const callbacks = {
 		say: sinon.stub().resolves(undefined),
 		ask: sinon.stub().resolves({ response: "yesButtonClicked" }),
@@ -120,7 +119,7 @@ function createConfig() {
 			urlContentFetcher: {},
 			institution: {},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			father: {},
 			requests: {},
@@ -140,7 +139,7 @@ describe("EditFileToolHandler – diagnostics", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-edit-diag-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-edit-diag-test-"))
 		getDiagnosticsStub = sandbox.stub().resolves({ fileDiagnostics: [] })
 
 		// Mock getDiagnosticsProviders to return a provider with short timeouts

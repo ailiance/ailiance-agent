@@ -6,7 +6,7 @@ import { parseFile } from ".."
 import { loadRequiredLanguageParsers } from "../languageParser"
 
 describe("parseFile call graph", () => {
-	const tmpDir = path.join(os.tmpdir(), `dirac-tree-sitter-test-${Math.random().toString(36).slice(2)}`)
+	const tmpDir = path.join(os.tmpdir(), `isaac-tree-sitter-test-${Math.random().toString(36).slice(2)}`)
 
 	before(async () => {
 		await fs.mkdir(tmpDir, { recursive: true })

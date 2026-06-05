@@ -129,7 +129,7 @@ export interface PreCompactHookParams {
 	/** Current deleted range (if any) */
 	conversationHistoryDeletedRange?: [number, number]
 	/** Isaac messages for extracting token usage */
-	diracMessages: IsaacMessage[]
+	isaacMessages: IsaacMessage[]
 
 	// Services
 	/** Context manager for getting truncated messages */
@@ -204,8 +204,8 @@ export async function executePreCompactHookWithCleanup(params: PreCompactHookPar
 		contextRawPath = contextFiles.contextRawPath
 
 		// Extract token usage from the most recent API request
-		const previousApiReqIndex = findLastIndex(params.diracMessages, (m) => m.say === "api_req_started")
-		const previousRequest = previousApiReqIndex !== -1 ? params.diracMessages[previousApiReqIndex] : undefined
+		const previousApiReqIndex = findLastIndex(params.isaacMessages, (m) => m.say === "api_req_started")
+		const previousRequest = previousApiReqIndex !== -1 ? params.isaacMessages[previousApiReqIndex] : undefined
 		const { tokensIn, tokensOut, tokensInCache, tokensOutCache } = extractTokenUsageFromMessage(previousRequest)
 
 		// Extract truncation range - use provided range or extract from conversationHistoryDeletedRange

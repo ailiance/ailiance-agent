@@ -27,14 +27,14 @@ describe("SelfHosted Mode - Isaac Telemetry Disabling", () => {
 			assert.strictEqual(config.type, "no-op", "Should return no-op type in selfHosted mode")
 		})
 
-		it("should return dirac config when NOT in selfHosted mode (if Isaac config is valid)", () => {
+		it("should return isaac config when NOT in selfHosted mode (if Isaac config is valid)", () => {
 			isSelfHostedStub = sinon.stub(IsaacEndpoint, "isSelfHosted").returns(false)
 
 			const config = FeatureFlagsProviderFactory.getDefaultConfig()
 
-			// Will be "dirac" if Isaac config is valid, "no-op" otherwise
+			// Will be "isaac" if Isaac config is valid, "no-op" otherwise
 			// The important thing is it's NOT forced to "no-op" by selfHosted check
-			assert.ok(config.type === "dirac" || config.type === "no-op", "Should not be forced to no-op")
+			assert.ok(config.type === "isaac" || config.type === "no-op", "Should not be forced to no-op")
 		})
 
 		it("should create NoOp provider when in selfHosted mode", () => {
@@ -57,12 +57,12 @@ describe("SelfHosted Mode - Isaac Telemetry Disabling", () => {
 			assert.strictEqual(config.type, "no-op", "Should return no-op type in selfHosted mode")
 		})
 
-		it("should return dirac config when NOT in selfHosted mode", () => {
+		it("should return isaac config when NOT in selfHosted mode", () => {
 			isSelfHostedStub = sinon.stub(IsaacEndpoint, "isSelfHosted").returns(false)
 
 			const config = ErrorProviderFactory.getDefaultConfig()
 
-			assert.strictEqual(config.type, "dirac", "Should return dirac type when not in selfHosted mode")
+			assert.strictEqual(config.type, "isaac", "Should return isaac type when not in selfHosted mode")
 		})
 
 		it("should create NoOp provider when in selfHosted mode", async () => {

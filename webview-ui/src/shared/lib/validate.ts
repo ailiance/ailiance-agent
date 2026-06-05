@@ -15,7 +15,7 @@ export function validateApiConfiguration(currentMode: Mode, apiConfiguration?: A
 					return "You must provide a valid API key or choose a different provider."
 				}
 				break
-			case "dirac":
+			case "isaac":
 				break
 			case "openai":
 				if (
@@ -45,10 +45,10 @@ export function validateModelId(
 	currentMode: Mode,
 	apiConfiguration?: ApiConfiguration,
 	openRouterModels?: Record<string, ModelInfo>,
-	diracModels?: Record<string, ModelInfo>,
+	isaacModels?: Record<string, ModelInfo>,
 ): string | undefined {
 	if (apiConfiguration) {
-		const { apiProvider, openRouterModelId, diracModelId } = getModeSpecificFields(apiConfiguration, currentMode)
+		const { apiProvider, openRouterModelId, isaacModelId } = getModeSpecificFields(apiConfiguration, currentMode)
 		switch (apiProvider) {
 			case "openrouter":
 				const modelId = openRouterModelId || openRouterDefaultModelId // in case the user hasn't changed the model id, it will be undefined by default
@@ -60,12 +60,12 @@ export function validateModelId(
 					return "The model ID you provided is not available. Please choose a different model."
 				}
 				break
-			case "dirac":
-				const diracResolvedModelId = diracModelId || openRouterDefaultModelId
-				if (!diracResolvedModelId) {
+			case "isaac":
+				const isaacResolvedModelId = isaacModelId || openRouterDefaultModelId
+				if (!isaacResolvedModelId) {
 					return "You must provide a model ID."
 				}
-				if (diracModels && !Object.keys(diracModels).includes(diracResolvedModelId)) {
+				if (isaacModels && !Object.keys(isaacModels).includes(isaacResolvedModelId)) {
 					return "The model ID you provided is not available. Please choose a different model."
 				}
 				break

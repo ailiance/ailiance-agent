@@ -31,7 +31,7 @@ import { ConfigView } from "./ConfigView"
 
 describe("ConfigView", () => {
 	const defaultProps = {
-		dataDir: "/home/user/.dirac",
+		dataDir: "/home/user/.isaac",
 		globalState: {},
 		workspaceState: {},
 	}

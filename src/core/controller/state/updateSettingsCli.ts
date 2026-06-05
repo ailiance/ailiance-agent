@@ -46,7 +46,7 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 				telemetrySetting,
 				yoloModeToggled,
 				useAutoCondense,
-				diracWebToolsEnabled,
+				isaacWebToolsEnabled,
 				worktreesEnabled,
 				subagentsEnabled,
 				browserSettings,
@@ -151,11 +151,11 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 			}
 
 			// Update Isaac web tools setting (requires telemetry)
-			if (diracWebToolsEnabled !== undefined) {
+			if (isaacWebToolsEnabled !== undefined) {
 				if (controller.task) {
-					telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, diracWebToolsEnabled)
+					telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, isaacWebToolsEnabled)
 				}
-				controller.stateManager.setGlobalState("diracWebToolsEnabled", diracWebToolsEnabled)
+				controller.stateManager.setGlobalState("isaacWebToolsEnabled", isaacWebToolsEnabled)
 			}
 
 			// Update worktrees setting

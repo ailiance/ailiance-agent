@@ -2,13 +2,11 @@
 //
 // When no provider is configured (no API key env vars, no persisted
 // auth state), default to the ailiance gateway via the OpenAI-compatible
-// code path. The user can override by setting AILIANCE_GATEWAY=<url>
-// (AGENT_KIKI_GATEWAY remains supported as deprecated alias) or by
+// code path. The user can override by setting AILIANCE_GATEWAY=<url> or by
 // configuring any of the standard upstream provider env vars.
 //
 // Behaviour matrix:
 //   - AILIANCE_GATEWAY=<url> set      -> session override with that url
-//   - AGENT_KIKI_GATEWAY=<url> set    -> session override (deprecated)
 //   - upstream provider env present   -> skip (env-config wins)
 //   - persisted welcomeViewCompleted  -> skip (user already onboarded)
 //   - otherwise                       -> persist ailiance defaults so
@@ -88,13 +86,13 @@ export interface AilianceDefaultDecision {
 }
 
 /**
- * Derive the ailiance gateway URL from env (AILIANCE_GATEWAY, or the
- * deprecated AGENT_KIKI_GATEWAY alias) or the built-in default.
+ * Derive the ailiance gateway URL from env (AILIANCE_GATEWAY) or the
+ * built-in default.
  * Trailing slashes and `/chat/completions` suffix are stripped to
  * mirror provider-config normalisation.
  */
 export function resolveAilianceGatewayUrl(env: NodeJS.ProcessEnv = process.env): string {
-	const raw = (env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
+	const raw = (env.AILIANCE_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
 	let url = raw.replace(/\/chat\/completions\/?$/, "")
 	url = url.replace(/\/+$/, "")
 	return url
@@ -102,8 +100,8 @@ export function resolveAilianceGatewayUrl(env: NodeJS.ProcessEnv = process.env):
 
 /**
  * Returns true when at least one upstream provider env var is present.
- * AILIANCE_GATEWAY / AGENT_KIKI_GATEWAY are intentionally excluded —
- * they are our opt-in, not competing providers.
+ * AILIANCE_GATEWAY is intentionally excluded —
+ * it is our opt-in, not a competing provider.
  */
 export function hasNonAilianceProviderEnv(env: NodeJS.ProcessEnv = process.env): boolean {
 	const sentinels = [
@@ -147,16 +145,13 @@ interface ApplyOptions {
  * Returns a decision object so callers can log what happened.
  *
  * Precedence:
- *   1. Any non-kiki upstream provider env var -> skip.
- *   2. AGENT_KIKI_GATEWAY env var present     -> session override
+ *   1. Any non-ailiance upstream provider env var -> skip.
+ *   2. AILIANCE_GATEWAY env var present       -> session override
  *      (does NOT persist; respects per-run overrides).
  *   3. welcomeViewCompleted=true && persisted provider already set -> skip.
  *   4. Otherwise -> persist ailiance defaults + mark welcomeViewCompleted.
  */
-export function applyAilianceDefault(
-	stateManager: StateManager,
-	options: ApplyOptions = {},
-): AilianceDefaultDecision {
+export function applyAilianceDefault(stateManager: StateManager, options: ApplyOptions = {}): AilianceDefaultDecision {
 	const env = options.env ?? process.env
 
 	if (hasNonAilianceProviderEnv(env)) {
@@ -164,7 +159,7 @@ export function applyAilianceDefault(
 	}
 
 	const gatewayUrl = resolveAilianceGatewayUrl(env)
-	const explicitOverride = !!(env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY)
+	const explicitOverride = !!env.AILIANCE_GATEWAY
 
 	if (explicitOverride) {
 		// In-memory override only; do not pollute persisted config so the

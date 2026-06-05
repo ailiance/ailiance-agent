@@ -11,8 +11,8 @@ import { exit } from "node:process"
 import { Command } from "commander"
 import { version as CLI_VERSION } from "../package.json"
 import { suppressConsoleUnlessVerbose } from "./utils/console"
-import { CLI_LOG_FILE } from "./vscode-shim"
 import { setupSignalHandlers } from "./utils/errors"
+import { CLI_LOG_FILE } from "./vscode-shim"
 
 // CLI-only behavior: suppress console output unless verbose mode is enabled.
 // Kept explicit here so importing the library bundle does not mutate global console methods.
@@ -21,9 +21,9 @@ suppressConsoleUnlessVerbose()
 // Setup signal handlers for graceful shutdown
 setupSignalHandlers()
 
+export { hasExplicitAuthQuickSetupFlags, shouldDoQuickAuth } from "./commands/auth"
 // Re-export for backward compatibility and testing
 export { captureUnhandledException } from "./utils/errors"
-export { shouldDoQuickAuth, hasExplicitAuthQuickSetupFlags } from "./commands/auth"
 
 // Setup CLI commands
 const program = new Command()
@@ -357,9 +357,9 @@ program
 
 		// Error if stdin was piped but empty AND no prompt was provided
 		// This handles:
-		// - `echo "" | dirac` -> error (empty stdin, no prompt)
-		// - `dirac "prompt"` in GitHub Actions -> OK (empty stdin ignored, has prompt)
-		// - `cat file | dirac "explain"` -> OK (has stdin AND prompt)
+		// - `echo "" | isaac` -> error (empty stdin, no prompt)
+		// - `isaac "prompt"` in GitHub Actions -> OK (empty stdin ignored, has prompt)
+		// - `cat file | isaac "explain"` -> OK (has stdin AND prompt)
 		if (stdinInput === "" && !prompt) {
 			printWarning("Empty input received from stdin. Please provide content to process.")
 			exit(1)

@@ -52,18 +52,10 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 
 	const finalActModelId =
 		modelId ||
-		(isCompatible(existingActModel)
-			? existingActModel
-			: isCompatible(existingPlanModel)
-				? existingPlanModel
-				: defaultModel)
+		(isCompatible(existingActModel) ? existingActModel : isCompatible(existingPlanModel) ? existingPlanModel : defaultModel)
 	const finalPlanModelId =
 		modelId ||
-		(isCompatible(existingPlanModel)
-			? existingPlanModel
-			: isCompatible(existingActModel)
-				? existingActModel
-				: defaultModel)
+		(isCompatible(existingPlanModel) ? existingPlanModel : isCompatible(existingActModel) ? existingActModel : defaultModel)
 
 	if (finalActModelId) {
 		if (actModelKey) config[actModelKey] = finalActModelId
@@ -75,7 +67,7 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 	if (finalActModelId || finalPlanModelId) {
 		// Fetch model info from the provider API (not just disk cache) so headless
 		// CLI auth gets correct maxTokens, thinkingConfig, etc.
-		if ((providerId === "dirac" || providerId === "openrouter") && controller) {
+		if ((providerId === "isaac" || providerId === "openrouter") && controller) {
 			const openRouterModels = await refreshOpenRouterModels(controller)
 			if (finalActModelId) {
 				const modelInfo = openRouterModels?.[finalActModelId]
@@ -135,8 +127,6 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 		const apiConfig = stateManager.getApiConfiguration()
 		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
 
-	await controller?.postStateToWebview()
-
+		await controller?.postStateToWebview()
 	}
 }
-

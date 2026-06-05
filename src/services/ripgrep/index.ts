@@ -154,7 +154,7 @@ export async function regexSearchFiles(
 	directoryPath: string,
 	regex: string,
 	filePattern?: string,
-	diracIgnoreController?: IsaacIgnoreController,
+	isaacIgnoreController?: IsaacIgnoreController,
 	taskId?: string,
 	contextLines?: number,
 	excludeFilePatterns?: string[],
@@ -220,8 +220,8 @@ export async function regexSearchFiles(
 	const fileResults: FileSearchResult[] = []
 	let finalMatchCount = 0
 	for (const [filePath, lineMap] of resultsByFile.entries()) {
-		// Filter by diracIgnoreController if provided
-		if (diracIgnoreController && !diracIgnoreController.validateAccess(filePath)) {
+		// Filter by isaacIgnoreController if provided
+		if (isaacIgnoreController && !isaacIgnoreController.validateAccess(filePath)) {
 			continue
 		}
 

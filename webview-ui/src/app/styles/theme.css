@@ -23,7 +23,7 @@
 	--spacing-unit: 4px;
 	--grid-subtle: radial-gradient(circle, var(--vscode-editor-lineHighlightBorder) 1px, transparent 1px);
 
-	--color-dirac: #9663f1;
+	--color-isaac: #9663f1;
 	--color-background: var(--vscode-sideBar-background);
 	--color-border: var(--vscode-focusBorder);
 	--color-border-panel: var(--vscode-panel-border);

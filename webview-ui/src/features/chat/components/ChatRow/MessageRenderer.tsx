@@ -1,23 +1,23 @@
 import {
-    IsaacAskQuestion,
-    IsaacMessage,
-    IsaacPlanModeResponse,
-    IsaacSayGenerateExplanation,
-    IsaacSayTool,
-    COMPLETION_RESULT_CHANGES_FLAG,
-    Mode,
+	COMPLETION_RESULT_CHANGES_FLAG,
+	IsaacAskQuestion,
+	IsaacMessage,
+	IsaacPlanModeResponse,
+	IsaacSayGenerateExplanation,
+	IsaacSayTool,
+	Mode,
 } from "@shared/ExtensionMessage"
 import { BooleanRequest, StringRequest } from "@shared/proto/isaac/common"
 import {
-    ArrowRightIcon,
-    CheckIcon,
-    CircleSlashIcon,
-    CircleXIcon,
-    FilePlus2Icon,
-    LightbulbIcon,
-    RefreshCwIcon,
-    SettingsIcon,
-    TriangleAlertIcon,
+	ArrowRightIcon,
+	CheckIcon,
+	CircleSlashIcon,
+	CircleXIcon,
+	FilePlus2Icon,
+	LightbulbIcon,
+	RefreshCwIcon,
+	SettingsIcon,
+	TriangleAlertIcon,
 } from "lucide-react"
 import { MouseEvent, ReactNode, useRef } from "react"
 import { CompletionOutputRow } from "@/features/chat/components/CompletionOutputRow"
@@ -41,8 +41,8 @@ import { WithCopyButton } from "@/shared/ui/CopyButton"
 import { CommandOutputContent } from "../CommandOutputRow"
 import UserMessage from "../UserMessage"
 import { InvisibleSpacer, ProgressIndicator } from "./ChatRowComponents"
-import { QuoteButtonState } from "./types"
 import { HEADER_CLASSNAMES } from "./ToolOutput/shared"
+import { QuoteButtonState } from "./types"
 
 interface MessageRendererProps {
 	message: IsaacMessage
@@ -58,7 +58,7 @@ interface MessageRendererProps {
 	isRequestInProgress?: boolean
 	dashboardReasoningContent?: string
 	responseStarted?: boolean
-	diracMessagesCount: number
+	isaacMessagesCount: number
 	vscodeTerminalExecutionMode: string
 	seeNewChangesDisabled: boolean
 	setSeeNewChangesDisabled: (disabled: boolean) => void
@@ -88,7 +88,7 @@ export const MessageRenderer = ({
 	isRequestInProgress,
 	dashboardReasoningContent,
 	responseStarted,
-	diracMessagesCount,
+	isaacMessagesCount,
 	vscodeTerminalExecutionMode,
 	seeNewChangesDisabled,
 	setSeeNewChangesDisabled,
@@ -117,15 +117,15 @@ export const MessageRenderer = ({
 						<RequestStartRow
 							apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
 							apiRequestFailedMessage={apiRequestFailedMessage}
-							diracMessagesCount={diracMessagesCount}
 							cost={cost}
 							handleToggle={handleToggle}
+							isaacMessagesCount={isaacMessagesCount}
 							isExpanded={isExpanded}
 							message={message}
 							mode={mode}
+							onAskForUpdate={onAskForUpdate}
 							reasoningContent={dashboardReasoningContent}
 							responseStarted={responseStarted}
-							onAskForUpdate={onAskForUpdate}
 						/>
 					)
 				case "api_req_finished":
@@ -163,11 +163,11 @@ export const MessageRenderer = ({
 							isExpanded={isExpanded}
 							isStreaming={isReasoningStreaming}
 							isVisible={true}
+							onAskForUpdate={onAskForUpdate}
 							onToggle={handleToggle}
 							reasoningContent={message.text}
 							showChevron={true}
 							showTitle={true}
-							onAskForUpdate={onAskForUpdate}
 							title={isReasoningStreaming ? "Thinking..." : "Thinking"}
 						/>
 					)
@@ -208,8 +208,8 @@ export const MessageRenderer = ({
 					return <ErrorRow errorType="error" message={message} />
 				case "diff_error":
 					return <ErrorRow errorType="diff_error" message={message} />
-				case "diracignore_error":
-					return <ErrorRow errorType="diracignore_error" message={message} />
+				case "isaacignore_error":
+					return <ErrorRow errorType="isaacignore_error" message={message} />
 				case "checkpoint_created":
 					return <CheckmarkControl isCheckpointCheckedOut={message.isCheckpointCheckedOut} messageTs={message.ts} />
 				case "generate_explanation": {

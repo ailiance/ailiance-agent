@@ -39,7 +39,7 @@ class IsaacEndpoint {
 
 	private constructor() {
 		// Set environment at module load. Use override if provided.
-		const _env = process?.env?.DIRAC_ENVIRONMENT_OVERRIDE || process?.env?.DIRAC_ENVIRONMENT
+		const _env = process?.env?.ISAAC_ENVIRONMENT_OVERRIDE || process?.env?.ISAAC_ENVIRONMENT
 		if (_env && Object.values(Environment).includes(_env as Environment)) {
 			this.environment = _env as Environment
 		}
@@ -124,10 +124,10 @@ class IsaacEndpoint {
 
 	/**
 	 * Returns the path to the endpoints.json configuration file.
-	 * Located at ~/.dirac/endpoints.json
+	 * Located at ~/.isaac/endpoints.json
 	 */
 	private static getEndpointsFilePath(): string {
-		return path.join(os.homedir(), ".dirac", "endpoints.json")
+		return path.join(os.homedir(), ".isaac", "endpoints.json")
 	}
 
 	/**
@@ -141,7 +141,7 @@ class IsaacEndpoint {
 	/**
 	 * Loads and validates the endpoints.json file.
 	 * Checks bundled location first, then falls back to user directory.
-	 * Priority: bundled endpoints.json → ~/.dirac/endpoints.json → null (standard mode)
+	 * Priority: bundled endpoints.json → ~/.isaac/endpoints.json → null (standard mode)
 	 * @returns The validated endpoints config, or null if no file exists
 	 * @throws IsaacConfigurationError if a file exists but is invalid
 	 */
@@ -173,7 +173,7 @@ class IsaacEndpoint {
 			// Bundled file doesn't exist or is not accessible, try user file
 		}
 
-		// 2. Try ~/.dirac/endpoints.json
+		// 2. Try ~/.isaac/endpoints.json
 		const userPath = IsaacEndpoint.getEndpointsFilePath()
 		try {
 			await fs.access(userPath)
@@ -273,7 +273,7 @@ class IsaacEndpoint {
 	 */
 	public setEnvironment(env: string) {
 		if (this.onPremiseConfig) {
-			throw new Error("Cannot change environment in on-premise mode. Endpoints are configured via ~/.dirac/endpoints.json")
+			throw new Error("Cannot change environment in on-premise mode. Endpoints are configured via ~/.isaac/endpoints.json")
 		}
 
 		switch (env.toLowerCase()) {

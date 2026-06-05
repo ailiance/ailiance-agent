@@ -5,7 +5,7 @@ import os from "os"
 import * as path from "path"
 import sinon from "sinon"
 import * as pluginModule from "@/core/plugins/PluginDiscoveryService"
-import { IsaacDefaultTool, getToolUseNames } from "@/shared/tools"
+import { getToolUseNames, IsaacDefaultTool } from "@/shared/tools"
 import {
 	AgentConfigLoader,
 	getAgentsConfigPath,
@@ -83,7 +83,7 @@ Prompt body`
 		assert.equal(result.size, 0)
 	})
 
-	it("loads all yaml/yml files from homeDir/.dirac/data/agents", async () => {
+	it("loads all yaml/yml files from homeDir/.isaac/data/agents", async () => {
 		const tempHome = await createTempHomeDir()
 		tempDirs.push(tempHome)
 

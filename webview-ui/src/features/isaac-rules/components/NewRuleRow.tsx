@@ -125,7 +125,7 @@ const NewRuleRow: React.FC<NewRuleRowProps> = ({ isGlobal, ruleType, existingHoo
 					RuleFileRequest.create({
 						isGlobal,
 						filename: finalFilename,
-						type: ruleType || "dirac",
+						type: ruleType || "isaac",
 					}),
 				)
 			} catch (err) {

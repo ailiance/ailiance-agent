@@ -46,12 +46,12 @@ export class OpenTelemetryTelemetryProvider implements ITelemetryProvider {
 		}
 
 		if (meterProvider) {
-			this.meter = meterProvider.getMeter("dirac")
+			this.meter = meterProvider.getMeter("isaac")
 			this.meterProvider = meterProvider
 		}
 
 		if (loggerProvider) {
-			this.logger = loggerProvider.getLogger("dirac")
+			this.logger = loggerProvider.getLogger("isaac")
 			this.loggerProvider = loggerProvider
 		}
 

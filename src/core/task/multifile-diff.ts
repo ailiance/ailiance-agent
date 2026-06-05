@@ -12,9 +12,9 @@ export async function showChangedFilesDiff(
 	seeNewChangesSinceLastTaskCompletion: boolean,
 ) {
 	Logger.log("presentMultifileDiff", messageTs)
-	const diracMessages = messageStateHandler.getIsaacMessages()
-	const messageIndex = diracMessages.findIndex((m) => m.ts === messageTs)
-	const message = diracMessages[messageIndex]
+	const isaacMessages = messageStateHandler.getIsaacMessages()
+	const messageIndex = isaacMessages.findIndex((m) => m.ts === messageTs)
+	const message = isaacMessages[messageIndex]
 	if (!message) {
 		Logger.error("Message not found")
 		return

@@ -1,6 +1,6 @@
-import { Empty, EmptyRequest } from "@shared/proto/isaac/common"
 import { ShowMessageType } from "@shared/proto/host/window"
 import { ExecuteCommandInTerminalRequest } from "@shared/proto/host/workspace"
+import { Empty, EmptyRequest } from "@shared/proto/isaac/common"
 import { HostProvider } from "@/hosts/host-provider"
 import { Logger } from "@/shared/services/Logger"
 import { Controller } from ".."
@@ -12,7 +12,7 @@ import { Controller } from ".."
  * @returns Empty response
  */
 export async function installIsaacCli(_controller: Controller, _request: EmptyRequest): Promise<Empty> {
-	const installCommand = "npm install -g dirac"
+	const installCommand = "npm install -g isaac"
 
 	try {
 		// Use the HostProvider to execute the command in a terminal

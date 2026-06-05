@@ -35,12 +35,12 @@ export const useCompletedAskMessages = () => {
 	const getCompletedAskMessages = useCallback(() => {
 		const completedAsks: IsaacMessage[] = []
 
-		if (!state.diracMessages) {
+		if (!state.isaacMessages) {
 			return completedAsks
 		}
 
-		for (let i = 0; i < state.diracMessages.length; i++) {
-			const message = state.diracMessages[i]
+		for (let i = 0; i < state.isaacMessages.length; i++) {
+			const message = state.isaacMessages[i]
 			if (message.type === "ask" && !message.partial && !processed.processedAskMessages.has(i)) {
 				completedAsks.push(message)
 				processed.processedAskMessages.add(i)
@@ -48,7 +48,7 @@ export const useCompletedAskMessages = () => {
 		}
 
 		return completedAsks
-	}, [state.diracMessages, processed])
+	}, [state.isaacMessages, processed])
 
 	return getCompletedAskMessages
 }
@@ -61,20 +61,20 @@ export const useLastCompletedAskMessage = () => {
 	const processed = useProcessedMessages()
 
 	const getLastCompletedAskMessage = useCallback((): IsaacMessage | null => {
-		if (!state.diracMessages) {
+		if (!state.isaacMessages) {
 			return null
 		}
 
 		// Find the last ask message that is complete
-		for (let i = state.diracMessages.length - 1; i >= 0; i--) {
-			const message = state.diracMessages[i]
+		for (let i = state.isaacMessages.length - 1; i >= 0; i--) {
+			const message = state.isaacMessages[i]
 			if (message.type === "ask" && !message.partial) {
 				return message
 			}
 		}
 
 		return null
-	}, [state.diracMessages])
+	}, [state.isaacMessages])
 
 	return getLastCompletedAskMessage()
 }
@@ -86,11 +86,11 @@ export const useCompletionSignals = () => {
 	const { state } = useTaskContext()
 
 	const isTaskComplete = useCallback((): boolean => {
-		if (!state.diracMessages || state.diracMessages.length === 0) {
+		if (!state.isaacMessages || state.isaacMessages.length === 0) {
 			return false
 		}
 
-		const lastMessage = state.diracMessages[state.diracMessages.length - 1]
+		const lastMessage = state.isaacMessages[state.isaacMessages.length - 1]
 		if (!lastMessage) {
 			return false
 		}
@@ -106,15 +106,15 @@ export const useCompletionSignals = () => {
 		}
 
 		return false
-	}, [state.diracMessages])
+	}, [state.isaacMessages])
 
 	const getCompletionMessage = useCallback((): IsaacMessage | null => {
-		if (!state.diracMessages || state.diracMessages.length === 0) {
+		if (!state.isaacMessages || state.isaacMessages.length === 0) {
 			return null
 		}
 
-		return state.diracMessages[state.diracMessages.length - 1] || null
-	}, [state.diracMessages])
+		return state.isaacMessages[state.isaacMessages.length - 1] || null
+	}, [state.isaacMessages])
 
 	return {
 		isTaskComplete,
@@ -129,24 +129,24 @@ export const useCompletionSignals = () => {
 export const useIsSpinnerActive = (): { isActive: boolean; startTime?: number } => {
 	const { state } = useTaskContext()
 
-	if (!state.diracMessages || state.diracMessages.length === 0) {
+	if (!state.isaacMessages || state.isaacMessages.length === 0) {
 		return { isActive: false }
 	}
 
 	// If the last message is a completed ask message, don't show spinner (waiting for user input)
-	const lastMessage = state.diracMessages[state.diracMessages.length - 1]
+	const lastMessage = state.isaacMessages[state.isaacMessages.length - 1]
 	if (lastMessage?.type === "ask" && !lastMessage.partial) {
 		return { isActive: false }
 	}
 
 	// Look for most recent api_req_started that isn't followed by api_req_finished
-	for (let i = state.diracMessages.length - 1; i >= 0; i--) {
-		const msg = state.diracMessages[i]
+	for (let i = state.isaacMessages.length - 1; i >= 0; i--) {
+		const msg = state.isaacMessages[i]
 		if (msg.say === "api_req_started") {
 			// Check if there's an api_req_finished after this
 			let hasFinished = false
-			for (let j = i + 1; j < state.diracMessages.length; j++) {
-				if (state.diracMessages[j].say === "api_req_finished") {
+			for (let j = i + 1; j < state.isaacMessages.length; j++) {
+				if (state.isaacMessages[j].say === "api_req_finished") {
 					hasFinished = true
 					break
 				}

@@ -1,5 +1,5 @@
-import type { ToolParamName, ToolUse } from "@core/assistant-message";
-import type { IsaacIgnoreController } from "@core/ignore/IsaacIgnoreController";
+import type { ToolParamName, ToolUse } from "@core/assistant-message"
+import type { IsaacIgnoreController } from "@core/ignore/IsaacIgnoreController"
 
 export type ValidationResult = { ok: true } | { ok: false; error: string }
 
@@ -8,7 +8,7 @@ export type ValidationResult = { ok: true } | { ok: false; error: string }
  * The legacy ToolExecutor switch remains unchanged and does not depend on this.
  */
 export class ToolValidator {
-	constructor(private readonly diracIgnoreController: IsaacIgnoreController) {}
+	constructor(private readonly isaacIgnoreController: IsaacIgnoreController) {}
 
 	/**
 	 * Verifies required parameters exist on the tool block.
@@ -34,15 +34,15 @@ export class ToolValidator {
 	}
 
 	/**
-	 * Verifies access is allowed to a given path via .diracignore rules.
+	 * Verifies access is allowed to a given path via .isaacignore rules.
 	 * Callers should pass a repo-relative (workspace-relative) path.
 	 */
 	checkIsaacIgnorePath(relPath: string): ValidationResult {
-		const accessAllowed = this.diracIgnoreController.validateAccess(relPath)
+		const accessAllowed = this.isaacIgnoreController.validateAccess(relPath)
 		if (!accessAllowed) {
 			return {
 				ok: false,
-				error: `Access to path '${relPath}' is blocked by .diracignore settings.`,
+				error: `Access to path '${relPath}' is blocked by .isaacignore settings.`,
 			}
 		}
 		return { ok: true }

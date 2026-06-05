@@ -48,7 +48,7 @@ export interface ChatState {
 	// Derived values
 	lastMessage: IsaacMessage | undefined
 	secondLastMessage: IsaacMessage | undefined
-	diracAsk: IsaacAsk | undefined
+	isaacAsk: IsaacAsk | undefined
 	task: IsaacMessage | undefined
 
 	// Handlers
@@ -136,7 +136,7 @@ export interface TaskSectionProps {
 		supportsImages: boolean
 	}
 	isStreaming: boolean
-	diracAsk?: IsaacAsk
+	isaacAsk?: IsaacAsk
 	modifiedMessages: IsaacMessage[]
 }
 

@@ -7,7 +7,7 @@ import sinon from "sinon"
 
 import * as pluginModule from "@/core/plugins/PluginDiscoveryService"
 import { StateManager } from "@/core/storage/StateManager"
-import { getGlobalIsaacRules } from "../dirac-rules"
+import { getGlobalIsaacRules } from "../isaac-rules"
 
 describe("getGlobalIsaacRules — plugin CLAUDE.md injection", () => {
 	let tmpDir: string
@@ -44,7 +44,7 @@ describe("getGlobalIsaacRules — plugin CLAUDE.md injection", () => {
 		discoveryStub.resolves([{ pluginName: "my-awesome-plugin", mdPath }])
 
 		// Create an empty global rules dir (no file-based rules)
-		const rulesDir = path.join(tmpDir, ".diracrules")
+		const rulesDir = path.join(tmpDir, ".isaacrules")
 		await fs.mkdir(rulesDir, { recursive: true })
 
 		const result = await getGlobalIsaacRules(rulesDir, {})
@@ -58,7 +58,7 @@ describe("getGlobalIsaacRules — plugin CLAUDE.md injection", () => {
 		const missingMdPath = path.join(tmpDir, "nonexistent", "CLAUDE.md")
 		discoveryStub.resolves([{ pluginName: "ghost-plugin", mdPath: missingMdPath }])
 
-		const rulesDir = path.join(tmpDir, ".diracrules")
+		const rulesDir = path.join(tmpDir, ".isaacrules")
 		await fs.mkdir(rulesDir, { recursive: true })
 
 		// Should not throw — no instructions from missing plugin
@@ -77,7 +77,7 @@ describe("getGlobalIsaacRules — plugin CLAUDE.md injection", () => {
 		discoveryStub.resolves([{ pluginName: "plugin-a", mdPath }])
 
 		// File-based rule
-		const rulesDir = path.join(tmpDir, ".diracrules")
+		const rulesDir = path.join(tmpDir, ".isaacrules")
 		await fs.mkdir(rulesDir, { recursive: true })
 		await fs.writeFile(path.join(rulesDir, "global-rule.md"), "Global project rule.")
 

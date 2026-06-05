@@ -2,7 +2,7 @@ import * as childProcessModule from "child_process"
 import fs from "fs/promises"
 import path from "path"
 import { Logger } from "@/shared/services/Logger"
-import { version as diracVersion } from "../../../package.json"
+import { version as isaacVersion } from "../../../package.json"
 import { getDistinctId } from "../../services/logging/distinctId"
 import { telemetryService } from "../../services/telemetry"
 import {
@@ -141,7 +141,7 @@ type HookName = keyof Hooks
 
 /**
  * The hook input parameters for a named hook. These are the parameters the caller must
- * provide--the other common parameters like diracVersion and userId are handled by the
+ * provide--the other common parameters like isaacVersion and userId are handled by the
  * hook system.
  */
 export type NamedHookInput<Name extends HookName> = {
@@ -185,7 +185,7 @@ export abstract class HookRunner<Name extends HookName> {
 	 *
 	 * This method enriches the hook-specific input (like preToolUse or postToolUse data)
 	 * with standard information that all hooks receive:
-	 * - diracVersion: Current Isaac extension version
+	 * - isaacVersion: Current Isaac extension version
 	 * - hookName: The type of hook being executed (e.g., "PreToolUse")
 	 * - timestamp: Execution time in milliseconds since epoch
 	 * - workspaceRoots: Array of workspace folder paths
@@ -209,7 +209,7 @@ export abstract class HookRunner<Name extends HookName> {
 		}
 
 		return {
-			diracVersion,
+			isaacVersion,
 			hookName: this.hookName,
 			timestamp: Date.now().toString(),
 			workspaceRoots,
@@ -636,7 +636,7 @@ class StdioHookRunner<Name extends HookName> extends HookRunner<Name> {
  * Combines multiple hook runners and executes them in parallel.
  *
  * Used in multi-root workspaces where both global hooks (from ~/Documents/Isaac/Hooks/)
- * and workspace-specific hooks (from each workspace's .diracrules/hooks/) exist for the
+ * and workspace-specific hooks (from each workspace's .isaacrules/hooks/) exist for the
  * same hook type.
  *
  * Behavior:
@@ -705,7 +705,7 @@ function isExpectedHookError(error: unknown): boolean {
 	}
 
 	// Expected: Permission denied (file not executable or not readable)
-	// Note: This is expected because users may have hooks in .diracrules that they don't want to execute
+	// Note: This is expected because users may have hooks in .isaacrules that they don't want to execute
 	if (nodeError.code === "EACCES") {
 		return true
 	}
@@ -751,7 +751,7 @@ class PluginHookRunner<Name extends HookName> extends HookRunner<Name> {
 			const env: Record<string, string> = {
 				...(process.env as Record<string, string>),
 				CLAUDE_TASK_ID: input.taskId ?? "",
-				CLAUDE_CODE_VERSION: input.diracVersion ?? "",
+				CLAUDE_CODE_VERSION: input.isaacVersion ?? "",
 			}
 
 			// SECURITY (P1 #4): plugin hooks come from ~/.claude/plugins/cache,
@@ -1020,7 +1020,7 @@ export class HookFactory {
 
 	/**
 	 * Checks if a hooks directory is a global hooks directory.
-	 * Global hooks are located in paths containing "Isaac/Hooks" or "dirac/hooks".
+	 * Global hooks are located in paths containing "Isaac/Hooks" or "isaac/hooks".
 	 */
 	private static isGlobalHooksDir(dir: string): boolean {
 		return /[/\\][Cc]line[/\\][Hh]ooks/i.test(dir)
@@ -1041,7 +1041,7 @@ export class HookFactory {
 	 * Determines the working directory for a hook script based on its location.
 	 *
 	 * - Global hooks (from ~/Documents/Isaac/Hooks/): run from the primary workspace root
-	 * - Workspace hooks (from workspaceRoot/.diracrules/hooks/): run from that specific workspace root
+	 * - Workspace hooks (from workspaceRoot/.isaacrules/hooks/): run from that specific workspace root
 	 *
 	 * This ensures workspace-specific hooks can use relative paths that are meaningful
 	 * within their own workspace context.
@@ -1066,7 +1066,7 @@ export class HookFactory {
 		}
 
 		// If workspace hook, find which workspace root it belongs to
-		// Workspace hooks are at: workspaceRoot/.diracrules/hooks/
+		// Workspace hooks are at: workspaceRoot/.isaacrules/hooks/
 		// So find the workspace root whose path is a prefix of the containing hooks dir
 		if (containingDir && workspaceRoots) {
 			const workspaceRoot = workspaceRoots.find((root) => containingDir.startsWith(root.path))
@@ -1082,7 +1082,7 @@ export class HookFactory {
 	/**
 	 * Categorizes hook scripts by their location (global vs workspace).
 	 * Global hooks are located in ~/Documents/Isaac/Hooks/
-	 * Workspace hooks are located in workspace .diracrules/hooks/ directories
+	 * Workspace hooks are located in workspace .isaacrules/hooks/ directories
 	 *
 	 * @param scripts Array of hook script paths
 	 * @param hooksDirs Array of hooks directories (passed to avoid redundant fetches)
@@ -1111,7 +1111,7 @@ export class HookFactory {
 	/**
 	 * @returns A list of paths to scripts for the given hook name.
 	 * Includes both global hooks (from ~/Documents/Isaac/Hooks/) and workspace hooks
-	 * (from .diracrules/hooks/ in each workspace root).
+	 * (from .isaacrules/hooks/ in each workspace root).
 	 */
 	private static async findHookScripts(hookName: HookName): Promise<string[]> {
 		const hookScripts = []
@@ -1123,10 +1123,10 @@ export class HookFactory {
 	}
 
 	/**
-	 * Finds the path to a hook in a .diracrules hooks directory.
+	 * Finds the path to a hook in a .isaacrules hooks directory.
 	 *
 	 * @param hookName the name of the hook to search for, for example 'PreToolUse'
-	 * @param hooksDir the .diracrules directory path to search
+	 * @param hooksDir the .isaacrules directory path to search
 	 * @returns the path to the hook to execute, or undefined if none found
 	 * @throws Error if an unexpected file system error occurs
 	 */
@@ -1179,7 +1179,7 @@ export class HookFactory {
 	 * with canonical extensionless hook names.
 	 *
 	 * @param hookName the name of the hook to search for
-	 * @param hooksDir the .diracrules directory path to search
+	 * @param hooksDir the .isaacrules directory path to search
 	 * @returns the path to the hook to execute, or undefined if none found
 	 * @throws Error if an unexpected file system error occurs
 	 */

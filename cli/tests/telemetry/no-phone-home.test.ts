@@ -1,28 +1,26 @@
 // ailiance-agent fork: telemetry phone-home regression test.
 // Asserts that the telemetry config ships with no apiKey/host so the
 // EU-sovereign fork never sends events to dirac.run / posthog.
+
+import { isaacTelemetryConfig, isIsaacTelemetryConfigValid } from "@shared/services/config/isaac-telemetry-config"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-	diracTelemetryConfig,
-	isIsaacTelemetryConfigValid,
-} from "@shared/services/config/dirac-telemetry-config"
 
 describe("ailiance-agent fork: telemetry is disabled at the config layer", () => {
 	it("ships without a hardcoded telemetry apiKey", () => {
-		expect(diracTelemetryConfig.apiKey).toBeFalsy()
+		expect(isaacTelemetryConfig.apiKey).toBeFalsy()
 	})
 
 	it("ships without a hardcoded error-tracking apiKey", () => {
-		expect(diracTelemetryConfig.errorTrackingApiKey).toBeFalsy()
+		expect(isaacTelemetryConfig.errorTrackingApiKey).toBeFalsy()
 	})
 
 	it("ships with empty host / uiHost so no upstream URL is reachable", () => {
-		expect(diracTelemetryConfig.host).toBe("")
-		expect(diracTelemetryConfig.uiHost).toBe("")
+		expect(isaacTelemetryConfig.host).toBe("")
+		expect(isaacTelemetryConfig.uiHost).toBe("")
 	})
 
 	it("isIsaacTelemetryConfigValid returns false on the shipped config", () => {
-		expect(isIsaacTelemetryConfigValid(diracTelemetryConfig)).toBe(false)
+		expect(isIsaacTelemetryConfigValid(isaacTelemetryConfig)).toBe(false)
 	})
 })
 

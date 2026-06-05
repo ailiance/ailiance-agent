@@ -27,8 +27,8 @@ export async function buildBasicIsaacHeaders(): Promise<Record<string, string>> 
 		const host = await HostProvider.env.getHostVersion(EmptyRequest.create({}))
 		headers[IsaacHeaders.PLATFORM] = host.platform || "unknown"
 		headers[IsaacHeaders.PLATFORM_VERSION] = host.version || "unknown"
-		headers[IsaacHeaders.CLIENT_TYPE] = host.diracType || "unknown"
-		headers[IsaacHeaders.CLIENT_VERSION] = host.diracVersion || "unknown"
+		headers[IsaacHeaders.CLIENT_TYPE] = host.isaacType || "unknown"
+		headers[IsaacHeaders.CLIENT_VERSION] = host.isaacVersion || "unknown"
 	} catch (error) {
 		Logger.log("Failed to get IDE/platform info via HostBridge EnvService.getHostVersion", error)
 		headers[IsaacHeaders.PLATFORM] = "unknown"

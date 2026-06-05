@@ -16,10 +16,10 @@ export interface ParsedDefinition {
 export async function parseFile(
 	filePath: string,
 	languageParsers: LanguageParser,
-	diracIgnoreController?: IsaacIgnoreController,
+	isaacIgnoreController?: IsaacIgnoreController,
 	options?: { showCallGraph?: boolean },
 ): Promise<ParsedDefinition[] | null> {
-	if (diracIgnoreController && !diracIgnoreController.validateAccess(filePath)) {
+	if (isaacIgnoreController && !isaacIgnoreController.validateAccess(filePath)) {
 		return null
 	}
 	const fileContent = await fs.readFile(filePath, "utf8")

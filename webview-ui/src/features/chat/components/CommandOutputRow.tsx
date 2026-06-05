@@ -1,15 +1,15 @@
-import { IsaacMessage, COMMAND_OUTPUT_STRING, COMMAND_REQ_APP_STRING } from "@shared/ExtensionMessage"
+import { COMMAND_OUTPUT_STRING, COMMAND_REQ_APP_STRING, IsaacMessage } from "@shared/ExtensionMessage"
 import { StringRequest } from "@shared/proto/isaac/common"
-import { memo, useState, useCallback, useEffect } from "react"
-import { ApprovalBox } from "./ChatRow/ApprovalBox"
-import { useMessageHandlers } from "./ChatView/hooks/useMessageHandlers"
-import { useChatStore } from "../store/chatStore"
+import { memo, useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/shared/api/grpc-client"
 import { useAutoScroll } from "@/shared/hooks/useAutoScroll"
 import { Button } from "@/shared/ui/button"
-import { CopyButton } from "@/shared/ui/CopyButton"
 import CodeBlock from "@/shared/ui/CodeBlock"
+import { CopyButton } from "@/shared/ui/CopyButton"
+import { useChatStore } from "../store/chatStore"
+import { ApprovalBox } from "./ChatRow/ApprovalBox"
+import { useMessageHandlers } from "./ChatView/hooks/useMessageHandlers"
 import ExpandHandle from "./ExpandHandle"
 
 export const CommandOutputContent = memo(
@@ -124,9 +124,9 @@ export const CommandOutputRow = memo(
 		setIsOutputFullyExpanded: (expanded: boolean) => void
 	}) => {
 		const [isProcessing, setIsProcessing] = useState(false)
-		const messages = useChatStore((state: any) => state.diracMessages)
+		const messages = useChatStore((state: any) => state.isaacMessages)
 		const chatState = {
-			diracAsk: message.ask,
+			isaacAsk: message.ask,
 			lastMessage: message,
 			setInputValue: () => {},
 			setActiveQuote: () => {},
@@ -150,9 +150,8 @@ export const CommandOutputRow = memo(
 					setIsProcessing(false)
 				}
 			},
-			[executeButtonAction, isProcessing]
+			[executeButtonAction, isProcessing],
 		)
-
 
 		useEffect(() => {
 			if (isProcessing && !isCommandPending) {

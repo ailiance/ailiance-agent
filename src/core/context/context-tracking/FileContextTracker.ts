@@ -82,7 +82,7 @@ export class FileContextTracker {
 	 * Tracks a file operation in metadata and sets up a watcher for the file
 	 * This is the main entry point for FileContextTracker and is called when a file is passed to Isaac via a tool, mention, or edit.
 	 */
-	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "dirac_edited" | "file_mentioned") {
+	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "isaac_edited" | "file_mentioned") {
 		try {
 			const cwd = await getCwd()
 			if (!cwd) {
@@ -130,8 +130,8 @@ export class FileContextTracker {
 				path: filePath,
 				record_state: "active",
 				record_source: source,
-				dirac_read_date: getLatestDateForField(filePath, "dirac_read_date"),
-				dirac_edit_date: getLatestDateForField(filePath, "dirac_edit_date"),
+				isaac_read_date: getLatestDateForField(filePath, "isaac_read_date"),
+				isaac_edit_date: getLatestDateForField(filePath, "isaac_edit_date"),
 				user_edit_date: getLatestDateForField(filePath, "user_edit_date"),
 			}
 
@@ -142,16 +142,16 @@ export class FileContextTracker {
 					this.recentlyModifiedFiles.add(filePath)
 					break
 
-				// dirac_edited: Isaac has edited the file
-				case "dirac_edited":
-					newEntry.dirac_read_date = now
-					newEntry.dirac_edit_date = now
+				// isaac_edited: Isaac has edited the file
+				case "isaac_edited":
+					newEntry.isaac_read_date = now
+					newEntry.isaac_edit_date = now
 					break
 
 				// read_tool/file_mentioned: Isaac has read the file via a tool or file mention
 				case "read_tool":
 				case "file_mentioned":
-					newEntry.dirac_read_date = now
+					newEntry.isaac_read_date = now
 					break
 			}
 
@@ -200,10 +200,10 @@ export class FileContextTracker {
 
 			if (taskMetadata?.files_in_context) {
 				for (const fileEntry of taskMetadata.files_in_context) {
-					const diracEditedAfter = fileEntry.dirac_edit_date && fileEntry.dirac_edit_date > messageTs
+					const isaacEditedAfter = fileEntry.isaac_edit_date && fileEntry.isaac_edit_date > messageTs
 					const userEditedAfter = fileEntry.user_edit_date && fileEntry.user_edit_date > messageTs
 
-					if (diracEditedAfter || userEditedAfter) {
+					if (isaacEditedAfter || userEditedAfter) {
 						editedFiles.push(fileEntry.path)
 					}
 				}

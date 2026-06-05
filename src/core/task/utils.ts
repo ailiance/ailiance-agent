@@ -2,8 +2,7 @@ import { ApiHandler } from "@core/api"
 import { execSync } from "child_process"
 import { showSystemNotification } from "@/integrations/notifications"
 import { IsaacApiReqCancelReason, IsaacApiReqInfo } from "@/shared/ExtensionMessage"
-import { calculateApiCostAnthropic } from "@/utils/cost"
-import { calculateApiCostOpenAI, calculateApiCostQwen } from "@/utils/cost"
+import { calculateApiCostAnthropic, calculateApiCostOpenAI, calculateApiCostQwen } from "@/utils/cost"
 import { MessageStateHandler } from "./message-state"
 
 export const showNotificationForApproval = (message: string, notificationsEnabled: boolean) => {
@@ -36,8 +35,8 @@ type UpdateApiReqMsgParams = {
 // fortunately api_req_finished was always parsed out for the gui anyways, so it remains solely for legacy purposes to keep track of prices in tasks from history
 // (it's worth removing a few months from now)
 export const updateApiReqMsg = async (params: UpdateApiReqMsgParams) => {
-	const diracMessages = params.messageStateHandler.getIsaacMessages()
-	const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(diracMessages[params.lastApiReqIndex].text || "{}")
+	const isaacMessages = params.messageStateHandler.getIsaacMessages()
+	const currentApiReqInfo: IsaacApiReqInfo = JSON.parse(isaacMessages[params.lastApiReqIndex].text || "{}")
 	delete currentApiReqInfo.retryStatus // Clear retry status when request is finalized
 
 	await params.messageStateHandler.updateIsaacMessage(params.lastApiReqIndex, {

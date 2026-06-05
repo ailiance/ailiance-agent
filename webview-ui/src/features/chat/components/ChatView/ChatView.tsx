@@ -22,20 +22,20 @@ import { useClipboardHandler } from "./hooks/useClipboardHandler"
 import { useVscodeSubscriptions } from "./hooks/useVscodeSubscriptions"
 // Import utilities and hooks from the new structure
 import {
-    ActionButtons,
-    CHAT_CONSTANTS,
-    ChatLayout,
-    filterVisibleMessages,
-    groupLowStakesTools,
-    groupMessages,
-    InputSection,
-    InteractionStateProvider,
-    MessagesArea,
-    TaskSection,
-    useChatState,
-    useMessageHandlers,
-    useScrollBehavior,
-    WelcomeSection,
+	ActionButtons,
+	CHAT_CONSTANTS,
+	ChatLayout,
+	filterVisibleMessages,
+	groupLowStakesTools,
+	groupMessages,
+	InputSection,
+	InteractionStateProvider,
+	MessagesArea,
+	TaskSection,
+	useChatState,
+	useMessageHandlers,
+	useScrollBehavior,
+	WelcomeSection,
 } from "./index"
 
 interface ChatViewProps {
@@ -53,7 +53,7 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 	const showNavbar = useShowNavbar()
 	const hydrate = useChatStore((state) => state.hydrate)
 	const version = useAppStore((state: any) => state.version)
-	const messages = useChatStore((state) => state.diracMessages)
+	const messages = useChatStore((state) => state.isaacMessages)
 	const taskHistory = useTaskStore((state) => state.taskHistory)
 	const apiConfiguration = useSettingsStore((state: any) => state.apiConfiguration)
 	const telemetrySetting = useSettingsStore((state) => state.telemetrySetting)
@@ -75,7 +75,12 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 	const apiMetrics = useMemo(() => getApiMetrics(modifiedMessages), [modifiedMessages])
 	const lastApiReqInfo = useMemo(() => getLastApiReqInfo(modifiedMessages), [modifiedMessages])
 
-	const lastApiReqTotalTokens = lastApiReqInfo ? (lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0) : undefined
+	const lastApiReqTotalTokens = lastApiReqInfo
+		? (lastApiReqInfo.tokensIn || 0) +
+			(lastApiReqInfo.tokensOut || 0) +
+			(lastApiReqInfo.cacheWrites || 0) +
+			(lastApiReqInfo.cacheReads || 0)
+		: undefined
 
 	// Use custom hooks for state management
 	const chatState = useChatState(messages)
@@ -167,8 +172,6 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 		return filterVisibleMessages(modifiedMessages)
 	}, [modifiedMessages])
 
-
-
 	const groupedMessages = useMemo(() => {
 		return groupLowStakesTools(groupMessages(visibleMessages))
 	}, [visibleMessages])
@@ -188,8 +191,8 @@ const ChatViewContent = ({ isHidden, showAnnouncement, hideAnnouncement, showHis
 					{showNavbar && <Navbar />}
 					{task ? (
 						<TaskSection
-							lastApiReqInfo={lastApiReqInfo}
 							apiMetrics={apiMetrics}
+							lastApiReqInfo={lastApiReqInfo}
 							messageHandlers={messageHandlers}
 							task={task}
 						/>

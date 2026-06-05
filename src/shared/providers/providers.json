@@ -1,8 +1,8 @@
 {
 	"list": [
 		{
-			"value": "dirac",
-			"label": "Ailiance (Dirac)"
+			"value": "isaac",
+			"label": "Ailiance (Isaac)"
 		},
 		{
 			"value": "openai",

@@ -153,7 +153,7 @@ export const BANNER_DATA: BannerCardData[] = [
 		title: "Isaac CLI Info",
 		platforms: ["windows"] satisfies BannerCardData["platforms"],
 		description:
-			"Available for macOS and Linux. Coming soon to other platforms. [Learn more](https://dirac.run/docs/dirac-cli/overview)",
+			"Available for macOS and Linux. Coming soon to other platforms. [Learn more](https://dirac.run/docs/isaac-cli/overview)",
 	},
 
 	// Info banner with inline link
@@ -162,6 +162,6 @@ export const BANNER_DATA: BannerCardData[] = [
 		icon: "lightbulb",
 		title: "Use Isaac in Right Sidebar",
 		description:
-			"For the best experience, drag the Isaac icon to your right sidebar. This keeps your file explorer and editor visible while you chat with Isaac, making it easier to navigate your codebase and see changes in real-time. [See how →](https://dirac.run/docs/features/customization/opening-dirac-in-sidebar)",
+			"For the best experience, drag the Isaac icon to your right sidebar. This keeps your file explorer and editor visible while you chat with Isaac, making it easier to navigate your codebase and see changes in real-time. [See how →](https://dirac.run/docs/features/customization/opening-isaac-in-sidebar)",
 	},
 ]

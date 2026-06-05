@@ -1,5 +1,5 @@
 import { featureFlagsService } from "@/services/feature-flags"
-import { CLINE_ONBOARDING_MODELS } from "@/shared/dirac/onboarding"
+import { CLINE_ONBOARDING_MODELS } from "@/shared/isaac/onboarding"
 import { OnboardingModel, OnboardingModelGroup } from "@/shared/proto/isaac/state"
 
 type OnboardingModelOverride = OnboardingModel & { hidden?: boolean }

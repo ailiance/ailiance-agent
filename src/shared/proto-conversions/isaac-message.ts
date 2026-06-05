@@ -91,7 +91,7 @@ function convertIsaacSayToProtoEnum(say: AppIsaacSay | undefined): IsaacSay | un
 		browser_action_result: IsaacSay.BROWSER_ACTION_RESULT,
 		diff_error: IsaacSay.DIFF_ERROR,
 		deleted_api_reqs: IsaacSay.DELETED_API_REQS,
-		diracignore_error: IsaacSay.DIRACIGNORE_ERROR,
+		isaacignore_error: IsaacSay.ISAACIGNORE_ERROR,
 		command_permission_denied: IsaacSay.COMMAND_PERMISSION_DENIED,
 		checkpoint_created: IsaacSay.CHECKPOINT_CREATED,
 		info: IsaacSay.INFO,
@@ -136,7 +136,7 @@ function convertProtoEnumToIsaacSay(say: IsaacSay): AppIsaacSay | undefined {
 		[IsaacSay.BROWSER_ACTION_RESULT]: "browser_action_result",
 		[IsaacSay.DIFF_ERROR]: "diff_error",
 		[IsaacSay.DELETED_API_REQS]: "deleted_api_reqs",
-		[IsaacSay.DIRACIGNORE_ERROR]: "diracignore_error",
+		[IsaacSay.ISAACIGNORE_ERROR]: "isaacignore_error",
 		[IsaacSay.COMMAND_PERMISSION_DENIED]: "command_permission_denied",
 		[IsaacSay.CHECKPOINT_CREATED]: "checkpoint_created",
 		[IsaacSay.INFO]: "info",
@@ -213,7 +213,6 @@ export function convertIsaacMessageToProto(message: AppIsaacMessage): ProtoIsaac
 					})),
 				}
 			: undefined,
-
 	}
 
 	return protoMessage
@@ -294,7 +293,6 @@ export function convertProtoToIsaacMessage(protoMessage: ProtoIsaacMessage): App
 			})),
 		}
 	}
-
 
 	return message
 }

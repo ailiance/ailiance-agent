@@ -12,7 +12,7 @@ export interface TimelineEntry {
 	totalCost?: number
 }
 
-const TASK_HISTORY_PATH = path.join(os.homedir(), ".dirac", "data", "state", "taskHistory.json")
+const TASK_HISTORY_PATH = path.join(os.homedir(), ".isaac", "data", "state", "taskHistory.json")
 
 export function pickEmoji(task: string): string {
 	const t = task.toLowerCase()

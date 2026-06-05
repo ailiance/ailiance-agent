@@ -7,12 +7,12 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import pino, { type Logger } from "pino"
 import { printError, printInfo, printWarning } from "./utils/display"
-import { DIRAC_CLI_DIR } from "./utils/path"
+import { ISAAC_CLI_DIR } from "./utils/path"
 
 export { URI } from "vscode-uri"
 export { IsaacFileStorage } from "@/shared/storage"
 
-export const CLI_LOG_FILE = path.join(DIRAC_CLI_DIR.log, "dirac.1.log")
+export const CLI_LOG_FILE = path.join(ISAAC_CLI_DIR.log, "isaac.1.log")
 
 /**
  * Safely read and parse a JSON file, returning a default value on failure

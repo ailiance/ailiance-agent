@@ -1,9 +1,9 @@
 import { IsaacEndpoint } from "@/config"
 import {
-	isIsaacTelemetryConfigValid,
 	IsaacTelemetryClientConfig,
-	diracTelemetryConfig,
-} from "@/shared/services/config/dirac-telemetry-config"
+	isaacTelemetryConfig,
+	isIsaacTelemetryConfigValid,
+} from "@/shared/services/config/isaac-telemetry-config"
 import { Logger } from "@/shared/services/Logger"
 import { IsaacError } from "./IsaacError"
 import { IErrorProvider } from "./providers/IErrorProvider"
@@ -12,7 +12,7 @@ import { IsaacErrorProvider } from "./providers/IsaacErrorProvider"
 /**
  * Supported error provider types
  */
-export type ErrorProviderType = "dirac" | "no-op"
+export type ErrorProviderType = "isaac" | "no-op"
 
 /**
  * Configuration for error providers
@@ -34,7 +34,7 @@ export class ErrorProviderFactory {
 	 */
 	public static async createProvider(config: ErrorProviderConfig): Promise<IErrorProvider> {
 		switch (config.type) {
-			case "dirac": {
+			case "isaac": {
 				const hasValidIsaacConfig = isIsaacTelemetryConfigValid(config.config)
 				const errorTrackingApiKey = config.config.errorTrackingApiKey
 				return hasValidIsaacConfig && errorTrackingApiKey
@@ -61,12 +61,12 @@ export class ErrorProviderFactory {
 		if (IsaacEndpoint.isSelfHosted()) {
 			return {
 				type: "no-op",
-				config: diracTelemetryConfig,
+				config: isaacTelemetryConfig,
 			}
 		}
 		return {
-			type: "dirac",
-			config: diracTelemetryConfig,
+			type: "isaac",
+			config: isaacTelemetryConfig,
 		}
 	}
 }

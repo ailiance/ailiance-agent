@@ -19,8 +19,8 @@ describe("Provider key mapping", () => {
 	})
 
 	it("uses provider-specific model key behavior for Isaac", () => {
-		expect(getProviderModelIdKey("dirac", "act")).to.equal("actModeDiracModelId")
-		expect(getProviderModelIdKey("dirac", "plan")).to.equal("planModeDiracModelId")
+		expect(getProviderModelIdKey("isaac", "act")).to.equal("actModeIsaacModelId")
+		expect(getProviderModelIdKey("isaac", "plan")).to.equal("planModeIsaacModelId")
 	})
 
 	it("uses generic model key for vscode-lm", () => {

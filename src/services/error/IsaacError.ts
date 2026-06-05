@@ -1,5 +1,5 @@
 import { serializeError } from "serialize-error"
-import { DIRAC_ACCOUNT_AUTH_ERROR_MESSAGE } from "../../shared/IsaacAccount"
+import { ISAAC_ACCOUNT_AUTH_ERROR_MESSAGE } from "../../shared/IsaacAccount"
 
 export enum IsaacErrorType {
 	Auth = "auth",
@@ -152,7 +152,7 @@ export class IsaacError extends Error {
 		if (message) {
 			// Check for specific error codes/messages if applicable
 			const authErrorRegex = [/(?:in)?valid[-_ ]?(?:api )?(?:token|key)/i, /authentication[-_ ]?failed/i, /unauthorized/i]
-			if (message?.includes(DIRAC_ACCOUNT_AUTH_ERROR_MESSAGE) || authErrorRegex.some((regex) => regex.test(message))) {
+			if (message?.includes(ISAAC_ACCOUNT_AUTH_ERROR_MESSAGE) || authErrorRegex.some((regex) => regex.test(message))) {
 				return IsaacErrorType.Auth
 			}
 

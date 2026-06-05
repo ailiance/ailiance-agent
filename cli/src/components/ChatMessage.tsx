@@ -7,8 +7,8 @@
  * - ⎿ for tool results (indented)
  */
 
-import { DIRAC_ACCOUNT_AUTH_ERROR_MESSAGE } from "@shared/IsaacAccount"
-import { IsaacMessage, COMMAND_OUTPUT_STRING } from "@shared/ExtensionMessage"
+import { COMMAND_OUTPUT_STRING, IsaacMessage } from "@shared/ExtensionMessage"
+import { ISAAC_ACCOUNT_AUTH_ERROR_MESSAGE } from "@shared/IsaacAccount"
 import { Box, Text } from "ink"
 import Spinner from "ink-spinner"
 import { lexer, type Token, type Tokens } from "marked"
@@ -404,7 +404,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 					)
 				}
 
-
 				const diffContent = toolInfo.args.content as string
 				if (diffContent) {
 					return (
@@ -462,7 +461,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 
 		// Parse command and output from combined text
 		const outputIndex = text?.indexOf(COMMAND_OUTPUT_STRING) ?? -1
-		const command = outputIndex === -1 ? (text || "") : text!.slice(0, outputIndex).trim()
+		const command = outputIndex === -1 ? text || "" : text!.slice(0, outputIndex).trim()
 		const output = outputIndex === -1 ? "" : text!.slice(outputIndex + COMMAND_OUTPUT_STRING.length).trim()
 
 		const isExecuting =
@@ -527,12 +526,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 	}
 
 	// Error messages
-	if (say === "diracignore_error") {
+	if (say === "isaacignore_error") {
 		return (
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color="red">
 					<Text color="red" wrap="wrap">
-						ISAAC tried to access <Text bold>{text}</Text> which is blocked by the .diracignore file.
+						ISAAC tried to access <Text bold>{text}</Text> which is blocked by the .isaacignore file.
 					</Text>
 				</DotRow>
 			</Box>
@@ -550,7 +549,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, mode, isStrea
 		}
 
 		// Check for Isaac auth error to show sign-in instructions
-		const isIsaacAuthError = errorMessage.includes(DIRAC_ACCOUNT_AUTH_ERROR_MESSAGE)
+		const isIsaacAuthError = errorMessage.includes(ISAAC_ACCOUNT_AUTH_ERROR_MESSAGE)
 
 		return (
 			<Box flexDirection="column" marginBottom={1} width="100%">

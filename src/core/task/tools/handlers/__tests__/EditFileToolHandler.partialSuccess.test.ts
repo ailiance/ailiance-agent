@@ -46,7 +46,6 @@ function createConfig() {
 		undoUserEdits: sinon.stub().resolves(),
 	}
 
-
 	const callbacks = {
 		say: sinon.stub().resolves(undefined),
 		ask: sinon.stub().resolves({ response: "yesButtonClicked" }),
@@ -118,7 +117,7 @@ function createConfig() {
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			belle_context: {},
 		},
@@ -156,14 +155,16 @@ describe("EditFileToolHandler.execute – partial success", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-edit-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-edit-test-"))
 		sandbox.stub(pathUtils, "isLocatedInWorkspace").resolves(true)
 
 		sandbox.stub(getDiagnosticsProvidersModule, "getDiagnosticsProviders").returns([
 			{
 				capturePreSaveState: sandbox.stub().resolves([]),
 				getDiagnosticsFeedback: sandbox.stub().resolves({ newProblemsMessage: "", fixedCount: 0 }),
-				getDiagnosticsFeedbackForFiles: sandbox.stub().callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
+				getDiagnosticsFeedbackForFiles: sandbox
+					.stub()
+					.callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
 			} as any,
 		])
 

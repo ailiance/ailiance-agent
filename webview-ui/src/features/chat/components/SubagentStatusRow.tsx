@@ -1,25 +1,25 @@
 import {
-    IsaacAskUseSubagents,
-    IsaacMessage,
-    IsaacSaySubagentStatus,
-    SubagentExecutionStatus,
-    SubagentStatusItem,
+	IsaacAskUseSubagents,
+	IsaacMessage,
+	IsaacSaySubagentStatus,
+	SubagentExecutionStatus,
+	SubagentStatusItem,
 } from "@shared/ExtensionMessage"
+import {
+	BotIcon,
+	CheckIcon,
+	ChevronDownIcon,
+	ChevronRightIcon,
+	CircleSlashIcon,
+	CircleXIcon,
+	LoaderCircleIcon,
+	NetworkIcon,
+} from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import MarkdownBlock from "@/shared/ui/MarkdownBlock"
+import { useChatStore } from "../store/chatStore"
 import { ApprovalBox } from "./ChatRow/ApprovalBox"
 import { useMessageHandlers } from "./ChatView/hooks/useMessageHandlers"
-import { useChatStore } from "../store/chatStore"
-import {
-    BotIcon,
-    CheckIcon,
-    ChevronDownIcon,
-    ChevronRightIcon,
-    CircleSlashIcon,
-    CircleXIcon,
-    LoaderCircleIcon,
-    NetworkIcon,
-} from "lucide-react"
-import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import MarkdownBlock from "@/shared/ui/MarkdownBlock"
 
 interface SubagentStatusRowProps {
 	message: IsaacMessage
@@ -183,9 +183,9 @@ function SubagentPromptText({ prompt, isExpanded, onShowMore }: SubagentPromptTe
 }
 
 export default function SubagentStatusRow({ message, isLast, lastModifiedMessage }: SubagentStatusRowProps) {
-	const messages = useChatStore((state: any) => state.diracMessages)
+	const messages = useChatStore((state: any) => state.isaacMessages)
 	const chatState = {
-		diracAsk: message.ask,
+		isaacAsk: message.ask,
 		lastMessage: message,
 		setInputValue: () => {},
 		setActiveQuote: () => {},
@@ -209,7 +209,7 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 				setIsProcessing(false)
 			}
 		},
-		[executeButtonAction, isProcessing]
+		[executeButtonAction, isProcessing],
 	)
 
 	const isPending = message.ask === "use_subagents"
@@ -269,7 +269,10 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 					const isStreamingPromptUnderConstruction =
 						isPromptConstructionRow && message.partial === true && index === data.items.length - 1
 					const shouldShowStats = !isStreamingPromptUnderConstruction
-					const cacheInfo = (entry.cacheWrites || entry.cacheReads) ? ` · cache: ${formatCount(entry.cacheReads)}r/${formatCount(entry.cacheWrites)}w` : ""
+					const cacheInfo =
+						entry.cacheWrites || entry.cacheReads
+							? ` · cache: ${formatCount(entry.cacheReads)}r/${formatCount(entry.cacheWrites)}w`
+							: ""
 					const statsText = `${formatCount(entry.toolCalls)} tools called · ${formatCount(entry.contextTokens)} tokens${cacheInfo} · ${formatCost(entry.totalCost)}`
 					const latestToolCallText = entry.latestToolCall?.trim() || ""
 					return (
@@ -327,8 +330,8 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 	if (message.ask === "use_subagents") {
 		return (
 			<ApprovalBox
-				isProcessing={isProcessing}
 				description={singular ? "Approve subagent" : `Approve ${data.items.length} subagents`}
+				isProcessing={isProcessing}
 				onApprove={() => handleAction("approve")}
 				onReject={() => handleAction("reject")}>
 				{content}

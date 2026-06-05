@@ -9,7 +9,7 @@ import {
 import { formatResponse } from "@core/prompts/responses"
 import { ensureRulesDirectoryExists, GlobalFileNames } from "@core/storage/disk"
 import { StateManager } from "@core/storage/StateManager"
-import { IsaacRulesToggles } from "@shared/dirac-rules"
+import { IsaacRulesToggles } from "@shared/isaac-rules"
 import { parseYamlFrontmatter } from "@utils/frontmatter"
 import { fileExistsAtPath, isDirectory, readDirectory } from "@utils/fs"
 import fs from "fs/promises"
@@ -47,7 +47,7 @@ export const getGlobalIsaacRules = async (
 					activatedConditionalRules.push(...rulesFilesTotal.activatedConditionalRules)
 				}
 			} catch {
-				Logger.error(`Failed to read .diracrules directory at ${globalIsaacRulesFilePath}`)
+				Logger.error(`Failed to read .isaacrules directory at ${globalIsaacRulesFilePath}`)
 			}
 		} else {
 			Logger.error(`${globalIsaacRulesFilePath} is not a directory`)
@@ -82,7 +82,7 @@ export const getGlobalIsaacRules = async (
 			}
 		}
 	} catch (error) {
-		Logger.warn("[dirac-rules] Failed to load plugin CLAUDE.md rules", error)
+		Logger.warn("[isaac-rules] Failed to load plugin CLAUDE.md rules", error)
 	}
 
 	// 4. Return formatted instructions
@@ -91,7 +91,7 @@ export const getGlobalIsaacRules = async (
 	}
 
 	return {
-		instructions: formatResponse.diracRulesGlobalDirectoryInstructions(globalIsaacRulesFilePath, combinedContent),
+		instructions: formatResponse.isaacRulesGlobalDirectoryInstructions(globalIsaacRulesFilePath, combinedContent),
 		activatedConditionalRules,
 	}
 }
@@ -101,18 +101,18 @@ export const getLocalIsaacRules = async (
 	toggles: IsaacRulesToggles,
 	opts?: { evaluationContext?: RuleEvaluationContext },
 ): Promise<RuleLoadResultWithInstructions> => {
-	const diracRulesFilePath = path.resolve(cwd, GlobalFileNames.diracRules)
+	const isaacRulesFilePath = path.resolve(cwd, GlobalFileNames.isaacRules)
 
 	let instructions: string | undefined
 	const activatedConditionalRules: ActivatedConditionalRule[] = []
 
-	if (await fileExistsAtPath(diracRulesFilePath)) {
-		if (await isDirectory(diracRulesFilePath)) {
+	if (await fileExistsAtPath(isaacRulesFilePath)) {
+		if (await isDirectory(isaacRulesFilePath)) {
 			try {
-				const rulesFilePaths = await readDirectory(diracRulesFilePath, [
-					[".diracrules", "workflows"],
-					[".diracrules", "hooks"],
-					[".diracrules", "skills"],
+				const rulesFilePaths = await readDirectory(isaacRulesFilePath, [
+					[".isaacrules", "workflows"],
+					[".isaacrules", "hooks"],
+					[".isaacrules", "skills"],
 				])
 
 				const rulesFilesTotal = await getRuleFilesTotalContentWithMetadata(rulesFilePaths, cwd, toggles, {
@@ -120,34 +120,34 @@ export const getLocalIsaacRules = async (
 					ruleNamePrefix: "workspace",
 				})
 				if (rulesFilesTotal.content) {
-					instructions = formatResponse.diracRulesLocalDirectoryInstructions(cwd, rulesFilesTotal.content)
+					instructions = formatResponse.isaacRulesLocalDirectoryInstructions(cwd, rulesFilesTotal.content)
 					activatedConditionalRules.push(...rulesFilesTotal.activatedConditionalRules)
 				}
 			} catch {
-				Logger.error(`Failed to read .diracrules directory at ${diracRulesFilePath}`)
+				Logger.error(`Failed to read .isaacrules directory at ${isaacRulesFilePath}`)
 			}
 		} else {
 			try {
-				if (diracRulesFilePath in toggles && toggles[diracRulesFilePath] !== false) {
-					const raw = (await fs.readFile(diracRulesFilePath, "utf8")).trim()
+				if (isaacRulesFilePath in toggles && toggles[isaacRulesFilePath] !== false) {
+					const raw = (await fs.readFile(isaacRulesFilePath, "utf8")).trim()
 					if (raw) {
-						// Keep single-file .diracrules behavior consistent with directory/remote rules:
+						// Keep single-file .isaacrules behavior consistent with directory/remote rules:
 						// - Parse YAML frontmatter (fail-open on parse errors)
 						// - Evaluate conditionals against the request's evaluation context
 						const parsed = parseYamlFrontmatter(raw)
 						if (parsed.hadFrontmatter && parsed.parseError) {
 							// Fail-open: preserve the raw contents so the LLM can still see the author's intent.
-							instructions = formatResponse.diracRulesLocalFileInstructions(cwd, raw)
+							instructions = formatResponse.isaacRulesLocalFileInstructions(cwd, raw)
 						} else {
 							const { passed, matchedConditions } = evaluateRuleConditionals(
 								parsed.data,
 								opts?.evaluationContext ?? {},
 							)
 							if (passed) {
-								instructions = formatResponse.diracRulesLocalFileInstructions(cwd, parsed.body.trim())
+								instructions = formatResponse.isaacRulesLocalFileInstructions(cwd, parsed.body.trim())
 								if (parsed.hadFrontmatter && Object.keys(matchedConditions).length > 0) {
 									activatedConditionalRules.push({
-										name: `${RULE_SOURCE_PREFIX.workspace}:${GlobalFileNames.diracRules}`,
+										name: `${RULE_SOURCE_PREFIX.workspace}:${GlobalFileNames.isaacRules}`,
 										matchedConditions,
 									})
 								}
@@ -156,7 +156,7 @@ export const getLocalIsaacRules = async (
 					}
 				}
 			} catch {
-				Logger.error(`Failed to read .diracrules file at ${diracRulesFilePath}`)
+				Logger.error(`Failed to read .isaacrules file at ${isaacRulesFilePath}`)
 			}
 		}
 	}
@@ -172,20 +172,20 @@ export async function refreshIsaacRulesToggles(
 	localToggles: IsaacRulesToggles
 }> {
 	// Global toggles
-	const globalDiracRulesToggles = controller.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
+	const globalIsaacRulesToggles = controller.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
 	const globalIsaacRulesFilePath = await ensureRulesDirectoryExists()
-	const updatedGlobalToggles = await synchronizeRuleToggles(globalIsaacRulesFilePath, globalDiracRulesToggles)
-	controller.stateManager.setGlobalState("globalDiracRulesToggles", updatedGlobalToggles)
+	const updatedGlobalToggles = await synchronizeRuleToggles(globalIsaacRulesFilePath, globalIsaacRulesToggles)
+	controller.stateManager.setGlobalState("globalIsaacRulesToggles", updatedGlobalToggles)
 
 	// Local toggles
-	const localDiracRulesToggles = controller.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
-	const localIsaacRulesFilePath = path.resolve(workingDirectory, GlobalFileNames.diracRules)
-	const updatedLocalToggles = await synchronizeRuleToggles(localIsaacRulesFilePath, localDiracRulesToggles, "", [
-		[".diracrules", "workflows"],
-		[".diracrules", "hooks"],
-		[".diracrules", "skills"],
+	const localIsaacRulesToggles = controller.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
+	const localIsaacRulesFilePath = path.resolve(workingDirectory, GlobalFileNames.isaacRules)
+	const updatedLocalToggles = await synchronizeRuleToggles(localIsaacRulesFilePath, localIsaacRulesToggles, "", [
+		[".isaacrules", "workflows"],
+		[".isaacrules", "hooks"],
+		[".isaacrules", "skills"],
 	])
-	controller.stateManager.setWorkspaceState("localDiracRulesToggles", updatedLocalToggles)
+	controller.stateManager.setWorkspaceState("localIsaacRulesToggles", updatedLocalToggles)
 
 	return {
 		globalToggles: updatedGlobalToggles,

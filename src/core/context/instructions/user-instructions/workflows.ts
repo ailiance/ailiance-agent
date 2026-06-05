@@ -1,6 +1,6 @@
 import { synchronizeRuleToggles } from "@core/context/instructions/user-instructions/rule-helpers"
 import { ensureWorkflowsDirectoryExists, GlobalFileNames } from "@core/storage/disk"
-import { IsaacRulesToggles } from "@shared/dirac-rules"
+import { IsaacRulesToggles } from "@shared/isaac-rules"
 import path from "path"
 import { Controller } from "@/core/controller"
 

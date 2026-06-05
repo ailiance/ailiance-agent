@@ -1,4 +1,4 @@
-import { BannerAction, BannerCardData } from "@shared/dirac/banner"
+import { BannerAction, BannerCardData } from "@shared/isaac/banner"
 import React, { useCallback } from "react"
 import { useMount } from "react-use"
 import DiscordIcon from "@/assets/DiscordIcon"
@@ -31,8 +31,8 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 			// Switch to Isaac provider first so the model picker tab works
 			// Optionally also set the model if provided
 			const updates: Record<string, any> = {
-				planModeApiProvider: "dirac",
-				actModeApiProvider: "dirac",
+				planModeApiProvider: "isaac",
+				actModeApiProvider: "isaac",
 			}
 			if (modelId) {
 				updates.planModeOpenRouterModelId = modelId
@@ -139,7 +139,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 							<a
 								aria-label="Follow us on LinkedIn"
 								className="text-[var(--vscode-foreground)] hover:text-[var(--vscode-textLink-activeForeground)] transition-colors"
-								href="https://www.linkedin.com/company/diracbot/"
+								href="https://www.linkedin.com/company/isaacbot/"
 								rel="noopener noreferrer"
 								target="_blank">
 								<LinkedInIcon />

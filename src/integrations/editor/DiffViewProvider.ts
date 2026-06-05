@@ -58,10 +58,8 @@ export abstract class DiffViewProvider {
 		}
 		const providers = getDiagnosticsProviders()
 
-		// get diagnostics before editing the file, we'll compare to diagnostics after editing to see if dirac needs to fix anything
-		this.preDiagnostics = (
-			await Promise.all(providers.map((p) => p.capturePreSaveState()))
-		).flat()
+		// get diagnostics before editing the file, we'll compare to diagnostics after editing to see if isaac needs to fix anything
+		this.preDiagnostics = (await Promise.all(providers.map((p) => p.capturePreSaveState()))).flat()
 		await this.openDiffEditor()
 		await this.scrollEditorToLine(0)
 		this.streamedLines = []
@@ -155,11 +153,7 @@ export abstract class DiffViewProvider {
 		let newProblemsMessage = ""
 
 		for (const provider of providers) {
-			const result = await provider.getDiagnosticsFeedback(
-				this.absolutePath,
-				postSaveContent || "",
-				this.preDiagnostics,
-			)
+			const result = await provider.getDiagnosticsFeedback(this.absolutePath, postSaveContent || "", this.preDiagnostics)
 
 			if (result.newProblemsMessage) {
 				newProblemsMessage = result.newProblemsMessage
@@ -360,9 +354,10 @@ export abstract class DiffViewProvider {
 		const preSaveContent = await this.getDocumentText()
 
 		if (!(await this.saveDocument())) {
-			throw new Error(`Failed to save changes to ${this.relPath}. The file may be read-only or the save operation was cancelled.`)
+			throw new Error(
+				`Failed to save changes to ${this.relPath}. The file may be read-only or the save operation was cancelled.`,
+			)
 		}
-
 
 		if (!this.relPath || !this.absolutePath || !this.newContent || preSaveContent === undefined) {
 			return {
@@ -392,7 +387,7 @@ export abstract class DiffViewProvider {
 			userEdits = formatResponse.createPrettyPatch(this.relPath.toPosix(), normalizedNewContent, normalizedPreSaveContent)
 			// return { newProblemsMessage, userEdits, finalContent: normalizedPostSaveContent }
 		} else {
-			// no changes to dirac's edits
+			// no changes to isaac's edits
 			// return { newProblemsMessage, userEdits: undefined, finalContent: normalizedPostSaveContent }
 		}
 
@@ -547,7 +542,6 @@ export abstract class DiffViewProvider {
 		userEdits: string | undefined
 	}>
 
-
 	/**
 	 * Shows the review UI for the specified files.
 	 * This is called when user approval is required for a batch of edits.
@@ -566,9 +560,7 @@ export abstract class DiffViewProvider {
 		}
 	}
 
-
 	async hideReview(): Promise<void> {
 		// Default no-op
 	}
-
 }

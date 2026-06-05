@@ -98,7 +98,7 @@ export function getReadablePath(cwd: string, relPath?: string): string {
 	if (isLocatedInPath(cwd, absolutePath)) {
 		return normalizedRelPath.toPosix()
 	}
-	// we are outside the cwd, so show the absolute path (useful for when dirac passes in '../../' for example)
+	// we are outside the cwd, so show the absolute path (useful for when isaac passes in '../../' for example)
 	return absolutePath.toPosix()
 }
 

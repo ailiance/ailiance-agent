@@ -1,10 +1,10 @@
 import type { IsaacMessage, Mode } from "@shared/ExtensionMessage"
+import { IsaacApiReqInfo } from "@shared/ExtensionMessage"
 import type { LucideIcon } from "lucide-react"
 import type React from "react"
 import { useMemo } from "react"
 import ErrorRow from "./ErrorRow"
 import { ThinkingRow } from "./ThinkingRow"
-import { IsaacApiReqInfo } from "@shared/ExtensionMessage"
 import { TypewriterText } from "./TypewriterText"
 
 interface RequestStartRowProps {
@@ -14,7 +14,7 @@ interface RequestStartRowProps {
 	cost?: number
 	reasoningContent?: string
 	responseStarted?: boolean
-	diracMessagesCount: number
+	isaacMessagesCount: number
 	mode?: Mode
 	classNames?: string
 	isExpanded: boolean
@@ -34,7 +34,7 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 	cost,
 	reasoningContent,
 	responseStarted,
-	diracMessagesCount,
+	isaacMessagesCount,
 	mode,
 	handleToggle,
 	isExpanded,
@@ -78,12 +78,11 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 		return "API call"
 	}, [apiReqInfo?.request])
 
-
 	// Derive explicit state
 	const hasError = !!(apiRequestFailedMessage || apiReqStreamingFailedMessage)
 	const hasCost = cost != null
 	const hasReasoning = !!reasoningContent
-	// We no longer have access to the full diracMessages array here for performance reasons.
+	// We no longer have access to the full isaacMessages array here for performance reasons.
 	// If hasCompletionResult is needed, it should be passed as a prop.
 	const hasCompletionResult = false
 
@@ -91,27 +90,23 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 
 	// Only show "Thinking..." if no actual response content has started yet.
 	// Once reasoning or tools start, this row should collapse to just the cost/metadata.
-	const shouldShowThinking = useMemo(
-		() => !hasError && !hasCost && !responseStarted,
-		[hasError, hasCost, responseStarted],
-	)
-
+	const shouldShowThinking = useMemo(() => !hasError && !hasCost && !responseStarted, [hasError, hasCost, responseStarted])
 
 	// Check if this api_req will be absorbed into a tool group (reasoning will disappear)
 	const willBeAbsorbed = useMemo(() => {
-		// We no longer have access to the full diracMessages array here for performance reasons.
+		// We no longer have access to the full isaacMessages array here for performance reasons.
 		return false
 	}, [message.ts])
 
 	// Find all exploratory tool activities that are currently in flight.
 	// Tools come AFTER the api_req_started message, so we look from currentApiReq forward.
 	const currentActivities = useMemo(() => {
-		// We no longer have access to the full diracMessages array here for performance reasons.
+		// We no longer have access to the full isaacMessages array here for performance reasons.
 		return []
 	}, [])
 
 	const hasCompletedTools = useMemo(() => {
-		// We no longer have access to the full diracMessages array here for performance reasons.
+		// We no longer have access to the full isaacMessages array here for performance reasons.
 		return false
 	}, [])
 
@@ -126,48 +121,45 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 		<div className="flex flex-col gap-1">
 			{echoedRequest && (
 				<div className="flex items-center gap-2 px-1 text-description opacity-80">
-					<span className="text-[11px] font-medium tracking-tight truncate">
-						{echoedRequest}
-					</span>
+					<span className="text-[11px] font-medium tracking-tight truncate">{echoedRequest}</span>
 				</div>
 			)}
-		<div>
-			{apiReqState === "pre" && shouldShowActivities && (
-				<div className="flex items-center text-description w-full text-sm">
-					<div className="ml-1 flex-1 w-full h-full">
-						<div className="flex flex-col gap-0.5 w-full min-h-1">
-							{(currentActivities as { icon: LucideIcon; text: string }[]).map((activity, _) => (
-								<div className="flex items-center gap-2 h-auto w-full overflow-hidden" key={activity.text}>
-									<activity.icon className="size-2 text-foreground shrink-0" />
-									<TypewriterText speed={15} text={activity.text} />
-								</div>
-							))}
+			<div>
+				{apiReqState === "pre" && shouldShowActivities && (
+					<div className="flex items-center text-description w-full text-sm">
+						<div className="ml-1 flex-1 w-full h-full">
+							<div className="flex flex-col gap-0.5 w-full min-h-1">
+								{(currentActivities as { icon: LucideIcon; text: string }[]).map((activity, _) => (
+									<div className="flex items-center gap-2 h-auto w-full overflow-hidden" key={activity.text}>
+										<activity.icon className="size-2 text-foreground shrink-0" />
+										<TypewriterText speed={15} text={activity.text} />
+									</div>
+								))}
+							</div>
 						</div>
 					</div>
-				</div>
-			)}
-			{shouldShowThinking && (
-				<ThinkingRow
-					isExpanded={false}
-					isStreaming={true}
-					isVisible={true}
-					onAskForUpdate={onAskForUpdate}
-					showChevron={false}
-					showTitle={true}
-					title="Thinking..."
-				/>
-			)}
+				)}
+				{shouldShowThinking && (
+					<ThinkingRow
+						isExpanded={false}
+						isStreaming={true}
+						isVisible={true}
+						onAskForUpdate={onAskForUpdate}
+						showChevron={false}
+						showTitle={true}
+						title="Thinking..."
+					/>
+				)}
 
-
-			{apiReqState === "error" && (
-				<ErrorRow
-					apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
-					apiRequestFailedMessage={apiRequestFailedMessage}
-					errorType="error"
-					message={message}
-				/>
-			)}
-		</div>
+				{apiReqState === "error" && (
+					<ErrorRow
+						apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
+						apiRequestFailedMessage={apiRequestFailedMessage}
+						errorType="error"
+						message={message}
+					/>
+				)}
+			</div>
 		</div>
 	)
 }

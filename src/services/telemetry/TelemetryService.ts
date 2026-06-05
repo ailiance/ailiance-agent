@@ -1,7 +1,7 @@
 import { HostProvider } from "@hosts/host-provider"
 import type { BrowserSettings } from "@shared/BrowserSettings"
-import { ApiFormat, apiFormatToJSON } from "@shared/proto/isaac/models"
 import { ShowMessageType } from "@shared/proto/host/window"
+import { ApiFormat, apiFormatToJSON } from "@shared/proto/isaac/models"
 import type { TaskFeedbackType } from "@shared/WebviewMessage"
 import * as os from "os"
 import { Setting } from "@/shared/proto/index.host"
@@ -67,17 +67,17 @@ export enum TerminalHangStage {
 
 export type TelemetryMetadata = {
 	/**
-	 * The extension or dirac-core version. JetBrains and CLI have different
-	 * versioning than the VSCode Extension, but on those platforms this will be the _dirac-core version_
+	 * The extension or isaac-core version. JetBrains and CLI have different
+	 * versioning than the VSCode Extension, but on those platforms this will be the _isaac-core version_
 	 * which uses the same as the versioning as the VSCode extension.
 	 */
 	extension_version: string
 	/**
-	 * The type of dirac distribution, e.g VSCode Extension, JetBrains Plugin or CLI. This
+	 * The type of isaac distribution, e.g VSCode Extension, JetBrains Plugin or CLI. This
 	 * is different than the `platform` because there are many variants of VSCode and JetBrains but they
 	 * all use the same extension or plugin.
 	 */
-	dirac_type: string
+	isaac_type: string
 	/** The name of the host IDE or environment e.g. VSCode, Cursor, IntelliJ Professional Edition, etc. */
 	platform: string
 	/** The version of the host environment */
@@ -136,59 +136,59 @@ export class TelemetryService {
 	private taskErrorCounts = new Map<string, number>()
 	public static readonly METRICS = {
 		TASK: {
-			TURNS_TOTAL: "dirac.turns.total",
-			TURNS_PER_TASK: "dirac.turns.per_task",
-			TOKENS_INPUT_TOTAL: "dirac.tokens.input.total",
-			TOKENS_INPUT_PER_RESPONSE: "dirac.tokens.input.per_response",
-			TOKENS_OUTPUT_TOTAL: "dirac.tokens.output.total",
-			TOKENS_OUTPUT_PER_RESPONSE: "dirac.tokens.output.per_response",
-			COST_TOTAL: "dirac.cost.total",
-			COST_PER_EVENT: "dirac.cost.per_event",
+			TURNS_TOTAL: "isaac.turns.total",
+			TURNS_PER_TASK: "isaac.turns.per_task",
+			TOKENS_INPUT_TOTAL: "isaac.tokens.input.total",
+			TOKENS_INPUT_PER_RESPONSE: "isaac.tokens.input.per_response",
+			TOKENS_OUTPUT_TOTAL: "isaac.tokens.output.total",
+			TOKENS_OUTPUT_PER_RESPONSE: "isaac.tokens.output.per_response",
+			COST_TOTAL: "isaac.cost.total",
+			COST_PER_EVENT: "isaac.cost.per_event",
 		},
 		CACHE: {
-			WRITE_TOTAL: "dirac.cache.write.tokens.total",
-			WRITE_PER_EVENT: "dirac.cache.write.tokens.per_event",
-			READ_TOTAL: "dirac.cache.read.tokens.total",
-			READ_PER_EVENT: "dirac.cache.read.tokens.per_event",
-			HITS_TOTAL: "dirac.cache.hits.total",
+			WRITE_TOTAL: "isaac.cache.write.tokens.total",
+			WRITE_PER_EVENT: "isaac.cache.write.tokens.per_event",
+			READ_TOTAL: "isaac.cache.read.tokens.total",
+			READ_PER_EVENT: "isaac.cache.read.tokens.per_event",
+			HITS_TOTAL: "isaac.cache.hits.total",
 		},
 		TOOLS: {
-			CALLS_TOTAL: "dirac.tool.calls.total",
-			CALLS_PER_TASK: "dirac.tool.calls.per_task",
+			CALLS_TOTAL: "isaac.tool.calls.total",
+			CALLS_PER_TASK: "isaac.tool.calls.per_task",
 		},
 		ERRORS: {
-			TOTAL: "dirac.errors.total",
-			PER_TASK: "dirac.errors.per_task",
+			TOTAL: "isaac.errors.total",
+			PER_TASK: "isaac.errors.per_task",
 		},
 		API: {
-			TTFT_SECONDS: "dirac.api.ttft.seconds",
-			DURATION_SECONDS: "dirac.api.duration.seconds",
-			THROUGHPUT_TOKENS_PER_SECOND: "dirac.api.throughput.tokens_per_second",
+			TTFT_SECONDS: "isaac.api.ttft.seconds",
+			DURATION_SECONDS: "isaac.api.duration.seconds",
+			THROUGHPUT_TOKENS_PER_SECOND: "isaac.api.throughput.tokens_per_second",
 		},
 		HOOKS: {
-			EXECUTIONS_TOTAL: "dirac.hooks.executions.total",
-			DURATION_SECONDS: "dirac.hooks.duration.seconds",
-			FAILURES_TOTAL: "dirac.hooks.failures.total",
-			CANCELLATIONS_TOTAL: "dirac.hooks.cancellations.total",
-			CONTEXT_MODIFICATIONS_TOTAL: "dirac.hooks.context_modifications.total",
-			CACHE_ACCESSES_TOTAL: "dirac.hooks.cache.accesses.total",
+			EXECUTIONS_TOTAL: "isaac.hooks.executions.total",
+			DURATION_SECONDS: "isaac.hooks.duration.seconds",
+			FAILURES_TOTAL: "isaac.hooks.failures.total",
+			CANCELLATIONS_TOTAL: "isaac.hooks.cancellations.total",
+			CONTEXT_MODIFICATIONS_TOTAL: "isaac.hooks.context_modifications.total",
+			CACHE_ACCESSES_TOTAL: "isaac.hooks.cache.accesses.total",
 		},
 		AI_OUTPUT: {
-			ACCEPTED_LINES_ADDED: "dirac.ai_output.accepted.lines_added.total",
-			ACCEPTED_LINES_DELETED: "dirac.ai_output.accepted.lines_deleted.total",
-			ACCEPTED_LINES_CHANGED: "dirac.ai_output.accepted.lines_changed.total",
-			ACCEPTED_FILES_CREATED: "dirac.ai_output.accepted.files_created.total",
-			ACCEPTED_FILES_DELETED: "dirac.ai_output.accepted.files_deleted.total",
-			ACCEPTED_FILES_MOVED: "dirac.ai_output.accepted.files_moved.total",
-			REJECTED_LINES_ADDED: "dirac.ai_output.rejected.lines_added.total",
-			REJECTED_LINES_DELETED: "dirac.ai_output.rejected.lines_deleted.total",
-			REJECTED_LINES_CHANGED: "dirac.ai_output.rejected.lines_changed.total",
-			REJECTED_FILES_CREATED: "dirac.ai_output.rejected.files_created.total",
-			REJECTED_FILES_DELETED: "dirac.ai_output.rejected.files_deleted.total",
-			REJECTED_FILES_MOVED: "dirac.ai_output.rejected.files_moved.total",
+			ACCEPTED_LINES_ADDED: "isaac.ai_output.accepted.lines_added.total",
+			ACCEPTED_LINES_DELETED: "isaac.ai_output.accepted.lines_deleted.total",
+			ACCEPTED_LINES_CHANGED: "isaac.ai_output.accepted.lines_changed.total",
+			ACCEPTED_FILES_CREATED: "isaac.ai_output.accepted.files_created.total",
+			ACCEPTED_FILES_DELETED: "isaac.ai_output.accepted.files_deleted.total",
+			ACCEPTED_FILES_MOVED: "isaac.ai_output.accepted.files_moved.total",
+			REJECTED_LINES_ADDED: "isaac.ai_output.rejected.lines_added.total",
+			REJECTED_LINES_DELETED: "isaac.ai_output.rejected.lines_deleted.total",
+			REJECTED_LINES_CHANGED: "isaac.ai_output.rejected.lines_changed.total",
+			REJECTED_FILES_CREATED: "isaac.ai_output.rejected.files_created.total",
+			REJECTED_FILES_DELETED: "isaac.ai_output.rejected.files_deleted.total",
+			REJECTED_FILES_MOVED: "isaac.ai_output.rejected.files_moved.total",
 		},
 		GRPC: {
-			RESPONSE_SIZE_BYTES: "dirac.grpc.response.size_bytes",
+			RESPONSE_SIZE_BYTES: "isaac.grpc.response.size_bytes",
 		},
 	}
 	// Event constants for tracking user interactions and system events
@@ -272,7 +272,7 @@ export class TelemetryService {
 			// Tracks when yolo mode setting is toggled on/off
 			YOLO_MODE_TOGGLED: "task.yolo_mode_toggled",
 			// Tracks when Isaac web tools setting is toggled on/off
-			CLINE_WEB_TOOLS_TOGGLED: "task.dirac_web_tools_toggled",
+			CLINE_WEB_TOOLS_TOGGLED: "task.isaac_web_tools_toggled",
 			// Tracks task initialization timing
 			INITIALIZATION: "task.initialization",
 			// Terminal execution telemetry events
@@ -343,7 +343,7 @@ export class TelemetryService {
 			extension_version: extensionVersion,
 			platform: hostVersion.platform || "unknown",
 			platform_version: hostVersion.version || "unknown",
-			dirac_type: hostVersion.diracType || "unknown",
+			isaac_type: hostVersion.isaacType || "unknown",
 			os_type: os.platform(),
 			os_version: os.version(),
 			is_dev: process.env.IS_DEV,
@@ -421,7 +421,7 @@ export class TelemetryService {
 		this.capture({ event: TelemetryService.EVENTS.USER.OPT_IN })
 	}
 
-		/**
+	/**
 	 * Captures a telemetry event if telemetry is enabled
 	 * @param event The event to capture with its properties
 	 */
@@ -430,7 +430,7 @@ export class TelemetryService {
 		this.captureToProviders(event.event, propertiesWithMetadata, false)
 	}
 
-		/**
+	/**
 	 * Captures a required telemetry event that bypasses user opt-out settings
 	 * @param event The event name to capture
 	 * @param properties Optional properties to attach to the event
@@ -610,7 +610,7 @@ export class TelemetryService {
 		})
 	}
 
-		/**
+	/**
 	 * Identifies the user and their organization for telemetry tracking.
 	 * This should be called after successful authentication.
 	 * @param userInfo User information including ID and organization details
@@ -667,7 +667,7 @@ export class TelemetryService {
 	}
 
 	/**
-	 * Records when dirac calls the task completion_result tool signifying that dirac is done with the task
+	 * Records when isaac calls the task completion_result tool signifying that isaac is done with the task
 	 * @param ulid Unique identifier for the task
 	 */
 	public captureTaskCompleted(
@@ -809,7 +809,7 @@ export class TelemetryService {
 	 * @param ulid Unique identifier for the task
 	 * @param tokensIn Number of input tokens consumed
 	 * @param tokensOut Number of output tokens generated
-	 * @param provider The API provider identifier (e.g. "anthropic", "openai", "dirac")
+	 * @param provider The API provider identifier (e.g. "anthropic", "openai", "isaac")
 	 * @param model The model used for token calculation
 	 */
 	public captureTokenUsage(
@@ -1623,11 +1623,11 @@ export class TelemetryService {
 		})
 
 		const isMultiRoot = rootCount > 1
-		this.recordGauge("dirac.workspace.active_roots", rootCount, {
+		this.recordGauge("isaac.workspace.active_roots", rootCount, {
 			is_multi_root: isMultiRoot,
 		})
 		// Retire the previous series to avoid leaking gauge entries when the flag flips.
-		this.recordGauge("dirac.workspace.active_roots", null, {
+		this.recordGauge("isaac.workspace.active_roots", null, {
 			is_multi_root: !isMultiRoot,
 		})
 	}

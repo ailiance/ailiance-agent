@@ -112,7 +112,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 				absolutePath,
 				regex,
 				filePattern,
-				config.services.diracIgnoreController,
+				config.services.isaacIgnoreController,
 				config.ulid,
 				contextLines,
 				excludeFilePatterns,

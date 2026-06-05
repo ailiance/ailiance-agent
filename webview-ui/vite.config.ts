@@ -119,7 +119,7 @@ export default defineConfig({
 			platform: JSON.stringify(process?.platform),
 			env: {
 				NODE_ENV: JSON.stringify(process?.env?.IS_DEV ? "development" : "production"),
-				DIRAC_ENVIRONMENT: JSON.stringify(process?.env?.DIRAC_ENVIRONMENT ?? "production"),
+				ISAAC_ENVIRONMENT: JSON.stringify(process?.env?.ISAAC_ENVIRONMENT ?? "production"),
 				IS_DEV: JSON.stringify(process?.env?.IS_DEV),
 				IS_TEST: JSON.stringify(process?.env?.IS_TEST),
 				CI: JSON.stringify(process?.env?.CI),

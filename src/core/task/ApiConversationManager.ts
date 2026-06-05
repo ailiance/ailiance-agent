@@ -42,7 +42,7 @@ export class ApiConversationManager {
 					apiConversationHistory,
 					conversationHistoryDeletedRange: this.dependencies.taskState.conversationHistoryDeletedRange,
 					contextManager: this.dependencies.contextManager,
-					diracMessages: this.dependencies.messageStateHandler.getIsaacMessages(),
+					isaacMessages: this.dependencies.messageStateHandler.getIsaacMessages(),
 					messageStateHandler: this.dependencies.messageStateHandler,
 					compactionStrategy: "standard-truncation-lastquarter",
 					deletedRange,
@@ -127,10 +127,15 @@ export class ApiConversationManager {
 		providerId: string
 		modelId: string
 		mode: string
-	}): Promise<{ userContent: IsaacContent[]; lastApiReqIndex: number; isDirectResponse?: boolean; directResponseText?: string }> {
+	}): Promise<{
+		userContent: IsaacContent[]
+		lastApiReqIndex: number
+		isDirectResponse?: boolean
+		directResponseText?: string
+	}> {
 		let parsedUserContent: IsaacContent[]
 		let environmentDetails: string
-		let diracrulesError: boolean
+		let isaacrulesError: boolean
 		let isDirectResponse = false
 		let directResponseText = params.directResponseText
 
@@ -138,38 +143,39 @@ export class ApiConversationManager {
 			// When compacting, skip full context loading (use summarize_task instead)
 			parsedUserContent = params.userContent
 			environmentDetails = ""
-			diracrulesError = false
+			isaacrulesError = false
 			this.dependencies.taskState.lastAutoCompactTriggerIndex = params.previousApiReqIndex
 		} else {
 			// When NOT compacting, load full context with mentions parsing and slash commands
 			const [
 				parsedUserContentResult,
 				environmentDetailsResult,
-				diracrulesErrorResult,
+				isaacrulesErrorResult,
 				,
 				isDirectResponseResult,
 				directResponseTextResult,
-			] = await this.dependencies.loadContext(
-				params.userContent,
-				params.includeFileDetails,
-				params.useCompactPrompt,
-			)
+			] = await this.dependencies.loadContext(params.userContent, params.includeFileDetails, params.useCompactPrompt)
 			parsedUserContent = parsedUserContentResult
 			environmentDetails = environmentDetailsResult
-			diracrulesError = diracrulesErrorResult
+			isaacrulesError = isaacrulesErrorResult
 			isDirectResponse = isDirectResponseResult
 			directResponseText = directResponseTextResult
 		}
 
 		if (isDirectResponse && directResponseText) {
-			return { userContent: [{ type: "text", text: directResponseText }], lastApiReqIndex: -1, isDirectResponse: true, directResponseText }
+			return {
+				userContent: [{ type: "text", text: directResponseText }],
+				lastApiReqIndex: -1,
+				isDirectResponse: true,
+				directResponseText,
+			}
 		}
 
-		// error handling if the user uses the /newrule command & their .diracrules is a file, for file read operations didnt work properly
-		if (diracrulesError === true) {
+		// error handling if the user uses the /newrule command & their .isaacrules is a file, for file read operations didnt work properly
+		if (isaacrulesError === true) {
 			await this.dependencies.say(
 				"error",
-				"Issue with processing the /newrule command. Double check that, if '.diracrules' already exists, it's a directory and not a file. Otherwise there was an issue referencing this file/directory.",
+				"Issue with processing the /newrule command. Double check that, if '.isaacrules' already exists, it's a directory and not a file. Otherwise there was an issue referencing this file/directory.",
 			)
 		}
 
@@ -185,10 +191,7 @@ export class ApiConversationManager {
 		if (params.shouldCompact) {
 			userContent.push({
 				type: "text",
-				text: summarizeTask(
-					this.dependencies.cwd,
-					isMultiRootEnabled(this.dependencies.stateManager),
-				),
+				text: summarizeTask(this.dependencies.cwd, isMultiRootEnabled(this.dependencies.stateManager)),
 			})
 		}
 
@@ -246,5 +249,4 @@ export class ApiConversationManager {
 
 		return { userContent, lastApiReqIndex, directResponseText }
 	}
-
 }

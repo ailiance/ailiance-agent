@@ -371,7 +371,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			config.taskState.didEditFile = true // used to determine if we should wait for busy terminal to update before sending api request
 
 			// Track file edit operation
-			await config.services.fileContextTracker.trackFileContext(relPath, "dirac_edited")
+			await config.services.fileContextTracker.trackFileContext(relPath, "isaac_edited")
 
 			// Reset the diff view
 			await config.services.diffViewProvider.reset()
@@ -458,13 +458,13 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			resolutionMethod: (typeof pathResult !== "string" ? "hint" : "primary_fallback") as "hint" | "primary_fallback",
 		}
 
-		// Check diracignore access first
+		// Check isaacignore access first
 		const accessValidation = this.validator.checkIsaacIgnorePath(resolvedPath)
 		if (!accessValidation.ok) {
 			// Show error to user
-			await config.callbacks.say("diracignore_error", resolvedPath)
+			await config.callbacks.say("isaacignore_error", resolvedPath)
 
-			const errorResponse = formatResponse.toolError(formatResponse.diracIgnoreError(resolvedPath))
+			const errorResponse = formatResponse.toolError(formatResponse.isaacIgnoreError(resolvedPath))
 
 			if (!config.enableParallelToolCalling) {
 				config.taskState.didAlreadyUseTool = true

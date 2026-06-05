@@ -122,7 +122,7 @@ class CheckpointTracker {
 	 * - Creates/initializes shadow git repository
 	 *
 	 * Configuration:
-	 * - Respects 'dirac.enableCheckpoints' VS Code setting
+	 * - Respects 'isaac.enableCheckpoints' VS Code setting
 	 */
 	public static async create(
 		taskId: string,

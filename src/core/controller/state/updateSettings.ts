@@ -20,8 +20,8 @@ import { Controller } from ".."
  */
 export async function updateSettings(controller: Controller, request: UpdateSettingsRequest): Promise<Empty> {
 	try {
-		if (request.diracEnv !== undefined) {
-			IsaacEnv.setEnvironment(request.diracEnv)
+		if (request.isaacEnv !== undefined) {
+			IsaacEnv.setEnvironment(request.isaacEnv)
 		}
 
 		if (request.apiConfiguration) {
@@ -125,12 +125,12 @@ export async function updateSettings(controller: Controller, request: UpdateSett
 			controller.stateManager.setGlobalState("yoloModeToggled", request.yoloModeToggled)
 		}
 
-		// Update dirac web tools setting
-		if (request.diracWebToolsEnabled !== undefined) {
+		// Update isaac web tools setting
+		if (request.isaacWebToolsEnabled !== undefined) {
 			if (controller.task) {
-				telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, request.diracWebToolsEnabled)
+				telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, request.isaacWebToolsEnabled)
 			}
-			controller.stateManager.setGlobalState("diracWebToolsEnabled", request.diracWebToolsEnabled)
+			controller.stateManager.setGlobalState("isaacWebToolsEnabled", request.isaacWebToolsEnabled)
 		}
 
 		// Update worktrees setting

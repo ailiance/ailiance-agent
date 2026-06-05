@@ -83,7 +83,7 @@ let pendingRefresh: Promise<Record<string, ModelInfo>> | null = null
 
 async function fetchRawIsaacModels(): Promise<IsaacRawModelInfo[]> {
 	const apiBaseUrl = IsaacEnv.config().apiBaseUrl
-	const response = await axios.get(`${apiBaseUrl}/api/v1/ai/dirac/models`, getAxiosSettings())
+	const response = await axios.get(`${apiBaseUrl}/api/v1/ai/isaac/models`, getAxiosSettings())
 
 	if (!Array.isArray(response.data?.data)) {
 		throw new Error("Invalid response data when fetching Isaac models")
@@ -99,13 +99,13 @@ async function fetchRawIsaacModels(): Promise<IsaacRawModelInfo[]> {
  * @returns Record of model ID to ModelInfo (application types)
  */
 export async function refreshIsaacModels(controller: Controller): Promise<Record<string, ModelInfo>> {
-	const shouldUseIsaacEndpointSource = featureFlagsService.getBooleanFlagEnabled(FeatureFlag.EXTENSION_DIRAC_MODELS_ENDPOINT)
+	const shouldUseIsaacEndpointSource = featureFlagsService.getBooleanFlagEnabled(FeatureFlag.EXTENSION_ISAAC_MODELS_ENDPOINT)
 	if (!shouldUseIsaacEndpointSource) {
 		return refreshOpenRouterModels(controller)
 	}
 
 	// Check in-memory cache first
-	const cache = StateManager.get().getModelsCache("dirac")
+	const cache = StateManager.get().getModelsCache("isaac")
 	if (cache) {
 		return cache
 	}
@@ -129,7 +129,7 @@ export async function refreshIsaacModels(controller: Controller): Promise<Record
 }
 
 async function fetchAndCacheIsaacModels(): Promise<Record<string, ModelInfo>> {
-	const diracModelsFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.diracModels)
+	const isaacModelsFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.isaacModels)
 
 	let models: Record<string, ModelInfo> = {}
 	try {
@@ -275,16 +275,16 @@ async function fetchAndCacheIsaacModels(): Promise<Record<string, ModelInfo>> {
 			throw new Error("No Isaac models returned from API")
 		}
 		// Save models and cache them in memory
-		await fs.writeFile(diracModelsFilePath, JSON.stringify(models))
+		await fs.writeFile(isaacModelsFilePath, JSON.stringify(models))
 		Logger.log("Isaac models fetched and saved")
 	} catch (error) {
 		Logger.error("Error fetching Isaac models:", error)
 
 		// If we failed to fetch models, try to read cached models from disk
 		try {
-			const fileExists = await fileExistsAtPath(diracModelsFilePath)
+			const fileExists = await fileExistsAtPath(isaacModelsFilePath)
 			if (fileExists) {
-				const fileContents = await fs.readFile(diracModelsFilePath, "utf8")
+				const fileContents = await fs.readFile(isaacModelsFilePath, "utf8")
 				models = JSON.parse(fileContents)
 				Logger.log("Loaded Isaac models from cache")
 			}
@@ -295,7 +295,7 @@ async function fetchAndCacheIsaacModels(): Promise<Record<string, ModelInfo>> {
 
 	// Avoid poisoning in-memory cache with an empty model map after transient failures.
 	if (Object.keys(models).length > 0) {
-		StateManager.get().setModelsCache("dirac", models)
+		StateManager.get().setModelsCache("isaac", models)
 	}
 
 	return models
@@ -307,10 +307,10 @@ async function fetchAndCacheIsaacModels(): Promise<Record<string, ModelInfo>> {
  */
 export async function readIsaacModelsFromCache(): Promise<Record<string, ModelInfo> | undefined> {
 	try {
-		const diracModelsFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.diracModels)
-		const fileExists = await fileExistsAtPath(diracModelsFilePath)
+		const isaacModelsFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.isaacModels)
+		const fileExists = await fileExistsAtPath(isaacModelsFilePath)
 		if (fileExists) {
-			const fileContents = await fs.readFile(diracModelsFilePath, "utf8")
+			const fileContents = await fs.readFile(isaacModelsFilePath, "utf8")
 			return JSON.parse(fileContents)
 		}
 	} catch (error) {

@@ -31,7 +31,7 @@ function parseIntEnv(value: string | undefined, fallback: number): number {
 export function getBlobStoreSettingsFromEnv(): BlobStoreSettings {
 	return {
 		adapterType: process?.env?.CLINE_STORAGE_ADAPTER || "unknown",
-		bucket: process?.env?.CLINE_STORAGE_BUCKET || "dirac",
+		bucket: process?.env?.CLINE_STORAGE_BUCKET || "isaac",
 		accessKeyId: process?.env?.CLINE_STORAGE_ACCESS_KEY_ID || "",
 		secretAccessKey: process?.env?.CLINE_STORAGE_SECRET_ACCESS_KEY || "",
 		region: process?.env?.CLINE_STORAGE_REGION,

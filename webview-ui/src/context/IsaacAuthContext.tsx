@@ -11,7 +11,7 @@ export interface IsaacUser {
 }
 
 export interface IsaacAuthContextType {
-	diracUser: IsaacUser | null
+	isaacUser: IsaacUser | null
 	organizations: any[] | null
 	activeOrganization: any | null
 }
@@ -22,7 +22,7 @@ export const IsaacAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 	return (
 		<IsaacAuthContext.Provider
 			value={{
-				diracUser: null,
+				isaacUser: null,
 				organizations: null,
 				activeOrganization: null,
 			}}>

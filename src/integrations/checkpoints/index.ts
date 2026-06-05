@@ -124,8 +124,8 @@ export class TaskCheckpointManager implements ICheckpointManager {
 			}
 
 			// Set isCheckpointCheckedOut to false for all prior checkpoint_created messages
-			const diracMessages = this.services.messageStateHandler.getIsaacMessages()
-			diracMessages.forEach((message) => {
+			const isaacMessages = this.services.messageStateHandler.getIsaacMessages()
+			isaacMessages.forEach((message) => {
 				if (message.say === "checkpoint_created") {
 					message.isCheckpointCheckedOut = false
 				}
@@ -155,7 +155,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 			// Non attempt-completion messages call for a checkpoint_created message to be added
 			if (!isAttemptCompletionMessage) {
 				// Ensure we aren't creating back-to-back checkpoint_created messages
-				const lastMessage = diracMessages.at(-1)
+				const lastMessage = isaacMessages.at(-1)
 				if (lastMessage?.say === "checkpoint_created") {
 					return
 				}
@@ -190,8 +190,8 @@ export class TaskCheckpointManager implements ICheckpointManager {
 				// attempt_completion messages are special
 				// First check last 3 messages to see if we already have a recent completion checkpoint
 				// If we do, skip creating a duplicate checkpoint
-				const lastFivediracMessages = this.services.messageStateHandler.getIsaacMessages().slice(-3)
-				const lastCompletionResultMessage = findLast(lastFivediracMessages, (m) => m.say === "completion_result")
+				const lastFiveisaacMessages = this.services.messageStateHandler.getIsaacMessages().slice(-3)
+				const lastCompletionResultMessage = findLast(lastFiveisaacMessages, (m) => m.say === "completion_result")
 				if (lastCompletionResultMessage?.lastCheckpointHash) {
 					Logger.log("Completion checkpoint already exists, skipping duplicate checkpoint creation")
 					return
@@ -242,12 +242,12 @@ export class TaskCheckpointManager implements ICheckpointManager {
 		offset?: number,
 	): Promise<CheckpointRestoreStateUpdate> {
 		try {
-			const diracMessages = this.services.messageStateHandler.getIsaacMessages()
-			const messageIndex = diracMessages.findIndex((m) => m.ts === messageTs) - (offset || 0)
+			const isaacMessages = this.services.messageStateHandler.getIsaacMessages()
+			const messageIndex = isaacMessages.findIndex((m) => m.ts === messageTs) - (offset || 0)
 			// Find the last message before messageIndex that has a lastCheckpointHash
-			const lastHashIndex = findLastIndex(diracMessages.slice(0, messageIndex), (m) => m.lastCheckpointHash !== undefined)
-			const message = diracMessages[messageIndex]
-			const lastMessageWithHash = diracMessages[lastHashIndex]
+			const lastHashIndex = findLastIndex(isaacMessages.slice(0, messageIndex), (m) => m.lastCheckpointHash !== undefined)
+			const message = isaacMessages[messageIndex]
+			const lastMessageWithHash = isaacMessages[lastHashIndex]
 
 			if (!message) {
 				Logger.error(`[TaskCheckpointManager] Message not found for timestamp ${messageTs} in task ${this.task.taskId}`)
@@ -407,9 +407,9 @@ export class TaskCheckpointManager implements ICheckpointManager {
 			}
 
 			Logger.log(`[TaskCheckpointManager] presentMultifileDiff for task ${this.task.taskId}, messageTs: ${messageTs}`)
-			const diracMessages = this.services.messageStateHandler.getIsaacMessages()
-			const messageIndex = diracMessages.findIndex((m) => m.ts === messageTs)
-			const message = diracMessages[messageIndex]
+			const isaacMessages = this.services.messageStateHandler.getIsaacMessages()
+			const messageIndex = isaacMessages.findIndex((m) => m.ts === messageTs)
+			const message = isaacMessages[messageIndex]
 			if (!message) {
 				Logger.error(`[TaskCheckpointManager] Message not found for timestamp ${messageTs} in task ${this.task.taskId}`)
 				relinquishButton()
@@ -575,9 +575,9 @@ export class TaskCheckpointManager implements ICheckpointManager {
 				return false
 			}
 
-			const diracMessages = this.services.messageStateHandler.getIsaacMessages()
-			const messageIndex = findLastIndex(diracMessages, (m) => m.say === "completion_result")
-			const message = diracMessages[messageIndex]
+			const isaacMessages = this.services.messageStateHandler.getIsaacMessages()
+			const messageIndex = findLastIndex(isaacMessages, (m) => m.say === "completion_result")
+			const message = isaacMessages[messageIndex]
 			if (!message) {
 				Logger.error(`[TaskCheckpointManager] Completion message not found for task ${this.task.taskId}`)
 				return false
@@ -667,10 +667,9 @@ export class TaskCheckpointManager implements ICheckpointManager {
 				const newConversationHistory = apiConversationHistory.slice(0, (message.conversationHistoryIndex || 0) + 2) // +1 since this index corresponds to the last user message, and another +1 since slice end index is exclusive
 				await this.services.messageStateHandler.overwriteApiConversationHistory(newConversationHistory)
 
-
 				// aggregate deleted api reqs info so we don't lose costs/tokens
-				const diracMessages = this.services.messageStateHandler.getIsaacMessages()
-				const deletedMessages = diracMessages.slice(messageIndex + 1)
+				const isaacMessages = this.services.messageStateHandler.getIsaacMessages()
+				const deletedMessages = isaacMessages.slice(messageIndex + 1)
 				const deletedApiReqsMetrics = getApiMetrics(combineApiRequests(combineCommandSequences(deletedMessages)))
 
 				// Detect files edited after this message timestamp for file context warning
@@ -685,7 +684,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 					}
 				}
 
-				const newIsaacMessages = diracMessages.slice(0, messageIndex + 1)
+				const newIsaacMessages = isaacMessages.slice(0, messageIndex + 1)
 				await this.services.messageStateHandler.overwriteIsaacMessages(newIsaacMessages) // calls saveIsaacMessages which saves historyItem
 
 				await this.callbacks.say(

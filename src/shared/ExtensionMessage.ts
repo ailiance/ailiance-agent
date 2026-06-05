@@ -5,10 +5,10 @@ import type { Environment } from "../config"
 import { AutoApprovalSettings } from "./AutoApprovalSettings"
 import { ApiConfiguration } from "./api"
 import { BrowserSettings } from "./BrowserSettings"
-import { IsaacFeatureSetting } from "./IsaacFeatureSetting"
-import { BannerCardData } from "./dirac/banner"
-import { IsaacRulesToggles } from "./dirac-rules"
 import { HistoryItem } from "./HistoryItem"
+import { IsaacFeatureSetting } from "./IsaacFeatureSetting"
+import { BannerCardData } from "./isaac/banner"
+import { IsaacRulesToggles } from "./isaac-rules"
 import { IsaacMessageModelInfo } from "./messages"
 import { OnboardingModelGroup } from "./proto/isaac/state"
 import { SkillMetadata } from "./skills"
@@ -35,7 +35,7 @@ export type Platform = "aix" | "darwin" | "freebsd" | "linux" | "openbsd" | "sun
 
 export const DEFAULT_PLATFORM = "unknown"
 
-export const COMMAND_CANCEL_TOKEN = "__dirac_command_cancel__"
+export const COMMAND_CANCEL_TOKEN = "__isaac_command_cancel__"
 export interface ExtensionState {
 	isNewUser: boolean
 	welcomeViewCompleted: boolean
@@ -47,7 +47,7 @@ export interface ExtensionState {
 	preferredLanguage?: string
 	mode: Mode
 	checkpointManagerErrorMessage?: string
-	diracMessages: IsaacMessage[]
+	isaacMessages: IsaacMessage[]
 	currentTaskItem?: HistoryItem
 	planActSeparateModelsSetting: boolean
 	enableCheckpointsSetting?: boolean
@@ -67,8 +67,8 @@ export interface ExtensionState {
 	lastCompletedCommandTs?: number
 	version: string
 	distinctId: string
-	globalDiracRulesToggles: IsaacRulesToggles
-	localDiracRulesToggles: IsaacRulesToggles
+	globalIsaacRulesToggles: IsaacRulesToggles
+	localIsaacRulesToggles: IsaacRulesToggles
 	localWorkflowToggles: IsaacRulesToggles
 	globalWorkflowToggles: IsaacRulesToggles
 	localCursorRulesToggles: IsaacRulesToggles
@@ -82,7 +82,7 @@ export interface ExtensionState {
 	autoApproveAllToggled?: boolean
 	useAutoCondense?: boolean
 	subagentsEnabled?: boolean
-	diracWebToolsEnabled?: IsaacFeatureSetting
+	isaacWebToolsEnabled?: IsaacFeatureSetting
 	worktreesEnabled?: IsaacFeatureSetting
 	customPrompt?: string
 	favoritedModelIds: string[]
@@ -178,7 +178,7 @@ export type IsaacSay =
 	| "browser_action_result"
 	| "diff_error"
 	| "deleted_api_reqs"
-	| "diracignore_error"
+	| "isaacignore_error"
 	| "command_permission_denied"
 	| "checkpoint_created"
 	| "generate_explanation"

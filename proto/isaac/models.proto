@@ -124,7 +124,7 @@ message OpenAiModelsRequest {
 // API secrets (credentials, API keys)
 message ModelsApiSecrets {
   optional string api_key = 1;
-  optional string dirac_api_key = 2;
+  optional string isaac_api_key = 2;
   optional string lite_llm_api_key = 3;
   optional string open_router_api_key = 4;
   optional string aws_access_key = 5;
@@ -148,7 +148,7 @@ message ModelsApiSecrets {
   optional string cerebras_api_key = 24;
   reserved 25, 26;
   optional string moonshot_api_key = 27;
-  optional string dirac_account_id = 28;
+  optional string isaac_account_id = 28;
   optional string groq_api_key = 29;
   optional string hugging_face_api_key = 30;
   optional string huawei_cloud_maas_api_key = 31;
@@ -233,8 +233,8 @@ message ModelsApiOptions {
   optional OpenRouterModelInfo plan_mode_vercel_ai_gateway_model_info = 130;
   optional string plan_mode_aihubmix_model_id = 133;
   optional OpenAiCompatibleModelInfo plan_mode_aihubmix_model_info = 134;
-  optional string plan_mode_dirac_model_id = 135;
-  optional OpenRouterModelInfo plan_mode_dirac_model_info = 136;
+  optional string plan_mode_isaac_model_id = 135;
+  optional OpenRouterModelInfo plan_mode_isaac_model_info = 136;
 
   // Act mode configurations
   optional ApiProvider act_mode_api_provider = 200;
@@ -268,8 +268,8 @@ message ModelsApiOptions {
   optional OpenRouterModelInfo act_mode_vercel_ai_gateway_model_info = 230;
   optional string act_mode_aihubmix_model_id = 233;
   optional OpenAiCompatibleModelInfo act_mode_aihubmix_model_info = 234;
-  optional string act_mode_dirac_model_id = 235;
-  optional OpenRouterModelInfo act_mode_dirac_model_info = 236;
+  optional string act_mode_isaac_model_id = 235;
+  optional OpenRouterModelInfo act_mode_isaac_model_info = 236;
 }
 
 // Request for updating API configuration (legacy - uses combined configuration)
@@ -381,7 +381,7 @@ enum ApiProvider {
   DOUBAO = 13;
   MISTRAL = 14;
   VSCODE_LM = 15;
-  DIRAC = 16;
+  ISAAC = 16;
   LITELLM = 17;
   NEBIUS = 18;
   FIREWORKS = 19;
@@ -464,7 +464,7 @@ message LiteLLMModelInfo {
 message ModelsApiConfiguration {
   // Global configuration fields (not mode-specific)
   optional string api_key = 1;
-  optional string dirac_api_key = 2;
+  optional string isaac_api_key = 2;
   optional string ulid = 3;
   optional string lite_llm_base_url = 4;
   optional string lite_llm_api_key = 5;
@@ -574,8 +574,8 @@ message ModelsApiConfiguration {
   optional OpenAiCompatibleModelInfo plan_mode_aihubmix_model_info = 137;
   optional string plan_mode_nous_research_model_id = 138;
   optional string gemini_plan_mode_thinking_level = 139;
-  optional string plan_mode_dirac_model_id = 140;
-  optional OpenRouterModelInfo plan_mode_dirac_model_info = 141;
+  optional string plan_mode_isaac_model_id = 140;
+  optional OpenRouterModelInfo plan_mode_isaac_model_info = 141;
 
   // Act mode configurations
   optional ApiProvider act_mode_api_provider = 200;
@@ -613,6 +613,6 @@ message ModelsApiConfiguration {
   optional OpenAiCompatibleModelInfo act_mode_aihubmix_model_info = 237;
   optional string act_mode_nous_research_model_id = 238;
   optional string gemini_act_mode_thinking_level = 239;
-  optional string act_mode_dirac_model_id = 240;
-  optional OpenRouterModelInfo act_mode_dirac_model_info = 241;
+  optional string act_mode_isaac_model_id = 240;
+  optional OpenRouterModelInfo act_mode_isaac_model_info = 241;
 }

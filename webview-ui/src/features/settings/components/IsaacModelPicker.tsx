@@ -49,24 +49,19 @@ export interface IsaacModelPickerProps {
 	showProviderRouting?: boolean
 }
 
-
-
 function normalizeModelId(modelId: string): string {
 	return modelId.trim().toLowerCase()
 }
 
-
-
 const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMode, showProviderRouting }) => {
 	const { handleModeFieldsChange, handleFieldChange } = useApiConfigurationHandlers()
-	const { apiConfiguration, favoritedModelIds, diracModels, refreshIsaacModels } = useSettingsStore()
+	const { apiConfiguration, favoritedModelIds, isaacModels, refreshIsaacModels } = useSettingsStore()
 	const modeFields = getModeSpecificFields(apiConfiguration, currentMode)
-	const [searchTerm, setSearchTerm] = useState(modeFields.diracModelId || openRouterDefaultModelId)
+	const [searchTerm, setSearchTerm] = useState(modeFields.isaacModelId || openRouterDefaultModelId)
 	const [isDropdownVisible, setIsDropdownVisible] = useState(false)
 	const [selectedIndex, setSelectedIndex] = useState(-1)
 	const freeIsaacModelIds: string[] = useMemo(() => [], [])
 	const freeIsaacModelIdSet = useMemo(() => new Set<string>(), [])
-
 
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const itemRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -77,12 +72,12 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 
 		handleModeFieldsChange(
 			{
-				diracModelId: { plan: "planModeDiracModelId", act: "actModeDiracModelId" },
-				diracModelInfo: { plan: "planModeDiracModelInfo", act: "actModeDiracModelInfo" },
+				isaacModelId: { plan: "planModeIsaacModelId", act: "actModeIsaacModelId" },
+				isaacModelInfo: { plan: "planModeIsaacModelInfo", act: "actModeIsaacModelInfo" },
 			},
 			{
-				diracModelId: newModelId,
-				diracModelInfo: diracModels?.[newModelId],
+				isaacModelId: newModelId,
+				isaacModelInfo: isaacModels?.[newModelId],
 			},
 			currentMode,
 		)
@@ -109,12 +104,11 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 		refreshIsaacModels()
 	})
 
-
 	// Sync external changes when the modelId changes
 	useEffect(() => {
-		const currentModelId = modeFields.diracModelId || openRouterDefaultModelId
+		const currentModelId = modeFields.isaacModelId || openRouterDefaultModelId
 		setSearchTerm(currentModelId)
-	}, [modeFields.diracModelId])
+	}, [modeFields.isaacModelId])
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -130,9 +124,9 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 	}, [])
 
 	const modelIds = useMemo(() => {
-		const unfilteredModelIds = Object.keys(diracModels ?? {}).sort((a, b) => a.localeCompare(b))
-		return filterOpenRouterModelIds(unfilteredModelIds, "dirac", freeIsaacModelIds)
-	}, [diracModels, freeIsaacModelIds])
+		const unfilteredModelIds = Object.keys(isaacModels ?? {}).sort((a, b) => a.localeCompare(b))
+		return filterOpenRouterModelIds(unfilteredModelIds, "isaac", freeIsaacModelIds)
+	}, [isaacModels, freeIsaacModelIds])
 
 	const searchableItems = useMemo(() => {
 		return modelIds.map((id) => ({
@@ -236,7 +230,7 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 			return false
 		}
 		return (
-			Object.entries(diracModels ?? {})?.some(([id, m]) => id === selectedModelId && (m as any).thinkingConfig) ||
+			Object.entries(isaacModels ?? {})?.some(([id, m]) => id === selectedModelId && (m as any).thinkingConfig) ||
 			selectedModelIdLower.includes("claude-opus-4.6") ||
 			selectedModelIdLower.includes("claude-haiku-4.5") ||
 			selectedModelIdLower.includes("claude-4.5-haiku") ||
@@ -252,7 +246,7 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 			selectedModelIdLower.includes("claude-3.7-sonnet") ||
 			selectedModelIdLower.includes("claude-3.7-sonnet:thinking")
 		)
-	}, [diracModels, selectedModelId, selectedModelIdLower, showReasoningEffort])
+	}, [isaacModels, selectedModelId, selectedModelIdLower, showReasoningEffort])
 
 	return (
 		<div style={{ width: "100%", paddingBottom: 2 }}>
@@ -268,7 +262,6 @@ const IsaacModelPicker: React.FC<IsaacModelPickerProps> = ({ isPopup, currentMod
 				<label htmlFor="model-search">
 					<span style={{ fontWeight: 500 }}>Model</span>
 				</label>
-
 
 				<DropdownWrapper ref={dropdownRef}>
 					<VSCodeTextField
@@ -440,4 +433,3 @@ const DropdownItem = styled.div<{ isSelected: boolean }>`
 		background-color: var(--vscode-list-activeSelectionBackground);
 	}
 `
-

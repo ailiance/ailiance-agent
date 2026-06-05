@@ -28,7 +28,7 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 	if (entries.length === 0) {
 		return (
 			<Box flexDirection="column" padding={1}>
-				<Text color="yellow">No tasks found in ~/.dirac/data/state/taskHistory.json</Text>
+				<Text color="yellow">No tasks found in ~/.isaac/data/state/taskHistory.json</Text>
 				<Text dimColor>Run isaac and create a task to populate the timeline.</Text>
 			</Box>
 		)
@@ -38,7 +38,7 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 	return (
 		<Box flexDirection="column" padding={1}>
 			<Text>
-				<Text color="cyan" bold>
+				<Text bold color="cyan">
 					ISAAC timeline
 				</Text>
 				<Text dimColor>
@@ -46,10 +46,13 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 					{entries.length} tasks · last {days} days
 				</Text>
 			</Text>
-			<Box marginTop={1} flexDirection="column">
+			<Box flexDirection="column" marginTop={1}>
 				{Array.from(groups.entries()).map(([day, list]) => (
-					<Box key={day} flexDirection="column" marginBottom={1}>
-						<Text color="blue">{"### "}{day}</Text>
+					<Box flexDirection="column" key={day} marginBottom={1}>
+						<Text color="blue">
+							{"### "}
+							{day}
+						</Text>
 						{list.map((e) => {
 							const i = idx++
 							const selected = i === cursor
@@ -78,7 +81,7 @@ export const TimelineView: React.FC<{ days?: number; limit?: number }> = ({ days
 				))}
 			</Box>
 			<Box marginTop={1}>
-				<Text dimColor>[↑↓] navigate  [q] quit</Text>
+				<Text dimColor>[↑↓] navigate [q] quit</Text>
 			</Box>
 		</Box>
 	)

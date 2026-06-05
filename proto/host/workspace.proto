@@ -45,7 +45,7 @@ service WorkspaceService {
 
 message GetWorkspacePathsRequest {
   // The unique ID for the workspace/project.
-  // This is currently optional in vscode. It is required in other environments where dirac is running at
+  // This is currently optional in vscode. It is required in other environments where isaac is running at
   // the application level, and the user can open multiple projects.
   optional string id = 1;
 }

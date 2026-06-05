@@ -1,15 +1,15 @@
 import { EmptyRequest } from "@shared/proto/isaac/common"
 import {
-    IsaacRulesToggles,
-    RefreshedRules,
-    RuleScope,
-    SkillInfo,
-    ToggleAgentsRuleRequest,
-    ToggleIsaacRuleRequest,
-    ToggleCursorRuleRequest,
-    ToggleSkillRequest,
-    ToggleWindsurfRuleRequest,
-    ToggleWorkflowRequest,
+	IsaacRulesToggles,
+	RefreshedRules,
+	RuleScope,
+	SkillInfo,
+	ToggleAgentsRuleRequest,
+	ToggleCursorRuleRequest,
+	ToggleIsaacRuleRequest,
+	ToggleSkillRequest,
+	ToggleWindsurfRuleRequest,
+	ToggleWorkflowRequest,
 } from "@shared/proto/isaac/file"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useRef, useState } from "react"
@@ -27,8 +27,8 @@ import RulesToggleList from "./RulesToggleList"
 
 const IsaacRulesToggleModal: React.FC = () => {
 	const {
-		globalDiracRulesToggles = {},
-		localDiracRulesToggles = {},
+		globalIsaacRulesToggles = {},
+		localIsaacRulesToggles = {},
 		localCursorRulesToggles = {},
 		localWindsurfRulesToggles = {},
 		localAgentsRulesToggles = {},
@@ -80,11 +80,11 @@ const IsaacRulesToggleModal: React.FC = () => {
 			FileServiceClient.refreshRules({} as EmptyRequest)
 				.then((response: RefreshedRules) => {
 					// Update state with the response data using all available setters
-					if (response.globalDiracRulesToggles?.toggles) {
-						setGlobalIsaacRulesToggles(response.globalDiracRulesToggles.toggles)
+					if (response.globalIsaacRulesToggles?.toggles) {
+						setGlobalIsaacRulesToggles(response.globalIsaacRulesToggles.toggles)
 					}
-					if (response.localDiracRulesToggles?.toggles) {
-						setLocalIsaacRulesToggles(response.localDiracRulesToggles.toggles)
+					if (response.localIsaacRulesToggles?.toggles) {
+						setLocalIsaacRulesToggles(response.localIsaacRulesToggles.toggles)
 					}
 					if (response.localCursorRulesToggles?.toggles) {
 						setLocalCursorRulesToggles(response.localCursorRulesToggles.toggles)
@@ -192,12 +192,12 @@ const IsaacRulesToggleModal: React.FC = () => {
 	}, [isVisible, currentView])
 
 	// Format global rules for display with proper typing
-	const globalRules = Object.entries(globalDiracRulesToggles || {})
+	const globalRules = Object.entries(globalIsaacRulesToggles || {})
 		.map(([path, enabled]): [string, boolean] => [path, enabled as boolean])
 		.sort(([a], [b]) => a.localeCompare(b))
 
 	// Format local rules for display with proper typing
-	const localRules = Object.entries(localDiracRulesToggles || {})
+	const localRules = Object.entries(localIsaacRulesToggles || {})
 		.map(([path, enabled]): [string, boolean] => [path, enabled as boolean])
 		.sort(([a], [b]) => a.localeCompare(b))
 
@@ -240,11 +240,11 @@ const IsaacRulesToggleModal: React.FC = () => {
 		)
 			.then((response) => {
 				// Update the local state with the response
-				if (response.globalDiracRulesToggles?.toggles) {
-					setGlobalIsaacRulesToggles(response.globalDiracRulesToggles.toggles)
+				if (response.globalIsaacRulesToggles?.toggles) {
+					setGlobalIsaacRulesToggles(response.globalIsaacRulesToggles.toggles)
 				}
-				if (response.localDiracRulesToggles?.toggles) {
-					setLocalIsaacRulesToggles(response.localDiracRulesToggles.toggles)
+				if (response.localIsaacRulesToggles?.toggles) {
+					setLocalIsaacRulesToggles(response.localIsaacRulesToggles.toggles)
 				}
 				if (response.remoteRulesToggles?.toggles) {
 					setRemoteRulesToggles(response.remoteRulesToggles.toggles)
@@ -502,7 +502,7 @@ const IsaacRulesToggleModal: React.FC = () => {
 									to include context and preferences for your projects or globally for every conversation.{" "}
 									<VSCodeLink
 										className="text-xs"
-										href="https://dirac.run/docs/features/dirac-rules"
+										href="https://dirac.run/docs/features/isaac-rules"
 										style={{ display: "inline", fontSize: "inherit" }}>
 										Docs
 									</VSCodeLink>
@@ -552,7 +552,7 @@ const IsaacRulesToggleModal: React.FC = () => {
 														isRemote={true}
 														key={rule.name}
 														rulePath={rule.name}
-														ruleType="dirac"
+														ruleType="isaac"
 														toggleRule={toggleRemoteRule}
 													/>
 												)
@@ -570,7 +570,7 @@ const IsaacRulesToggleModal: React.FC = () => {
 										isGlobal={true}
 										listGap="small"
 										rules={globalRules}
-										ruleType={"dirac"}
+										ruleType={"isaac"}
 										showNewRule={true}
 										showNoRules={false}
 										toggleRule={(rulePath, enabled) => toggleRule(true, rulePath, enabled)}
@@ -584,7 +584,7 @@ const IsaacRulesToggleModal: React.FC = () => {
 										isGlobal={false}
 										listGap="small"
 										rules={localRules}
-										ruleType={"dirac"}
+										ruleType={"isaac"}
 										showNewRule={false}
 										showNoRules={false}
 										toggleRule={(rulePath, enabled) => toggleRule(false, rulePath, enabled)}
@@ -742,7 +742,7 @@ const IsaacRulesToggleModal: React.FC = () => {
 										className={index === workspaceHooks.length - 1 ? "-mb-2.5" : "mb-3"}
 										key={workspace.workspaceName}>
 										<div className="text-sm font-normal mb-2">
-											{workspace.workspaceName}/.diracrules/hooks/
+											{workspace.workspaceName}/.isaacrules/hooks/
 										</div>
 										<div className="flex flex-col gap-0">
 											{workspace.hooks

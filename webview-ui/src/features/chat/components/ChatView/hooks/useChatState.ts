@@ -27,7 +27,7 @@ export function useChatState(messages: IsaacMessage[]): ChatState {
 	// Derived state
 	const lastMessage = useMemo(() => messages.at(-1), [messages])
 	const secondLastMessage = useMemo(() => messages.at(-2), [messages])
-	const diracAsk = useMemo(() => (lastMessage?.type === "ask" ? lastMessage.ask : undefined), [lastMessage])
+	const isaacAsk = useMemo(() => (lastMessage?.type === "ask" ? lastMessage.ask : undefined), [lastMessage])
 
 	// Clear expanded rows when task changes
 	const task = useMemo(() => messages.at(0), [messages])
@@ -82,7 +82,7 @@ export function useChatState(messages: IsaacMessage[]): ChatState {
 		// Derived values
 		lastMessage,
 		secondLastMessage,
-		diracAsk,
+		isaacAsk,
 		task,
 
 		// Handlers

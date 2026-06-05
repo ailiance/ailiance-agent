@@ -28,9 +28,9 @@ export class TerminalRegistry {
 		const terminalOptions: vscode.TerminalOptions = {
 			cwd,
 			name: "Isaac",
-			iconPath: new vscode.ThemeIcon("dirac-icon"),
+			iconPath: new vscode.ThemeIcon("isaac-icon"),
 			env: {
-				DIRAC_ACTIVE: "true",
+				ISAAC_ACTIVE: "true",
 				...env,
 			},
 		}

@@ -52,7 +52,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.pnpm/global") || scriptPath.includes("/pnpm/global")) {
 			return {
 				packageManager: PackageManager.PNPM,
-				updateCommand: `pnpm add -g dirac-cli@${tag}`,
+				updateCommand: `pnpm add -g isaac-cli@${tag}`,
 			}
 		}
 
@@ -60,7 +60,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.yarn/") || scriptPath.includes("/yarn/global")) {
 			return {
 				packageManager: PackageManager.YARN,
-				updateCommand: `yarn global add dirac-cli@${tag}`,
+				updateCommand: `yarn global add isaac-cli@${tag}`,
 			}
 		}
 
@@ -68,15 +68,15 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 		if (scriptPath.includes("/.bun/bin")) {
 			return {
 				packageManager: PackageManager.BUN,
-				updateCommand: `bun add -g dirac-cli@${tag}`,
+				updateCommand: `bun add -g isaac-cli@${tag}`,
 			}
 		}
 
-		// npm global (node_modules/dirac)
-		if (scriptPath.includes("/node_modules/dirac-cli/")) {
+		// npm global (node_modules/isaac)
+		if (scriptPath.includes("/node_modules/isaac-cli/")) {
 			return {
 				packageManager: PackageManager.NPM,
-				updateCommand: `npm install -g dirac-cli@${tag}`,
+				updateCommand: `npm install -g isaac-cli@${tag}`,
 			}
 		}
 	} catch {
@@ -93,7 +93,7 @@ function getInstallationInfo(currentVersion: string): InstallationInfo {
 async function getLatestVersion(currentVersion: string): Promise<string | null> {
 	try {
 		const tag = getNpmTag(currentVersion)
-		const response = await fetch(`https://registry.npmjs.org/dirac-cli/${tag}`)
+		const response = await fetch(`https://registry.npmjs.org/isaac-cli/${tag}`)
 		if (!response.ok) return null
 		const data = (await response.json()) as { version: string }
 		return data.version || null
@@ -109,7 +109,7 @@ async function getLatestVersion(currentVersion: string): Promise<string | null> 
  *
  * Supports npm, pnpm, yarn, and bun global installs.
  * Skipped for npx, local dev, unknown installations, and bundled enterprise packages.
- * Can be disabled with DIRAC_NO_AUTO_UPDATE=1 environment variable.
+ * Can be disabled with ISAAC_NO_AUTO_UPDATE=1 environment variable.
  */
 export function autoUpdateOnStartup(currentVersion: string): void {
 	// Skip in dev mode
@@ -118,7 +118,7 @@ export function autoUpdateOnStartup(currentVersion: string): void {
 	}
 
 	// Skip if auto-update is disabled via env var
-	if (process.env.DIRAC_NO_AUTO_UPDATE === "1") {
+	if (process.env.ISAAC_NO_AUTO_UPDATE === "1") {
 		return
 	}
 

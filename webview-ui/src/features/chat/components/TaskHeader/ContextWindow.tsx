@@ -55,7 +55,7 @@ ConfirmationDialog.displayName = "ConfirmationDialog"
 
 const ContextWindow: React.FC<ContextWindowProgressProps> = ({ onSendMessage, lastApiReqInfo }) => {
 	const { apiConfiguration, mode } = useSettingsStore()
-	const { diracMessages } = useChatStore()
+	const { isaacMessages } = useChatStore()
 
 	const { selectedModelInfo } = useMemo(
 		() => normalizeApiConfiguration(apiConfiguration, mode as Mode),
@@ -70,7 +70,10 @@ const ContextWindow: React.FC<ContextWindowProgressProps> = ({ onSendMessage, la
 				lastApiReqInfo.tokensOut,
 				lastApiReqInfo.cacheWrites,
 				lastApiReqInfo.cacheReads,
-				(lastApiReqInfo.tokensIn || 0) + (lastApiReqInfo.tokensOut || 0) + (lastApiReqInfo.cacheWrites || 0) + (lastApiReqInfo.cacheReads || 0),
+				(lastApiReqInfo.tokensIn || 0) +
+					(lastApiReqInfo.tokensOut || 0) +
+					(lastApiReqInfo.cacheWrites || 0) +
+					(lastApiReqInfo.cacheReads || 0),
 			]
 		}
 		return [0, 0, 0, 0, 0]

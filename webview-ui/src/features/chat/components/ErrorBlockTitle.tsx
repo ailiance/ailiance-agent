@@ -57,8 +57,8 @@ export const ErrorBlockTitle = ({
 			details.classNames.push("text-(--vscode-foreground)")
 		} else if (apiRequestFailedMessage) {
 			// Handle failed request
-			const diracError = IsaacError.parse(apiRequestFailedMessage)
-			const titleText = diracError?.isErrorType(IsaacErrorType.Balance) ? "Credit Limit Reached" : "API Request Failed"
+			const isaacError = IsaacError.parse(apiRequestFailedMessage)
+			const titleText = isaacError?.isErrorType(IsaacErrorType.Balance) ? "Credit Limit Reached" : "API Request Failed"
 			details.title = titleText
 			details.classNames.push("font-bold text-(--vscode-errorForeground)")
 		} else if (retryStatus) {

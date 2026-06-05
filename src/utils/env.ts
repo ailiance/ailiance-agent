@@ -1,5 +1,5 @@
-import { EmptyRequest, StringRequest } from "@shared/proto/isaac/common"
 import { ShowMessageType } from "@shared/proto/host/window"
+import { EmptyRequest, StringRequest } from "@shared/proto/isaac/common"
 import { HostProvider } from "@/hosts/host-provider"
 import { Logger } from "@/shared/services/Logger"
 
@@ -50,7 +50,7 @@ export async function openExternal(url: string): Promise<void> {
 		try {
 			const open = (await import("open")).default
 			const cp = await open(url)
-			
+
 			// Handle potential errors from the child process
 			cp.on("error", (spawnError) => {
 				Logger.error(`Fallback 'open' child process error: ${spawnError}`)
@@ -59,7 +59,7 @@ export async function openExternal(url: string): Promise<void> {
 			Logger.error(`Fallback 'open' also failed: ${fallbackError}`)
 			// In CLI mode, we don't want to show a message box that might not be visible
 			// or might cause issues. The URL is already shown in the AuthView.
-			if (HostProvider.get().diracType !== "cli") {
+			if (HostProvider.get().isaacType !== "cli") {
 				HostProvider.window.showMessage({
 					type: ShowMessageType.ERROR,
 					message: `Failed to open URL: ${url}`,

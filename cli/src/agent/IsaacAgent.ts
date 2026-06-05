@@ -31,11 +31,11 @@ import { FileEditProvider } from "@/integrations/editor/FileEditProvider"
 import { StandaloneTerminalManager } from "@/integrations/terminal/index.js"
 import { Logger } from "@/shared/services/Logger.js"
 import type { Mode } from "@/shared/storage/types"
+import { filterOpenRouterModelIds } from "@/shared/utils/model-filters"
 import { version as AGENT_VERSION } from "../../package.json"
 import { ACPDiffViewProvider } from "../acp/ACPDiffViewProvider.js"
 import { ACPHostBridgeClientProvider } from "../acp/ACPHostBridgeClientProvider.js"
 import { AcpTerminalManager } from "../acp/AcpTerminalManager.js"
-import { filterOpenRouterModelIds } from "@/shared/utils/model-filters"
 import { getDefaultModelId, getModelList, hasStaticModels } from "../utils/model-metadata.js"
 import { fetchOpenRouterModels, usesOpenRouterModels } from "../utils/openrouter-models"
 import { getProviderLabel, getValidCliProviders, isValidCliProvider } from "../utils/providers.js"
@@ -132,7 +132,7 @@ export class IsaacAgent implements acp.Agent {
 	constructor(options: IsaacAgentOptions) {
 		this.options = options
 		setRuntimeHooksDir(options.hooksDir)
-		this.ctx = initializeCliContext({ diracDir: options.diracDir, workspaceDir: options.cwd })
+		this.ctx = initializeCliContext({ isaacDir: options.isaacDir, workspaceDir: options.cwd })
 	}
 
 	/**
@@ -202,7 +202,7 @@ export class IsaacAgent implements acp.Agent {
 				},
 			},
 			agentInfo: {
-				name: "dirac",
+				name: "isaac",
 				version: AGENT_VERSION,
 			},
 			authMethods: [
@@ -259,7 +259,7 @@ export class IsaacAgent implements acp.Agent {
 			async () => "", // get binary location not needed in ACP mode
 			this.ctx.EXTENSION_DIR,
 			this.ctx.DATA_DIR,
-			async (_cwd: string) => undefined
+			async (_cwd: string) => undefined,
 		)
 	}
 
@@ -407,7 +407,7 @@ export class IsaacAgent implements acp.Agent {
 		const providerKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
 		const currentProvider = stateManager.getGlobalSettingsKey(providerKey) as ApiProvider | undefined
 
-		// Use provider-specific model ID key (e.g., dirac uses actModeOpenRouterModelId)
+		// Use provider-specific model ID key (e.g., isaac uses actModeOpenRouterModelId)
 		const modelKey = currentProvider ? getProviderModelIdKey(currentProvider, mode) : null
 		const currentModelId =
 			((modelKey ? stateManager.getGlobalSettingsKey(modelKey) : undefined) as string | undefined) ||
@@ -723,11 +723,11 @@ export class IsaacAgent implements acp.Agent {
 	 *
 	 * The prompt flow:
 	 * 1. Extract content from the ACP prompt (text, images, files)
-	 * 2. Set up internal dirac state subsription
-	 * 3. Initialize or continue dirac task
+	 * 2. Set up internal isaac state subsription
+	 * 3. Initialize or continue isaac task
 	 * 4. Translate IsaacMessages to ACP SessionUpdates
 	 * 5. Handle permission requests for tools/commands
-	 * 6. Return when dirac task completes, is cancelled, or needs user input
+	 * 6. Return when isaac task completes, is cancelled, or needs user input
 	 */
 	async prompt(params: acp.PromptRequest): Promise<acp.PromptResponse> {
 		const session = this.sessions.get(params.sessionId)
@@ -851,19 +851,19 @@ export class IsaacAgent implements acp.Agent {
 				await controller.initTask(textContent, imageContent, fileResources)
 			}
 
-			// Subscribe to diracMessages changes after task is created
+			// Subscribe to isaacMessages changes after task is created
 			if (controller.task) {
 				const onIsaacMessagesChanged = (change: IsaacMessageChange) => {
 					this.handleIsaacMessagesChanged(params.sessionId, sessionState, change, resolvePrompt, promptResolved).catch(
 						(error) => {
-							Logger.debug("[IsaacAgent] Error handling diracMessagesChanged:", error)
+							Logger.debug("[IsaacAgent] Error handling isaacMessagesChanged:", error)
 						},
 					)
 				}
 
-				controller.task.messageStateHandler.on("diracMessagesChanged", onIsaacMessagesChanged)
+				controller.task.messageStateHandler.on("isaacMessagesChanged", onIsaacMessagesChanged)
 				cleanupFunctions.push(() => {
-					controller.task?.messageStateHandler.off("diracMessagesChanged", onIsaacMessagesChanged)
+					controller.task?.messageStateHandler.off("isaacMessagesChanged", onIsaacMessagesChanged)
 				})
 			}
 
@@ -930,7 +930,7 @@ export class IsaacAgent implements acp.Agent {
 					break
 			}
 		} catch (error) {
-			Logger.debug("[IsaacAgent] Error handling diracMessagesChanged:", error)
+			Logger.debug("[IsaacAgent] Error handling isaacMessagesChanged:", error)
 		}
 	}
 

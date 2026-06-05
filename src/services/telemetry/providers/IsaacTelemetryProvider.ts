@@ -4,8 +4,8 @@ import { getErrorLevelFromString } from "@/services/error"
 import { getDistinctId } from "@/services/logging/distinctId"
 import { fetch } from "@/shared/net"
 import { Setting } from "@/shared/proto/index.host"
+import { isaacTelemetryConfig } from "@/shared/services/config/isaac-telemetry-config"
 import { Logger } from "@/shared/services/Logger"
-import { diracTelemetryConfig } from "@/shared/services/config/dirac-telemetry-config"
 import type { ITelemetryProvider, TelemetryProperties, TelemetrySettings } from "./ITelemetryProvider"
 
 /**
@@ -77,16 +77,16 @@ export class IsaacTelemetryProvider implements ITelemetryProvider {
 	}
 
 	private async captureToIsaac(event: string, properties?: TelemetryProperties) {
-		if (!diracTelemetryConfig.apiKey) {
+		if (!isaacTelemetryConfig.apiKey) {
 			return
 		}
 
 		try {
-			await fetch(diracTelemetryConfig.host, {
+			await fetch(isaacTelemetryConfig.host, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"X-Dirac-API-Key": diracTelemetryConfig.apiKey,
+					"X-Dirac-API-Key": isaacTelemetryConfig.apiKey,
 				},
 				body: JSON.stringify({
 					distinctId: getDistinctId(),
@@ -100,7 +100,7 @@ export class IsaacTelemetryProvider implements ITelemetryProvider {
 		}
 	}
 
-		public identifyUser(userInfo: any, properties: TelemetryProperties = {}) {
+	public identifyUser(userInfo: any, properties: TelemetryProperties = {}) {
 		this.captureToIsaac("$identify", properties)
 	}
 

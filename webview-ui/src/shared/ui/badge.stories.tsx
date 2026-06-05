@@ -18,7 +18,7 @@ const meta: Meta<typeof Badge> = {
 export default meta
 
 export const Default = () => {
-	const variants = ["default", "info", "danger", "outline", "dirac", "success", "warning"] as const
+	const variants = ["default", "info", "danger", "outline", "isaac", "success", "warning"] as const
 
 	const types = [
 		{ value: "default", label: "Default" },
@@ -48,7 +48,7 @@ export const Default = () => {
 }
 
 export const Dismissible = () => {
-	const variants = ["dirac", "danger", "success", "warning"] as const
+	const variants = ["isaac", "danger", "success", "warning"] as const
 
 	return (
 		<div className="w-screen flex justify-center p-8">

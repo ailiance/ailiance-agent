@@ -12,7 +12,7 @@ vi.mock("@/features/settings/store/settingsStore", () => ({
 		yoloModeToggled: false,
 		useAutoCondense: false,
 		subagentsEnabled: false,
-		diracWebToolsEnabled: { user: true, featureFlag: true },
+		isaacWebToolsEnabled: { user: true, featureFlag: true },
 		worktreesEnabled: { user: true, featureFlag: true },
 		focusChainSettings: { enabled: false, remindIsaacInterval: 6 },
 		remoteConfigSettings: {},

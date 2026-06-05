@@ -3,9 +3,8 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import dotenv from "dotenv"
 import * as esbuild from "esbuild"
-// @ts-ignore
+// @ts-expect-error
 import { copySourceCode } from "../scripts/copy-source.mjs"
-
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -213,7 +212,7 @@ const copyWasmFiles: esbuild.Plugin = {
 				})
 			}
 
-			// Copy source code for /askDirac command
+			// Copy source code for /askIsaac command
 			copySourceCode(rootDir, path.join(__dirname, "dist"))
 		})
 	},
@@ -236,7 +235,7 @@ const buildTimeEnvs = [
 	"OTEL_EXPORTER_OTLP_ENDPOINT",
 	"OTEL_EXPORTER_OTLP_HEADERS",
 	"OTEL_METRIC_EXPORT_INTERVAL",
-	"DIRAC_ENVIRONMENT",
+	"ISAAC_ENVIRONMENT",
 ]
 
 buildTimeEnvs.forEach((envVar) => {
@@ -322,7 +321,7 @@ const libConfig: esbuild.BuildOptions = {
 	entryPoints: [path.join(__dirname, "src", "exports.ts")],
 	outfile: path.join(__dirname, "dist", "lib.mjs"),
 	banner: {
-		js: `// Dirac Library - Programmatic API
+		js: `// Isaac Library - Programmatic API
 import { createRequire as _createRequire } from 'module';
 import { fileURLToPath as _fileURLToPath } from 'url';
 import { dirname as _dirname } from 'path';

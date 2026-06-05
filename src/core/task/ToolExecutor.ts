@@ -71,7 +71,7 @@ export class ToolExecutor {
 		private browserSession: BrowserSession,
 		private diffViewProvider: DiffViewProvider,
 		private fileContextTracker: FileContextTracker,
-		private diracIgnoreController: IsaacIgnoreController,
+		private isaacIgnoreController: IsaacIgnoreController,
 		private commandPermissionController: CommandPermissionController,
 		private contextManager: ContextManager,
 		private stateManager: StateManager,
@@ -251,7 +251,7 @@ export class ToolExecutor {
 				urlContentFetcher: this.urlContentFetcher,
 				diffViewProvider: this.diffViewProvider,
 				fileContextTracker: this.fileContextTracker,
-				diracIgnoreController: this.diracIgnoreController,
+				isaacIgnoreController: this.isaacIgnoreController,
 				commandPermissionController: this.commandPermissionController,
 				contextManager: this.contextManager,
 				stateManager: this.stateManager,
@@ -295,7 +295,7 @@ export class ToolExecutor {
 	 * Register all tool handlers with the coordinator
 	 */
 	private registerToolHandlers(): void {
-		const validator = new ToolValidator(this.diracIgnoreController)
+		const validator = new ToolValidator(this.isaacIgnoreController)
 		// Register all tools via toolUseNames
 		for (const tool of toolUseNames) {
 			this.coordinator.registerByName(tool, validator)

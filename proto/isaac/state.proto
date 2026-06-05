@@ -75,7 +75,6 @@ message Secrets {
   optional string doubao_api_key = 17;
   optional string mistral_api_key = 18;
   optional string lite_llm_api_key = 19;
-  reserved 21; // was asksage_api_key
   optional string xai_api_key = 22;
   optional string moonshot_api_key = 23;
   optional string zai_api_key = 24;
@@ -83,8 +82,6 @@ message Secrets {
   optional string nebius_api_key = 26;
   optional string sambanova_api_key = 27;
   optional string cerebras_api_key = 28;
-  optional string sap_ai_core_client_id = 29;
-  optional string sap_ai_core_client_secret = 30;
   optional string groq_api_key = 31;
   optional string huawei_cloud_maas_api_key = 32;
   optional string baseten_api_key = 33;
@@ -94,9 +91,11 @@ message Secrets {
   optional string aihubmix_api_key = 38;
   optional string nous_research_api_key = 39;
   optional string wandb_api_key = 50;
-  optional string dirac_api_key = 51;
+  optional string isaac_api_key = 51;
   optional string auth_nonce = 52;
   optional string openai_codex_oauth_credentials = 53;
+  optional string open_ai_compatible_custom_api_key = 54;
+  optional string github_copilot_oauth_credentials = 55;
 }
 
 // NOTE: Add new fields under API_HANDLER_SETTINGS_FIELDS or USER_SETTINGS_FIELDS
@@ -129,12 +128,7 @@ message Settings {
   optional string azure_api_version = 27;
   optional string qwen_api_line = 29;
   optional string moonshot_api_line = 30;
-  reserved 31; // was asksage_api_url
   optional int32 request_timeout_ms = 32;
-  optional string sap_ai_resource_group = 33;
-  optional string sap_ai_core_token_url = 34;
-  optional string sap_ai_core_base_url = 35;
-  optional bool sap_ai_core_use_orchestration_mode = 36;
   optional string dify_base_url = 37;
   optional string zai_api_line = 38;
   optional string aihubmix_base_url = 42;
@@ -158,8 +152,6 @@ message Settings {
   optional OpenRouterModelInfo plan_mode_requesty_model_info = 61;
   optional string plan_mode_together_model_id = 62;
   optional string plan_mode_fireworks_model_id = 63;
-  optional string plan_mode_sap_ai_core_model_id = 64;
-  optional string plan_mode_sap_ai_core_deployment_id = 65;
   optional string plan_mode_groq_model_id = 66;
   optional OpenRouterModelInfo plan_mode_groq_model_info = 67;
   optional string plan_mode_baseten_model_id = 68;
@@ -192,8 +184,6 @@ message Settings {
   optional OpenRouterModelInfo act_mode_requesty_model_info = 101;
   optional string act_mode_together_model_id = 102;
   optional string act_mode_fireworks_model_id = 103;
-  optional string act_mode_sap_ai_core_model_id = 104;
-  optional string act_mode_sap_ai_core_deployment_id = 105;
   optional string act_mode_groq_model_id = 106;
   optional OpenRouterModelInfo act_mode_groq_model_info = 107;
   optional string act_mode_baseten_model_id = 108;
@@ -211,7 +201,7 @@ message Settings {
   optional ApiProvider act_mode_api_provider = 125;
   optional string lm_studio_model_id = 127;
   optional AutoApprovalSettings auto_approval_settings = 128;
-  optional string global_dirac_rules_toggles = 129;
+  optional string global_isaac_rules_toggles = 129;
   optional string global_workflow_toggles = 130;
   optional string global_skills_toggles = 131;
   optional BrowserSettings browser_settings = 132;
@@ -225,10 +215,9 @@ message Settings {
   optional bool strict_plan_mode_enabled = 141;
   optional bool yolo_mode_toggled = 142;
   optional bool use_auto_condense = 143;
-  optional bool dirac_web_tools_enabled = 144;
+  optional bool isaac_web_tools_enabled = 144;
   optional string preferred_language = 145;
   optional PlanActMode mode = 147;
-  reserved 149; // was focus_chain_settings
   optional string custom_prompt = 150;
   optional bool hooks_enabled = 152;
   optional bool subagents_enabled = 153;
@@ -252,14 +241,28 @@ message Settings {
   optional bool auto_approve_all_toggled = 174;
   optional bool double_check_completion_enabled = 176;
   map<string, string> open_ai_headers = 177;
-  optional string plan_mode_dirac_model_id = 178;
-  optional OpenRouterModelInfo plan_mode_dirac_model_info = 179;
-  optional string act_mode_dirac_model_id = 180;
-  optional OpenRouterModelInfo act_mode_dirac_model_info = 181;
+  optional string plan_mode_isaac_model_id = 178;
+  optional OpenRouterModelInfo plan_mode_isaac_model_info = 179;
+  optional string act_mode_isaac_model_id = 180;
+  optional OpenRouterModelInfo act_mode_isaac_model_info = 181;
   optional bool write_prompt_metadata_enabled = 182;
   optional string write_prompt_metadata_directory = 183;
   optional string minimax_api_line = 184;
   optional bool opt_out_of_remote_config = 185;
+  optional bool gemini_search_enabled = 186;
+  optional bool use_local_stack = 187;
+  optional bool use_local_router = 188;
+  optional string local_router_workers = 189;
+  optional int32 local_router_timeout_ms = 190;
+  optional int32 local_router_idle_timeout_ms = 191;
+  optional string plan_mode_github_copilot_model_id = 192;
+  optional OpenRouterModelInfo plan_mode_github_copilot_model_info = 193;
+  optional string act_mode_github_copilot_model_id = 194;
+  optional OpenRouterModelInfo act_mode_github_copilot_model_info = 195;
+  optional bool auto_mode_from_prompt = 196;
+  optional string enabled_mcp_servers = 197;
+  optional string mcp_tool_denylist = 198;
+  optional string mcp_tool_allowlist = 199;
 }
 
 message State {
@@ -382,10 +385,10 @@ message UpdateSettingsRequest {
   optional int32 max_consecutive_mistakes = 28;
   optional bool subagents_enabled = 29;
   optional int32 subagent_terminal_output_line_limit = 30;
-  optional string dirac_env = 31;
+  optional string isaac_env = 31;
   optional bool native_tool_call_enabled = 32;
   optional OnboardingModelGroup onboarding_models = 33;
-  optional bool dirac_web_tools_enabled = 34;
+  optional bool isaac_web_tools_enabled = 34;
   optional bool enable_parallel_tool_calling = 35;
   optional bool background_edit_enabled = 36;
   optional bool worktrees_enabled = 40;

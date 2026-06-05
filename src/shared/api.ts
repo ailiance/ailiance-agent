@@ -14,9 +14,9 @@ export function stripOpenRouterPreset(modelId: string): string {
 	return modelId
 }
 
-export type ApiProvider = "openrouter" | "openai" | "lmstudio" | "vscode-lm" | "dirac" | "litellm"
+export type ApiProvider = "openrouter" | "openai" | "lmstudio" | "vscode-lm" | "isaac" | "litellm"
 
-export const ALL_PROVIDERS: ApiProvider[] = ["openrouter", "openai", "lmstudio", "vscode-lm", "dirac", "litellm"]
+export const ALL_PROVIDERS: ApiProvider[] = ["openrouter", "openai", "lmstudio", "vscode-lm", "isaac", "litellm"]
 
 export const DEFAULT_API_PROVIDER = "openai" as ApiProvider
 

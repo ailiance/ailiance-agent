@@ -332,7 +332,7 @@ export class RenameSymbolToolHandler implements IFullyManagedTool {
 
 				config.taskState.didEditFile = true
 				config.services.fileContextTracker.markFileAsEditedByIsaac(fr.displayPath)
-				await config.services.fileContextTracker.trackFileContext(fr.displayPath, "dirac_edited")
+				await config.services.fileContextTracker.trackFileContext(fr.displayPath, "isaac_edited")
 
 				appliedResults.push({
 					displayPath: fr.displayPath,

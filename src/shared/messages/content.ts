@@ -18,7 +18,7 @@ interface IsaacSharedMessageParam {
 	call_id?: string
 }
 
-export const REASONING_DETAILS_PROVIDERS = ["dirac", "openrouter"]
+export const REASONING_DETAILS_PROVIDERS = ["isaac", "openrouter"]
 
 /**
  * An extension of Anthropic.MessageParam that includes Isaac-specific fields: reasoning_details.
@@ -109,10 +109,10 @@ export interface IsaacStorageMessage extends Anthropic.MessageParam {
  * Isaac-specific fields (like modelInfo, reasoning_details) are properly omitted.
  */
 export function convertIsaacStorageToAnthropicMessage(
-	diracMessage: IsaacStorageMessage,
+	isaacMessage: IsaacStorageMessage,
 	provider = "anthropic",
 ): Anthropic.MessageParam {
-	const { role, content } = diracMessage
+	const { role, content } = isaacMessage
 
 	// Handle string content - fast path
 	if (typeof content === "string") {

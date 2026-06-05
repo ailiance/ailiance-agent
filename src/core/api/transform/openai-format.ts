@@ -367,7 +367,7 @@ function consolidateReasoningDetails(reasoningDetails: ReasoningDetail[]): Reaso
 	return consolidated
 }
 
-const UNIQUE_ERROR_TOOL_NAME = "_dirac_error_unknown_function_"
+const UNIQUE_ERROR_TOOL_NAME = "_isaac_error_unknown_function_"
 
 export function convertToAnthropicMessage(completion: OpenAI.Chat.Completions.ChatCompletion): Anthropic.Messages.Message {
 	const openAiMessage = completion.choices[0].message

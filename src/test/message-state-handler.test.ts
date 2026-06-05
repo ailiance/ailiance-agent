@@ -50,7 +50,7 @@ describe("MessageStateHandler Mutex Protection", () => {
 		handler.getApiConversationHistory().should.deepEqual(testHistory)
 	})
 
-	it("should set and get dirac messages", () => {
+	it("should set and get isaac messages", () => {
 		const handler = createTestHandler()
 		const testMessages = [createTestMessage("test1"), createTestMessage("test2")]
 
