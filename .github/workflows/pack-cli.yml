@@ -64,8 +64,8 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dirac-${{ matrix.platform }}
-          path: dirac-${{ matrix.platform }}.tar.gz
+          name: isaac-${{ matrix.platform }}
+          path: isaac-${{ matrix.platform }}.tar.gz
           retention-days: 1
 
   release:
@@ -85,7 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
-          name: Dirac CLI ${{ github.event.inputs.tag_name || github.ref_name }}
+          name: ISAAC CLI ${{ github.event.inputs.tag_name || github.ref_name }}
           files: artifacts/*.tar.gz
           draft: false
           prerelease: false

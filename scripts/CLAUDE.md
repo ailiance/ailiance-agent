@@ -26,8 +26,8 @@ ce dossier n'héberge que la variante Windows.
 | Fichier | Rôle |
 |---------|------|
 | `package-standalone.mjs`, `copy-source.mjs` | Bundle standalone (core hors extension) |
-| `package-npm.mjs`, `package-cli.sh` | Tarball CLI par plateforme (⚠ `package-cli.sh` produit `dirac-*.tar.gz`, binaire `dirac` — legacy à rebrander) |
-| `build-cli-artifact.sh` | Déclenche le workflow GH `pack-cli.yml` (⚠ URLs `dirac-run/dirac` — legacy) |
+| `package-npm.mjs`, `package-cli.sh` | Tarball CLI par plateforme (`package-cli.sh` produit `isaac-*.tar.gz`, binaire `isaac`) |
+| `build-cli-artifact.sh` | Déclenche le workflow GH `pack-cli.yml` (release assets `isaac-<platform>.tar.gz` sur `ailiance/isaac-cli`) |
 | `download-ripgrep.mjs` | Récupère `@vscode/ripgrep` par plateforme |
 | `add-endpoints-to-{npm,vsix,jetbrains}.sh`, `test-bundled-endpoints.sh` | Injection/tests des endpoints bundlés |
 | `publish-nightly.mjs` | Publication nightly |
@@ -48,8 +48,9 @@ ce dossier n'héberge que la variante Windows.
   `dirac-run/dirac` (release inexistante côté ailiance), branding 100 % Dirac, mac/linux only,
   aucun check node. **Ne pas l'utiliser** pour isaac — préférer `setup.sh`/`setup.ps1`.
   `test-install.sh` ne fait que valider sa syntaxe.
-- **Branding legacy** : `package-cli.sh`, `build-cli-artifact.sh` produisent/pointent des
-  artefacts `dirac-*` et le repo `dirac-run/dirac`. À aligner sur `isaac`/`ailiance`.
+- **Branding** : `package-cli.sh`, `build-cli-artifact.sh`, `package-npm.mjs`,
+  `report-issue.js`, `test-bundled-endpoints.sh`, `run-extension-host.sh` rebrandés
+  `isaac`/`ailiance`. Reste `install.sh` (mort, voir ci-dessus) non rebrandé.
 - **Ordre proto** : `build-proto.mjs` doit tourner avant `compile`/`cli:build`. Les `.ts`
   générés sont gitignorés → `Cannot find module '@/shared/proto/...'` = protos manquants.
 - **Pas de `build` racine** : extension = `protos` + `compile` ; CLI = `cli:build` (inclut protos).

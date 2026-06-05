@@ -12,6 +12,13 @@ export default defineConfig({
 		globals: true,
 		environment: "node",
 		include: ["src/core/mcp/__tests__/**/*.test.ts"],
+		// The first test in a fresh worker pays the esbuild transform + module
+		// import cost; on a loaded CI runner this intermittently exceeds the 5s
+		// default and trips a spurious timeout (notably bootstrap.test.ts). These
+		// tests are fully stubbed (no real I/O), so a generous budget removes the
+		// flake without masking real hangs. See AUDIT-DETTE #19.
+		testTimeout: 30000,
+		hookTimeout: 30000,
 	},
 	resolve: {
 		alias: {

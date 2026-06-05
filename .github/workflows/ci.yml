@@ -72,7 +72,7 @@ jobs:
         run: npm run lint
 
   test:
-    name: Unit Tests (non-blocking)
+    name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -101,9 +101,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # The mocha unit suite is currently fragile in CI (ts-node ESM +
-      # VS Code shims). It runs non-blocking so it surfaces failures as a
-      # signal without gating merges; hardening it is tracked separately.
+      # Blocking gate. test:unit runs the mocha suite and the vitest MCP suite
+      # via `npm-run-all --continue-on-error`, which executes both and exits
+      # non-zero if either fails. Known-flaky cases have been quarantined:
+      # the SymbolIndex `find_symbol_references` tests skip when the native
+      # better-sqlite3 binding is unavailable, and the MCP vitest timeout was
+      # raised to absorb cold-start cost (see AUDIT-DETTE #19).
       - name: Run unit tests
         run: npm run test:unit
-        continue-on-error: true
+
+      # CLI vitest suite. CI=1 forces vitest into single-run (non-watch) mode.
+      - name: Run CLI tests
+        run: npm test
+        working-directory: cli
+        env:
+          CI: '1'

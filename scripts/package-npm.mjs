@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * NPM Package Builder for Dirac CLI
+ * NPM Package Builder for ISAAC CLI
  *
- * This script builds the Dirac CLI NPM package (dist-standalone/).
+ * This script builds the ISAAC CLI NPM package (dist-standalone/).
  * It packages the CLI from cli/.
  *
  * Usage: node scripts/package-npm.mjs
@@ -30,7 +30,7 @@ const rootDir = path.resolve(__dirname, "..")
 dotenv.config({ path: path.join(rootDir, ".env") })
 
 async function main() {
-	console.log("🚀 Building Dirac CLI NPM Package (TypeScript)\n")
+	console.log("🚀 Building ISAAC CLI NPM Package (TypeScript)\n")
 
 	await cleanBuildDir()
 	setupEnvironmentVariables()

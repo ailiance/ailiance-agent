@@ -430,7 +430,6 @@
 		"test:e2e:build": "vsce package --allow-package-secrets sendgrid --no-dependencies --out dist/e2e.vsix",
 		"test:e2e": "playwright install && npm run test:e2e:build && node src/test/e2e/utils/build.mjs && playwright test",
 		"test:e2e:optimal": "npm run test:e2e:build && node src/test/e2e/utils/build.mjs && playwright test",
-		"test:e2e:cli:tui": "cd tests/e2e/cli && tui-test",
 		"test:e2e:ui": "npx tsx scripts/interactive-playwright.ts",
 		"install:all": "npm install && cd webview-ui && npm install",
 		"dev:webview": "cd webview-ui && npm run dev",
@@ -454,7 +453,7 @@
 	"lint-staged": {
 		"src/shared/storage/state-keys.ts": [
 			"node scripts/generate-state-proto.mjs",
-			"git add proto/dirac/state.proto"
+			"git add proto/isaac/state.proto"
 		],
 		"*": [
 			"biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true"

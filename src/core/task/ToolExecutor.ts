@@ -15,7 +15,7 @@ import { IsaacAskResponse } from "@shared/WebviewMessage"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
 // ailiance-agent fork: source the version from package.json so trace meta and
 // the package binary never drift apart at release time.
-import { version as AGENT_KIKI_VERSION } from "../../../package.json"
+import { version as ISAAC_AGENT_VERSION } from "../../../package.json"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { formatResponse } from "../prompts/responses"
@@ -160,7 +160,7 @@ export class ToolExecutor {
 				task: this.taskId,
 				mode,
 				approval_mode: yolo ? "yolo" : "manual",
-				ailiance_agent_version: AGENT_KIKI_VERSION,
+				ailiance_agent_version: ISAAC_AGENT_VERSION,
 				gateway_url: gatewayUrl,
 				workers: {
 					default: {

@@ -38,18 +38,18 @@ fi
 cp cli/package.json "$STAGING/package.json"
 
 # 4. Create the executable entry point
-echo "Creating bin/dirac..."
-cat > "$STAGING/bin/dirac" <<EOF
+echo "Creating bin/isaac..."
+cat > "$STAGING/bin/isaac" <<EOF
 #!/usr/bin/env node
 import '../dist/cli.mjs';
 EOF
-chmod +x "$STAGING/bin/dirac"
+chmod +x "$STAGING/bin/isaac"
 
 # 5. Create the tarball
-echo "Creating tarball dirac-$PLATFORM.tar.gz..."
-tar -czf "dirac-$PLATFORM.tar.gz" -C "$STAGING" .
+echo "Creating tarball isaac-$PLATFORM.tar.gz..."
+tar -czf "isaac-$PLATFORM.tar.gz" -C "$STAGING" .
 
 # Clean up
 rm -rf "$STAGING"
 
-echo "✅ Successfully created dirac-$PLATFORM.tar.gz"
+echo "✅ Successfully created isaac-$PLATFORM.tar.gz"
