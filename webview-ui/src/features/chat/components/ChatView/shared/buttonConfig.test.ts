@@ -42,8 +42,10 @@ describe("getButtonConfig", () => {
 	})
 
 	// Test tool approval states
+	// Note: tool/command/browser_action_launch/use_subagents asks are now handled by the
+	// inline ApprovalBox, so getButtonConfig returns the default (no action-row buttons).
 	describe("Tool Approval States", () => {
-		it("returns tool_approve config for generic tool ask", () => {
+		it("returns default config for generic tool ask (handled by inline ApprovalBox)", () => {
 			const toolMessage: IsaacMessage = {
 				type: "ask",
 				ask: "tool",
@@ -51,10 +53,10 @@ describe("getButtonConfig", () => {
 				ts: Date.now(),
 			}
 			const config = getButtonConfig(toolMessage)
-			expect(config).toEqual(BUTTON_CONFIGS.tool_approve)
+			expect(config).toEqual(BUTTON_CONFIGS.default)
 		})
 
-		it("returns tool_save config for file editing tools", () => {
+		it("returns default config for file editing tools (handled by inline ApprovalBox)", () => {
 			const saveMessages = [{ tool: "editedExistingFile" }, { tool: "newFileCreated" }]
 
 			saveMessages.forEach((toolData) => {
@@ -65,21 +67,21 @@ describe("getButtonConfig", () => {
 					ts: Date.now(),
 				}
 				const config = getButtonConfig(toolMessage)
-				expect(config).toEqual(BUTTON_CONFIGS.tool_save)
+				expect(config).toEqual(BUTTON_CONFIGS.default)
 			})
 		})
 	})
 
 	// Test command execution states
 	describe("Command Execution States", () => {
-		it("returns command config for command ask", () => {
+		it("returns default config for command ask (handled by inline ApprovalBox)", () => {
 			const commandMessage: IsaacMessage = {
 				type: "ask",
 				ask: "command",
 				ts: Date.now(),
 			}
 			const config = getButtonConfig(commandMessage)
-			expect(config).toEqual(BUTTON_CONFIGS.command)
+			expect(config).toEqual(BUTTON_CONFIGS.default)
 		})
 
 		it("returns command_output config for command_output ask", () => {
@@ -97,8 +99,10 @@ describe("getButtonConfig", () => {
 	describe("Other Ask States", () => {
 		const stateConfigs = [
 			{ ask: "followup", expectedConfig: "followup" },
-			{ ask: "browser_action_launch", expectedConfig: "browser_action_launch" },
-			{ ask: "use_subagents", expectedConfig: "use_subagents" },
+			// browser_action_launch and use_subagents are handled by the inline ApprovalBox,
+			// so getButtonConfig returns the default config for them.
+			{ ask: "browser_action_launch", expectedConfig: "default" },
+			{ ask: "use_subagents", expectedConfig: "default" },
 			{ ask: "plan_mode_respond", expectedConfig: "plan_mode_respond" },
 			{ ask: "completion_result", expectedConfig: "completion_result" },
 			{ ask: "resume_task", expectedConfig: "resume_task" },

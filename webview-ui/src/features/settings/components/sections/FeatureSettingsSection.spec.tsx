@@ -35,14 +35,14 @@ describe("FeatureSettingsSection", () => {
 		const advancedSection = container.querySelector("#advanced-features")
 		const agentSection = container.querySelector("#agent-features")
 
-		expect(advancedSection?.querySelector("#Hooks")).toBeTruthy()
-		expect(agentSection?.querySelector("#Hooks")).toBeNull()
+		expect(advancedSection?.querySelector("#hooks")).toBeTruthy()
+		expect(agentSection?.querySelector("#hooks")).toBeNull()
 	})
 
 	it("calls updateSetting with hooksEnabled when toggled", () => {
 		const { container } = render(<FeatureSettingsSection renderSectionHeader={() => null} />)
 
-		const hooksSwitch = container.querySelector("#Hooks")
+		const hooksSwitch = container.querySelector("#hooks")
 		expect(hooksSwitch).toBeTruthy()
 
 		fireEvent.click(hooksSwitch as Element)

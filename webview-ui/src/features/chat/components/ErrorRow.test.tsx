@@ -15,12 +15,13 @@ vi.mock("@/context/IsaacAuthContext", () => ({
 }))
 
 // Mock CreditLimitError component
-vi.mock("@/components/chat/CreditLimitError", () => ({
+vi.mock("@/features/chat/components/CreditLimitError", () => ({
 	default: ({ message }: { message: string }) => <div data-testid="credit-limit-error">{message}</div>,
 }))
 
-// Mock IsaacError
-vi.mock("../../../../src/services/error/IsaacError", () => ({
+// Mock IsaacError — ErrorRow imports it from the grpc-client barrel (which re-exports
+// the real class from the extension host), so we mock that same specifier.
+vi.mock("@/shared/api/grpc-client", () => ({
 	IsaacError: {
 		parse: vi.fn(),
 	},
@@ -88,7 +89,7 @@ describe("ErrorRow", () => {
 				},
 			}
 
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Insufficient credits error" errorType="error" message={mockMessage} />)
@@ -106,7 +107,7 @@ describe("ErrorRow", () => {
 				},
 			}
 
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Rate limit exceeded" errorType="error" message={mockMessage} />)
@@ -123,7 +124,7 @@ describe("ErrorRow", () => {
 				_error: {},
 			}
 
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Authentication failed" errorType="error" message={mockMessage} />)
@@ -139,7 +140,7 @@ describe("ErrorRow", () => {
 				_error: {},
 			}
 
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(
@@ -154,7 +155,7 @@ describe("ErrorRow", () => {
 			expect(screen.getByText("troubleshooting guide")).toBeInTheDocument()
 			expect(screen.getByRole("link", { name: "troubleshooting guide" })).toHaveAttribute(
 				"href",
-				"https://github.com/isaac/isaac/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
+				"https://github.com/ailiance/isaac-cli/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
 			)
 		})
 
@@ -165,7 +166,7 @@ describe("ErrorRow", () => {
 				_error: {},
 			}
 
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiReqStreamingFailedMessage="Streaming failed" errorType="error" message={mockMessage} />)
@@ -174,7 +175,7 @@ describe("ErrorRow", () => {
 		})
 
 		it("falls back to regular error message when IsaacError.parse returns null", async () => {
-			const { IsaacError } = await import("../../../../src/services/error/IsaacError")
+			const { IsaacError } = await import("@/shared/api/grpc-client")
 			vi.mocked(IsaacError.parse).mockReturnValue(undefined)
 
 			render(<ErrorRow apiRequestFailedMessage="Some API error" errorType="error" message={mockMessage} />)
