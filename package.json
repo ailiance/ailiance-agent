@@ -502,7 +502,7 @@
 		"vitest": "^4.1.8"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.88.0",
+		"@anthropic-ai/sdk": "^0.101.0",
 		"@azure/identity": "^4.13.1",
 		"@bufbuild/protobuf": "^2.2.5",
 		"@google/genai": "^1.49.0",
@@ -518,14 +518,12 @@
 		"@opentelemetry/exporter-metrics-otlp-grpc": "^0.56.0",
 		"@opentelemetry/exporter-metrics-otlp-http": "^0.56.0",
 		"@opentelemetry/exporter-metrics-otlp-proto": "^0.56.0",
-		"@opentelemetry/exporter-prometheus": "^0.56.0",
 		"@opentelemetry/exporter-trace-otlp-http": "^0.56.0",
 		"@opentelemetry/instrumentation": "^0.205.0",
 		"@opentelemetry/instrumentation-http": "^0.205.0",
 		"@opentelemetry/resources": "^1.30.1",
 		"@opentelemetry/sdk-logs": "^0.56.0",
 		"@opentelemetry/sdk-metrics": "^1.30.1",
-		"@opentelemetry/sdk-node": "^0.56.0",
 		"@opentelemetry/sdk-trace-base": "^2.1.0",
 		"@opentelemetry/sdk-trace-node": "^1.30.1",
 		"@opentelemetry/semantic-conventions": "^1.37.0",
@@ -583,7 +581,7 @@
 		"turndown": "^7.2.0",
 		"ulid": "^2.4.0",
 		"undici": "^7.16.0",
-		"uuid": "^11.1.0",
+		"uuid": "^11.1.1",
 		"vscode-uri": "^3.1.0",
 		"web-tree-sitter": "^0.22.6",
 		"zod": "^3.24.2"
@@ -594,10 +592,17 @@
 		"vite": "^7.1.11",
 		"js-yaml": "^4.1.1",
 		"protobufjs": "^8.0.3",
-		"serialize-javascript": "^6.0.2",
+		"serialize-javascript": "^7.0.5",
 		"lodash": "^4.18.0",
 		"lodash-es": "^4.18.0",
 		"@xmldom/xmldom": "^0.9.10",
-		"basic-ftp": "^5.3.1"
+		"basic-ftp": "^5.3.1",
+		"uuid": "$uuid",
+		"mocha": {
+			"diff": "^8.0.3"
+		},
+		"sinon": {
+			"diff": "^8.0.3"
+		}
 	}
 }
