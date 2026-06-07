@@ -1,4 +1,5 @@
 import type { CommandRunner, DirEntry, Environment, EnvStat, ExecHandle, ExecOpts, FileInfo, SearchOpts } from "../types"
+import { AsyncQueue } from "./asyncQueue"
 import { NOTIFY, RPC_METHODS } from "./protocol"
 import { RpcPeer } from "./RpcPeer"
 import type { Transport } from "./transport"
@@ -11,7 +12,7 @@ export class RemoteEnvironment implements Environment {
 	// runCommand calls never cross-route their output. The output handler is
 	// registered ONCE in the constructor and demultiplexes on params.streamId.
 	private streamCounter = 0
-	private outputSinks = new Map<string, (line: string) => void>()
+	private outputSinks = new Map<string, (chunk: string, stream: string) => void>()
 	constructor(
 		transport: Transport,
 		readonly cwd: string,
@@ -21,8 +22,8 @@ export class RemoteEnvironment implements Environment {
 		this.onClose = opts?.onClose
 		this.peer = new RpcPeer(transport)
 		this.peer.onNotify(NOTIFY.output, (params: any) => {
-			if (params?.stream === "stdout" && typeof params?.streamId === "string") {
-				this.outputSinks.get(params.streamId)?.(params.chunk)
+			if (typeof params?.streamId === "string") {
+				this.outputSinks.get(params.streamId)?.(params.chunk, params.stream)
 			}
 		})
 	}
@@ -78,7 +79,11 @@ export class RemoteEnvironment implements Environment {
 	runCommand: CommandRunner = (command, timeoutSeconds, opts) => {
 		const streamId = `c${++this.streamCounter}`
 		if (opts?.onOutputLine) {
-			this.outputSinks.set(streamId, opts.onOutputLine)
+			this.outputSinks.set(streamId, (chunk, stream) => {
+				if (stream === "stdout") {
+					opts.onOutputLine?.(chunk)
+				}
+			})
 		}
 		let onAbort: (() => void) | undefined
 		if (opts?.abortSignal) {
@@ -104,10 +109,29 @@ export class RemoteEnvironment implements Environment {
 			})
 	}
 
-	exec(_cmd: string, _opts?: ExecOpts): ExecHandle {
-		// No in-tree consumer in #2 MVP (agent uses runCommand). Streaming exec over
-		// the wire is a #2.x addition; throw rather than ship a half-streaming handle.
-		throw new Error("RemoteEnvironment.exec is not implemented in #2 MVP; use runCommand")
+	exec(cmd: string, opts?: ExecOpts): ExecHandle {
+		const streamId = `e${++this.streamCounter}`
+		const stdoutQ = new AsyncQueue<string>()
+		const stderrQ = new AsyncQueue<string>()
+		this.outputSinks.set(streamId, (chunk, stream) => (stream === "stderr" ? stderrQ : stdoutQ).push(chunk))
+		if (opts?.abortSignal) {
+			opts.abortSignal.addEventListener("abort", () => this.peer.notify(NOTIFY.abort, { streamId }), { once: true })
+		}
+		const exitCode = this.peer
+			.request(RPC_METHODS.exec, { cmd, cwd: opts?.cwd, streamId })
+			.then((r: any) => r.exitCode as number)
+			.finally(() => {
+				this.outputSinks.delete(streamId)
+				stdoutQ.close()
+				stderrQ.close()
+			})
+		return {
+			stdout: stdoutQ,
+			stderr: stderrQ,
+			writeStdin: (d: string) => this.peer.notify(NOTIFY.stdin, { streamId, data: d }),
+			kill: (signal?: NodeJS.Signals) => this.peer.notify(NOTIFY.kill, { streamId, signal }),
+			exitCode,
+		}
 	}
 
 	async dispose(): Promise<void> {
