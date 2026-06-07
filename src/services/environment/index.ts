@@ -1,5 +1,7 @@
 export { InMemoryEnvironment } from "./InMemoryEnvironment"
 export { LocalEnvironment } from "./LocalEnvironment"
+export { bootstrapDaemonToContainer } from "./remote/docker/bootstrap"
+export { dockerTransport } from "./remote/docker/dockerTransport"
 export { RemoteEnvironment } from "./remote/RemoteEnvironment"
 export { SshRemoteSession } from "./remote/ssh/SshRemoteSession"
 export { sshTransport } from "./remote/ssh/sshTransport"
