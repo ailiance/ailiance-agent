@@ -30,4 +30,12 @@ describe("synthesizeMemories", () => {
 	it("returns [] on unparseable output", async () => {
 		assert.deepEqual(await synthesizeMemories("x", [], { createMessage: () => fakeStream("not json") }), [])
 	})
+	it("slugifies odd names so saveMemory never rejects them (poison-loop guard)", async () => {
+		const modelJson = JSON.stringify([
+			{ scope: "global", type: "user", name: "prefers Français!", description: "d", body: "b" },
+		])
+		const [c] = await synthesizeMemories("t", [], { createMessage: () => fakeStream(modelJson) })
+		assert.match(c.name, /^[a-z0-9][a-z0-9_-]*$/)
+		assert.equal(c.name, "prefers-francais")
+	})
 })

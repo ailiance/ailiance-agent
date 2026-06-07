@@ -36,4 +36,24 @@ describe("runDreamOnce", () => {
 		await runDreamOnce(deps as any) // t1 already processed
 		assert.deepEqual(saved, [])
 	})
+
+	it("a throwing save does not block cursor advance (poison-loop guard)", async () => {
+		let synthCalls = 0
+		const deps = {
+			cursorFile: path.join(dir, "cursor.json"),
+			listRuns: async () => [{ projectKey: "repo", taskId: "t1", runDir: "/runs/t1" }],
+			condense: async () => "condensed",
+			listExisting: async () => [],
+			synthesize: async () => {
+				synthCalls++
+				return [{ scope: "global", type: "user", name: "bad", description: "d", body: "b" }]
+			},
+			save: async () => {
+				throw new Error("saveMemory rejected the name")
+			},
+		}
+		await runDreamOnce(deps as any)
+		await runDreamOnce(deps as any) // t1 must be marked processed despite the throwing save
+		assert.equal(synthCalls, 1) // not re-synthesized on the second pass
+	})
 })

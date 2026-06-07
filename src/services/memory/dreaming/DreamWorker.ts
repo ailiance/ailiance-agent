@@ -19,18 +19,31 @@ export interface DreamDeps {
 
 export async function runDreamOnce(deps: DreamDeps): Promise<void> {
 	let cursor = await loadCursor(deps.cursorFile)
-	for (const run of await deps.listRuns()) {
-		if (isProcessed(cursor, run.projectKey, run.taskId)) continue
+	// Cap runs per pass so a large backlog can't fire an unbounded burst of LLM calls.
+	const MAX_RUNS_PER_PASS = 25
+	const pending = (await deps.listRuns())
+		.filter((r) => !isProcessed(cursor, r.projectKey, r.taskId))
+		.slice(0, MAX_RUNS_PER_PASS)
+	for (const run of pending) {
 		try {
 			const condensed = await deps.condense(run.runDir)
 			if (condensed.trim()) {
 				const existing = await deps.listExisting()
-				for (const c of await deps.synthesize(condensed, existing)) await deps.save(c)
+				for (const c of await deps.synthesize(condensed, existing)) {
+					// Drop a bad candidate (e.g. saveMemory rejects an odd name) without
+					// aborting the run — otherwise the cursor never advances and this run
+					// is re-synthesized (a full LLM call) on every tick forever.
+					try {
+						await deps.save(c)
+					} catch {
+						// skip this candidate
+					}
+				}
 			}
 			cursor = markProcessed(cursor, run.projectKey, run.taskId)
 			await saveCursor(deps.cursorFile, cursor)
 		} catch {
-			// skip; do not advance cursor so it retries next pass
+			// run-level failure (e.g. condense/list) — do not advance cursor; retry next pass
 		}
 	}
 }
