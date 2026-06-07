@@ -330,6 +330,25 @@ export async function deleteMemory(name: string): Promise<number> {
 }
 
 /**
+ * Delete the single memory matching BOTH name and scope. Returns true if a file
+ * was removed. Unlike deleteMemory (which matches name across all scopes), this
+ * is scope-precise — required by the TTL sweep so purging a stale entry in one
+ * scope does not clobber a fresh same-name entry in another scope.
+ */
+export async function deleteMemoryExact(name: string, scope: MemoryScope): Promise<boolean> {
+	const memories = await listMemories()
+	const m = memories.find((x) => x.name === name && x.scope === scope)
+	if (!m) return false
+	try {
+		await fs.unlink(m.filePath)
+	} catch {
+		// already gone; best-effort
+	}
+	await rebuildIndex()
+	return true
+}
+
+/**
  * Find memories whose name or description contains the query (case-insensitive
  * substring). Used by `/forget <topic>` to disambiguate before delete.
  */

@@ -18,7 +18,7 @@ import { TRACING_DIR_NAME } from "@/core/tracing/JsonlTracer"
 import type { ApiConfiguration } from "@/shared/api"
 import type { Mode } from "@/shared/storage/types"
 import type { MemoryType } from "@/utils/ailiance-memory"
-import { deleteMemory, listMemories, projectScopeFromCwd, saveMemory } from "@/utils/ailiance-memory"
+import { deleteMemoryExact, listMemories, projectScopeFromCwd, saveMemory } from "@/utils/ailiance-memory"
 import { embedText } from "../embeddings/embedClient"
 import { embedConfigFromEnv } from "../embeddings/embedEnvConfig"
 import { EMBEDDINGS_INDEX_FILE, loadIndex, saveIndex } from "../embeddings/vectorIndex"
@@ -162,7 +162,9 @@ export function buildDreamDeps(
 			const all = await listMemories({})
 			for (const m of all) {
 				if (isStale(m)) {
-					await deleteMemory(m.name)
+					// Scope-precise delete: a stale entry in one scope must not
+					// clobber a fresh same-name entry in another scope.
+					await deleteMemoryExact(m.name, m.scope)
 				}
 			}
 		},

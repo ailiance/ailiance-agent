@@ -3,6 +3,7 @@ import * as path from "path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
 	deleteMemory,
+	deleteMemoryExact,
 	findMemories,
 	formatMemoriesSection,
 	getMemoryRoot,
@@ -109,6 +110,34 @@ describe("ailiance-memory", () => {
 	it("returns 0 when deleting a name that has no matches", async () => {
 		const removed = await deleteMemory("definitely-not-saved")
 		expect(removed).toBe(0)
+	})
+
+	describe("deleteMemoryExact (scope-precise)", () => {
+		const SCOPE = "project:dme-test-repo"
+
+		afterEach(async () => {
+			// The project-scoped file lives in a subdir not covered by the
+			// outer name-only cleanup; remove it explicitly.
+			await deleteMemory("another-memory")
+		})
+
+		it("removes only the matching scope, leaving the same name in another scope", async () => {
+			await saveMemory({ name: "another-memory", description: "global one", type: "user", scope: "global", body: "g" })
+			await saveMemory({ name: "another-memory", description: "project one", type: "project", scope: SCOPE, body: "p" })
+
+			const removed = await deleteMemoryExact("another-memory", "global")
+			expect(removed).toBe(true)
+
+			const after = await listMemories()
+			const survivors = after.filter((m) => m.name === "another-memory")
+			expect(survivors.length).toBe(1)
+			expect(survivors[0].scope).toBe(SCOPE)
+		})
+
+		it("returns false when no memory matches name+scope", async () => {
+			const removed = await deleteMemoryExact("absent", "global")
+			expect(removed).toBe(false)
+		})
 	})
 
 	it("findMemories matches against name and description", async () => {
