@@ -77,6 +77,19 @@ describe("RemoteEnvironment (in-process daemon)", () => {
 		await env.dispose()
 	})
 
+	it("exec streams stdout and resolves exitCode over the wire", async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-remote-exec-"))
+		const [clientT, serverT] = inProcessTransportPair()
+		createDaemonServer(serverT, dir)
+		const env = new RemoteEnvironment(clientT, dir)
+		const h = env.exec("echo hello")
+		let out = ""
+		for await (const c of h.stdout) out += c
+		assert.equal(await h.exitCode, 0)
+		assert.match(out, /hello/)
+		await env.dispose()
+	})
+
 	it("preserves ENOENT error code across the wire", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-remote-err-"))
 		const [clientT, serverT] = inProcessTransportPair()

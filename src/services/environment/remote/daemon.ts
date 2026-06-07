@@ -41,6 +41,8 @@ export function createDaemonServer(transport: Transport, cwd: string): RpcPeer {
 	let peer!: RpcPeer
 	// Live children keyed by client streamId, for targeted abort/kill.
 	const children = new Map<string, ChildProcess>()
+	// Live exec() children keyed by client streamId (separate from runCommand's).
+	const execChildren = new Map<string, ChildProcess>()
 	const runCommand = makeDaemonCommandRunner(() => peer, children)
 	const env = new LocalEnvironment(cwd)
 	const handlers: Record<string, (p: any) => Promise<any>> = {
@@ -55,6 +57,26 @@ export function createDaemonServer(transport: Transport, cwd: string): RpcPeer {
 		[RPC_METHODS.listFilesNative]: (p) => env.listFilesNative(p.path, p.recursive, p.limit),
 		[RPC_METHODS.searchFormatted]: (p) => env.searchFormatted(p.directoryPath, p.regex, p.opts),
 		[RPC_METHODS.runCommand]: (p) => runCommand(p.command, p.streamId),
+		[RPC_METHODS.exec]: (p) =>
+			new Promise<{ exitCode: number }>((resolve) => {
+				const streamId: string = p.streamId
+				const child = spawn(p.cmd, { shell: true, cwd: p.cwd })
+				execChildren.set(streamId, child)
+				child.stdout.on("data", (d: Buffer) =>
+					peer.notify(NOTIFY.output, { streamId, stream: "stdout", chunk: d.toString("utf8") }),
+				)
+				child.stderr.on("data", (d: Buffer) =>
+					peer.notify(NOTIFY.output, { streamId, stream: "stderr", chunk: d.toString("utf8") }),
+				)
+				child.on("error", () => {
+					execChildren.delete(streamId)
+					resolve({ exitCode: 1 })
+				})
+				child.on("close", (code, signal) => {
+					execChildren.delete(streamId)
+					resolve({ exitCode: code ?? (signal ? 1 : 0) })
+				})
+			}),
 		[RPC_METHODS.dispose]: () => {
 			for (const c of children.values()) {
 				try {
@@ -62,6 +84,12 @@ export function createDaemonServer(transport: Transport, cwd: string): RpcPeer {
 				} catch {}
 			}
 			children.clear()
+			for (const c of execChildren.values()) {
+				try {
+					c.kill()
+				} catch {}
+			}
+			execChildren.clear()
 			return env.dispose().then(() => null)
 		},
 	}
@@ -69,9 +97,21 @@ export function createDaemonServer(transport: Transport, cwd: string): RpcPeer {
 	// Targeted abort: the client sends NOTIFY.abort {streamId} when its caller's
 	// abortSignal fires; kill the matching child if it is still running.
 	peer.onNotify(NOTIFY.abort, (params: any) => {
-		const child = params?.streamId != null ? children.get(params.streamId) : undefined
+		const id = params?.streamId
+		const child = id != null ? (children.get(id) ?? execChildren.get(id)) : undefined
 		try {
 			child?.kill()
+		} catch {}
+	})
+	// exec() stdin/kill notifications target execChildren by client streamId.
+	peer.onNotify(NOTIFY.stdin, (params: any) => {
+		try {
+			execChildren.get(params?.streamId)?.stdin?.write(params?.data)
+		} catch {}
+	})
+	peer.onNotify(NOTIFY.kill, (params: any) => {
+		try {
+			execChildren.get(params?.streamId)?.kill(params?.signal)
 		} catch {}
 	})
 	return peer
