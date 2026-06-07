@@ -12,6 +12,7 @@ export const RPC_METHODS = {
 	listFilesNative: "env/listFilesNative",
 	searchFormatted: "env/searchFormatted",
 	runCommand: "env/runCommand",
+	exec: "env/exec",
 	dispose: "env/dispose",
 } as const
 
