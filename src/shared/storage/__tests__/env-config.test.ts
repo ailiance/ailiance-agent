@@ -97,31 +97,10 @@ describe("getSettingsFromEnv - Bedrock settings", () => {
 	})
 })
 
-
-describe("getProviderFromEnv - Bedrock detection", () => {
-	it("does not return bedrock when only AWS_REGION is set", () => {
-		process.env.AWS_REGION = "us-east-1"
-		expect(getProviderFromEnv()).to.not.equal("bedrock")
-	})
-
-	it("returns bedrock when AWS_ACCESS_KEY_ID is set", () => {
-		process.env.AWS_ACCESS_KEY_ID = "AKIATEST"
-		expect(getProviderFromEnv()).to.equal("bedrock")
-	})
-
-	it("does not return bedrock when only AWS_SECRET_ACCESS_KEY is set", () => {
-		delete process.env.AWS_REGION
-		delete process.env.AWS_ACCESS_KEY_ID
-		process.env.AWS_SECRET_ACCESS_KEY = "secret"
-		expect(getProviderFromEnv()).to.not.equal("bedrock")
-	})
-
-	it("prefers anthropic over bedrock when ANTHROPIC_API_KEY also set", () => {
-		process.env.ANTHROPIC_API_KEY = "sk-ant-test"
-		process.env.AWS_ACCESS_KEY_ID = "AKIATEST"
-		expect(getProviderFromEnv()).to.equal("anthropic")
-	})
-})
+// NOTE: The previous "getProviderFromEnv - Bedrock detection" block was removed.
+// The souverain refactor purged the bedrock and anthropic providers from ApiProvider,
+// so getProviderFromEnv no longer detects them. AWS env vars still map to secrets/settings
+// (covered by the Bedrock credentials/settings blocks above) but never select a provider.
 
 describe("getSettingsFromEnv - OpenAI settings", () => {
 	it("maps OPENAI_API_BASE to openAiBaseUrl", () => {

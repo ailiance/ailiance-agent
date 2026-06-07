@@ -1,10 +1,10 @@
-import { ParseEntry, parse } from "shell-quote"
-import picomatch from "picomatch"
+import { fileExistsAtPath } from "@utils/fs"
+import chokidar, { FSWatcher } from "chokidar"
 import fs from "fs/promises"
 import path from "path"
-import chokidar, { FSWatcher } from "chokidar"
+import picomatch from "picomatch"
+import { ParseEntry, parse } from "shell-quote"
 import { Logger } from "@/shared/services/Logger"
-import { fileExistsAtPath } from "@utils/fs"
 import {
 	COMMAND_PERMISSIONS_ENV_VAR,
 	CommandPermissionConfig,
@@ -38,7 +38,7 @@ interface ParsedCommand {
  * Controls command execution permissions based on environment variable configuration.
  * Uses glob pattern matching to allow/deny specific commands.
  *
- * Configuration is read from the DIRAC_COMMAND_PERMISSIONS environment variable.
+ * Configuration is read from the ISAAC_COMMAND_PERMISSIONS environment variable.
  * Format: {"allow": ["pattern1", "pattern2"], "deny": ["pattern3"], "allowRedirects": true}
  *
  * Rule evaluation for chained commands (e.g., "cd /tmp && npm test"):
@@ -69,7 +69,7 @@ export class CommandPermissionController {
 	}
 
 	/**
-	 * Set up a file watcher for .dirac/permissions.json
+	 * Set up a file watcher for .isaac/permissions.json
 	 */
 	private async setupFileWatcher(): Promise<void> {
 		if (this.fileWatcher) {
@@ -78,7 +78,7 @@ export class CommandPermissionController {
 		}
 		if (!this.workspaceRoot) return
 
-		const configPath = path.join(this.workspaceRoot, ".dirac", "permissions.json")
+		const configPath = path.join(this.workspaceRoot, ".isaac", "permissions.json")
 
 		this.fileWatcher = chokidar.watch(configPath, {
 			persistent: true,
@@ -110,12 +110,12 @@ export class CommandPermissionController {
 	}
 
 	/**
-	 * Load configuration from .dirac/permissions.json
+	 * Load configuration from .isaac/permissions.json
 	 */
 	private async loadConfigFromFile(): Promise<CommandPermissionConfig | null> {
 		if (!this.workspaceRoot) return null
 
-		const configPath = path.join(this.workspaceRoot, ".dirac", "permissions.json")
+		const configPath = path.join(this.workspaceRoot, ".isaac", "permissions.json")
 		if (!(await fileExistsAtPath(configPath))) {
 			return null
 		}
@@ -124,6 +124,10 @@ export class CommandPermissionController {
 			const content = await fs.readFile(configPath, "utf8")
 			return JSON.parse(content) as CommandPermissionConfig
 		} catch (error) {
+			// Intentional fallback (null = no file-based rules), but a malformed
+			// permissions.json silently disabling the user's command allow/deny
+			// rules is a security-relevant surprise — surface it.
+			Logger.error(`Failed to read/parse ${configPath}; command permission rules from file ignored:`, error)
 			return null
 		}
 	}
@@ -137,9 +141,7 @@ export class CommandPermissionController {
 		const rules = currentConfig.rules || []
 
 		// Check if rule already exists to avoid duplicates
-		const exists = rules.some(
-			(r) => r.tool === rule.tool && r.pattern === rule.pattern && r.action === rule.action
-		)
+		const exists = rules.some((r) => r.tool === rule.tool && r.pattern === rule.pattern && r.action === rule.action)
 
 		if (!exists) {
 			rules.push(rule)
@@ -147,17 +149,16 @@ export class CommandPermissionController {
 		}
 	}
 
-
 	async saveConfig(config: CommandPermissionConfig): Promise<void> {
 		if (!this.workspaceRoot) {
 			throw new Error("Workspace root not set. Cannot save permissions.")
 		}
 
-		const diracDir = path.join(this.workspaceRoot, ".dirac")
-		const configPath = path.join(diracDir, "permissions.json")
+		const isaacDir = path.join(this.workspaceRoot, ".isaac")
+		const configPath = path.join(isaacDir, "permissions.json")
 
 		try {
-			await fs.mkdir(diracDir, { recursive: true })
+			await fs.mkdir(isaacDir, { recursive: true })
 			await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8")
 
 			// Update in-memory config. loadConfig() will be called by file watcher,
@@ -179,7 +180,7 @@ export class CommandPermissionController {
 	}
 
 	/**
-	 * Parse the DIRAC_COMMAND_PERMISSIONS environment variable
+	 * Parse the ISAAC_COMMAND_PERMISSIONS environment variable
 	 * @returns Parsed configuration or null if not set or invalid
 	 */
 	private parseConfigFromEnv(): CommandPermissionConfig | null {
@@ -261,9 +262,8 @@ export class CommandPermissionController {
 
 		if (tool === "execute_command") {
 			return this.matchesPattern(pattern, rule.pattern)
-		} else {
-			return picomatch(rule.pattern, { dot: true })(pattern)
 		}
+		return picomatch(rule.pattern, { dot: true })(pattern)
 	}
 
 	/**

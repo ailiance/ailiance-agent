@@ -13,7 +13,7 @@ import { hookFileName } from "../core/hooks/__tests__/test-utils"
 import { HookDiscoveryCache } from "../core/hooks/HookDiscoveryCache"
 import { StateManager } from "../core/storage/StateManager"
 import { HostProvider } from "../hosts/host-provider"
-import { CreateHookRequest, DeleteHookRequest, ToggleHookRequest } from "../shared/proto/dirac/file"
+import { CreateHookRequest, DeleteHookRequest, ToggleHookRequest } from "../shared/proto/isaac/file"
 
 /**
  * Integration tests for hook management
@@ -35,8 +35,8 @@ describe("Hook Management Integration", () => {
 
 		// Create temporary directories
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hook-integration-test-"))
-		globalHooksDir = path.join(tempDir, "global", "Documents", "Dirac", "Hooks")
-		workspaceHooksDir = path.join(tempDir, "workspace", ".diracrules", "hooks")
+		globalHooksDir = path.join(tempDir, "global", "Documents", "Isaac", "Hooks")
+		workspaceHooksDir = path.join(tempDir, "workspace", ".isaacrules", "hooks")
 
 		await fs.mkdir(globalHooksDir, { recursive: true })
 		await fs.mkdir(workspaceHooksDir, { recursive: true })

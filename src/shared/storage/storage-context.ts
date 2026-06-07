@@ -1,8 +1,8 @@
 import fsSync from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { DiracFileStorage } from "./DiracFileStorage"
-import { DiracMemento } from "./DiracStorage"
+import { IsaacFileStorage } from "./IsaacFileStorage"
+import { IsaacMemento } from "./IsaacStorage"
 
 /**
  * The storage backend context object used by StateManager and other components.
@@ -14,24 +14,24 @@ import { DiracMemento } from "./DiracStorage"
  */
 export interface StorageContext {
 	/** Global state — settings, task history references, UI state, etc. */
-	readonly globalState: DiracMemento
+	readonly globalState: IsaacMemento
 
 	// TODO: Privatize this field after StorageContext becomes class with a reset method.
 	/**
 	 * The backing store for global state. Prefer `globalState` when possible.
 	 *
-	 * This split exists because CLI needs to intercept the DiracMemento interface to global state,
+	 * This split exists because CLI needs to intercept the IsaacMemento interface to global state,
 	 * but state resets need to write through to the backing store.
 	 */
-	readonly globalStateBackingStore: DiracFileStorage
+	readonly globalStateBackingStore: IsaacFileStorage
 
 	/** Secrets — API keys and other sensitive values. File uses restricted permissions (0o600). */
-	readonly secrets: DiracFileStorage<string>
+	readonly secrets: IsaacFileStorage<string>
 
 	/** Workspace-scoped state — per-project toggles, rules, etc. */
-	readonly workspaceState: DiracFileStorage
+	readonly workspaceState: IsaacFileStorage
 
-	/** The resolved path to the data directory (~/.dirac/data) */
+	/** The resolved path to the data directory (~/.isaac/data) */
 	readonly dataDir: string
 
 	/** The resolved path to the workspace storage directory (contains workspaceState.json) */
@@ -40,9 +40,9 @@ export interface StorageContext {
 
 export interface StorageContextOptions {
 	/**
-	 * Override the Dirac home directory. Defaults to DIRAC_DIR env var or ~/.dirac.
+	 * Override the Isaac home directory. Defaults to ISAAC_DIR env var or ~/.isaac.
 	 */
-	diracDir?: string
+	isaacDir?: string
 
 	/**
 	 * The workspace/project directory path. Used to compute a hash-based
@@ -84,16 +84,16 @@ function hashString(str: string): string {
  * construct paths to these storage files themselves.
  *
  * File layout:
- *   ~/.dirac/data/globalState.json    — global state
- *   ~/.dirac/data/secrets.json        — secrets (mode 0o600)
- *   ~/.dirac/data/workspaces/<hash>/workspaceState.json — per-workspace state
+ *   ~/.isaac/data/globalState.json    — global state
+ *   ~/.isaac/data/secrets.json        — secrets (mode 0o600)
+ *   ~/.isaac/data/workspaces/<hash>/workspaceState.json — per-workspace state
  *
  * @param opts Configuration options for path resolution
  * @returns A StorageContext ready for use by StateManager
  */
 export function createStorageContext(opts: StorageContextOptions = {}): StorageContext {
-	const diracDir = opts.diracDir || process.env.DIRAC_DIR || path.join(os.homedir(), ".dirac")
-	const dataDir = path.join(diracDir, SETTINGS_SUBFOLDER)
+	const isaacDir = opts.isaacDir || process.env.ISAAC_DIR || path.join(os.homedir(), ".isaac")
+	const dataDir = path.join(isaacDir, SETTINGS_SUBFOLDER)
 
 	// Resolve workspace storage directory
 	let workspaceDir: string
@@ -111,15 +111,15 @@ export function createStorageContext(opts: StorageContextOptions = {}): StorageC
 	fsSync.mkdirSync(dataDir, { recursive: true })
 	fsSync.mkdirSync(workspaceDir, { recursive: true })
 
-	const globalState = new DiracFileStorage(path.join(dataDir, "globalState.json"), "GlobalState")
+	const globalState = new IsaacFileStorage(path.join(dataDir, "globalState.json"), "GlobalState")
 
 	return {
 		globalState,
 		globalStateBackingStore: globalState,
-		secrets: new DiracFileStorage<string>(path.join(dataDir, "secrets.json"), "Secrets", {
+		secrets: new IsaacFileStorage<string>(path.join(dataDir, "secrets.json"), "Secrets", {
 			fileMode: 0o600, // Owner read/write only — protects API keys
 		}),
-		workspaceState: new DiracFileStorage(path.join(workspaceDir, "workspaceState.json"), "WorkspaceState"),
+		workspaceState: new IsaacFileStorage(path.join(workspaceDir, "workspaceState.json"), "WorkspaceState"),
 		dataDir,
 		workspaceStoragePath: workspaceDir,
 	}

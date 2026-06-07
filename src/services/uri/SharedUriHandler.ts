@@ -1,4 +1,4 @@
-import { DiracWebviewProvider } from "@/core/webview"
+import { IsaacWebviewProvider } from "@/core/webview"
 import { Logger } from "@/shared/services/Logger"
 
 export const TASK_URI_PATH = "/task"
@@ -30,7 +30,7 @@ export class SharedUriHandler {
 				}),
 		)
 
-		const visibleWebview = DiracWebviewProvider.getVisibleInstance()
+		const visibleWebview = IsaacWebviewProvider.getVisibleInstance()
 
 		if (!visibleWebview) {
 			Logger.warn("SharedUriHandler: No visible webview found")
@@ -46,15 +46,6 @@ export class SharedUriHandler {
 						return true
 					}
 					Logger.warn("SharedUriHandler: Missing code parameter for OpenRouter callback")
-					return false
-				}
-				case "/requesty": {
-					const code = query.get("code")
-					if (code) {
-						await visibleWebview.controller.handleRequestyCallback(code)
-						return true
-					}
-					Logger.warn("SharedUriHandler: Missing code parameter for Requesty callback")
 					return false
 				}
 				case TASK_URI_PATH: {

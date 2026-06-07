@@ -40,37 +40,46 @@
  * - log-update: node_modules/ink/build/log-update.js (eraseLines logic)
  */
 
+import path from "node:path"
 import type { ApiProvider, ModelInfo } from "@shared/api"
-import type { DiracAsk, DiracMessage } from "@shared/ExtensionMessage"
+import type { IsaacAsk, IsaacMessage } from "@shared/ExtensionMessage"
 import { getApiMetrics, getLastApiReqTotalTokens } from "@shared/getApiMetrics"
-import { EmptyRequest } from "@shared/proto/dirac/common"
-import type { SlashCommandInfo } from "@shared/proto/dirac/slash"
+import { EmptyRequest } from "@shared/proto/isaac/common"
+import type { SlashCommandInfo } from "@shared/proto/isaac/slash"
 import { CLI_ONLY_COMMANDS } from "@shared/slashCommands"
 import { getProviderDefaultModelId, getProviderModelIdKey } from "@shared/storage"
-import { getRandomQuote } from "@/shared/quotes"
 import type { Mode } from "@shared/storage/types"
 import { Box, Static, Text, useStdout } from "ink"
-import path from "node:path"
 import Image from "ink-picture"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { getAvailableSlashCommands } from "@/core/controller/slash/getAvailableSlashCommands"
 import { StateManager } from "@/core/storage/StateManager"
+import { getRandomQuote } from "@/shared/quotes"
 import { COLORS } from "../constants/colors"
 import { useTaskContext, useTaskState } from "../context/TaskContext"
+import { useChatInputHandler } from "../hooks/useChatInputHandler"
+import { useChatMessages } from "../hooks/useChatMessages"
+import { useChatTask } from "../hooks/useChatTask"
 import { useHomeEndKeys } from "../hooks/useHomeEndKeys"
 import { useRawBackspaceKeys } from "../hooks/useRawBackspaceKeys"
 import { useIsSpinnerActive } from "../hooks/useStateSubscriber"
 import { useTextInput } from "../hooks/useTextInput"
+import { expandPastedTexts, getAskPromptType, getInputStorageKey, isYoloSuppressed, parseAskOptions } from "../utils/chat"
 import { setTerminalTitle } from "../utils/display"
 import {
 	checkAndWarnRipgrepMissing,
 	extractMentionQuery,
-	type FileSearchResult, searchWorkspaceFiles
+	type FileSearchResult,
+	searchWorkspaceFiles,
 } from "../utils/file-search"
+import { type GitDiffStats, getGitBranch, getGitDiffStats } from "../utils/git"
 import { jsonParseSafe, parseImagesFromInput, processImagePaths } from "../utils/parser"
 import { extractSlashQuery, filterCommands, sortCommandsWorkflowsFirst } from "../utils/slash-commands"
 import { type ButtonActionType, getButtonConfig } from "./ActionButtons"
 import { AskPrompt } from "./AskPrompt"
+import { ChatFooter } from "./ChatFooter"
+import { ChatHeader } from "./ChatHeader"
+import { ChatInputBar } from "./ChatInputBar"
 import { ChatMessage } from "./ChatMessage"
 import { FileMentionMenu } from "./FileMentionMenu"
 import { HelpPanelContent } from "./HelpPanelContent"
@@ -80,20 +89,6 @@ import { SettingsPanelContent } from "./SettingsPanelContent"
 import { SkillsPanelContent } from "./SkillsPanelContent"
 import { SlashCommandMenu } from "./SlashCommandMenu"
 import { ThinkingIndicator } from "./ThinkingIndicator"
-import { ChatFooter } from "./ChatFooter"
-import { ChatHeader } from "./ChatHeader"
-import { ChatInputBar } from "./ChatInputBar"
-import { useChatInputHandler } from "../hooks/useChatInputHandler"
-import { useChatMessages } from "../hooks/useChatMessages"
-import { useChatTask } from "../hooks/useChatTask"
-import {
-	expandPastedTexts,
-	getAskPromptType,
-	getInputStorageKey,
-	isYoloSuppressed,
-	parseAskOptions,
-} from "../utils/chat"
-import { getGitBranch, getGitDiffStats, type GitDiffStats } from "../utils/git"
 
 /**
  * Persistent input storage that survives React remounts (e.g., during terminal resize).
@@ -107,7 +102,6 @@ interface PersistedInputState {
 }
 
 const inputStateStorage = new Map<string, PersistedInputState>()
-
 
 interface ChatViewProps {
 	controller?: any
@@ -130,7 +124,6 @@ const MAX_HISTORY_ITEMS = 20 // Max history items to navigate with up/down arrow
  * Get current git branch name
  */
 
-
 /**
  * Get git diff stats (files changed, additions, deletions)
  */
@@ -139,7 +132,6 @@ const MAX_HISTORY_ITEMS = 20 // Max history items to navigate with up/down arrow
  * Create a progress bar for context window usage
  * Returns { filled, empty } strings to allow different coloring
  */
-
 
 /**
  * Yolo mode auto-approves tool use, commands, browser actions, etc. so the AI can work
@@ -154,7 +146,6 @@ const MAX_HISTORY_ITEMS = 20 // Max history items to navigate with up/down arrow
  * Any new ask types added in the future will be suppressed by default in yolo mode.
  * If a new ask type needs user interaction, add it here explicitly.
  */
-
 
 /**
  * Get the type of prompt needed for an ask message
@@ -200,8 +191,22 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	} = useTextInput()
 
 	const storageKey = useMemo(() => getInputStorageKey(ctrl, taskId), [ctrl, taskId])
-	const textInputRef = useMemo(() => ({ get current() { return getText() } }), [getText])
-	const cursorPosRef = useMemo(() => ({ get current() { return getCursorPos() } }), [getCursorPos])
+	const textInputRef = useMemo(
+		() => ({
+			get current() {
+				return getText()
+			},
+		}),
+		[getText],
+	)
+	const cursorPosRef = useMemo(
+		() => ({
+			get current() {
+				return getCursorPos()
+			},
+		}),
+		[getCursorPos],
+	)
 
 	const [fileResults, setFileResults] = useState<FileSearchResult[]>([])
 	const [selectedIndex, setSelectedIndex] = useState(0)
@@ -253,7 +258,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	)
 
 	const { displayMessages, completedMessages, currentMessage, taskSwitchKey, setTaskSwitchKey } = useChatMessages(
-		taskState.diracMessages || [],
+		taskState.isaacMessages || [],
 	)
 
 	const { isProcessing, setIsProcessing, isExiting, handleCancel, handleExit, clearViewAndResetTask } = useChatTask({
@@ -438,10 +443,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
 		return [...new Set(filtered)]
 	}, [])
 
-	const lastMsg = (taskState.diracMessages || [])[(taskState.diracMessages || []).length - 1]
+	const lastMsg = (taskState.isaacMessages || [])[(taskState.isaacMessages || []).length - 1]
 	useEffect(() => {
 		setGitDiffStats(getGitDiffStats(workspacePath))
-	}, [taskState.diracMessages?.length, lastMsg?.partial, lastMsg?.ts, workspacePath])
+	}, [taskState.isaacMessages?.length, lastMsg?.partial, lastMsg?.ts, workspacePath])
 
 	const isWelcomeState = displayMessages.length === 0 && !userScrolled
 
@@ -458,10 +463,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
 		return items
 	}, [completedMessages, displayMessages.length, userScrolled])
 
-	const lastMessage = (taskState.diracMessages || [])[(taskState.diracMessages || []).length - 1]
+	const lastMessage = (taskState.isaacMessages || [])[(taskState.isaacMessages || []).length - 1]
 	const pendingAsk =
 		lastMessage?.type === "ask" && !lastMessage.partial && respondedToAsk !== lastMessage.ts ? lastMessage : null
-	const askType = pendingAsk ? getAskPromptType(pendingAsk.ask as DiracAsk, pendingAsk.text || "") : "none"
+	const askType = pendingAsk ? getAskPromptType(pendingAsk.ask as IsaacAsk, pendingAsk.text || "") : "none"
 	const askOptions = pendingAsk && askType === "options" ? parseAskOptions(pendingAsk.text || "") : []
 
 	const sendAskResponse = useCallback(
@@ -486,11 +491,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	)
 
 	const buttonConfig = useMemo(() => {
-		const lastMsg = (taskState.diracMessages || [])[(taskState.diracMessages || []).length - 1] as
-			| DiracMessage
-			| undefined
+		const lastMsg = (taskState.isaacMessages || [])[(taskState.isaacMessages || []).length - 1] as IsaacMessage | undefined
 		return getButtonConfig(lastMsg, isSpinnerActive)
-	}, [taskState.diracMessages, isSpinnerActive])
+	}, [taskState.isaacMessages, isSpinnerActive])
 
 	useEffect(() => {
 		if (isProcessing && (!buttonConfig.enableButtons || isSpinnerActive)) {
@@ -499,7 +502,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	}, [isProcessing, buttonConfig.enableButtons, isSpinnerActive, setIsProcessing])
 
 	const handleButtonAction = useCallback(
-		async (action: ButtonActionType | undefined, _isPrimary: boolean = true) => {
+		async (action: ButtonActionType | undefined, _isPrimary = true) => {
 			if (!action || !ctrl || isProcessing) return
 			setIsProcessing(true)
 			try {
@@ -559,7 +562,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	const handleAskShortcuts = useCallback(
 		(input: string, key: any, currentTextInput: string) => {
 			if (!pendingAsk || currentTextInput !== "" || isSpinnerActive || isProcessing) return false
-			const askType = pendingAsk.ask as DiracAsk
+			const askType = pendingAsk.ask as IsaacAsk
 			if (
 				askType === "command" ||
 				askType === "tool" ||
@@ -608,7 +611,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 			if (pendingAsk) {
 				const prompt = text.trim()
 				const normalized = prompt.toLowerCase()
-				const askType = pendingAsk.ask as DiracAsk
+				const askType = pendingAsk.ask as IsaacAsk
 				if (askType === "resume_task" || askType === "resume_completed_task" || askType === "completion_result") {
 					if (normalized === "q" || normalized === "quit" || normalized === "exit") {
 						handleExit()
@@ -653,7 +656,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
 				setIsProcessing(false)
 			}
 		},
-		[ctrl, onError, pastedTexts, storageKey, isProcessing, setIsProcessing, setTextInput, setCursorPos, pendingAsk, handleExit, sendAskResponse],
+		[
+			ctrl,
+			onError,
+			pastedTexts,
+			storageKey,
+			isProcessing,
+			setIsProcessing,
+			setTextInput,
+			setCursorPos,
+			pendingAsk,
+			handleExit,
+			sendAskResponse,
+		],
 	)
 
 	useEffect(() => {
@@ -691,7 +706,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
 					} else {
 						imageQuery = query.slice(5)
 					}
-					results = await searchWorkspaceFiles(imageQuery, workspacePath, 15, undefined, ["png", "jpg", "jpeg", "gif", "webp"])
+					results = await searchWorkspaceFiles(imageQuery, workspacePath, 15, undefined, [
+						"png",
+						"jpg",
+						"jpeg",
+						"gif",
+						"webp",
+					])
 				} else {
 					results = await searchWorkspaceFiles(query, workspacePath, 15)
 				}
@@ -759,8 +780,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	})
 
 	const borderColor = mode === "act" ? COLORS.primaryBlue : "yellow"
-	const metrics = getApiMetrics(taskState.diracMessages || [])
-	const lastApiReqTotalTokens = useMemo(() => getLastApiReqTotalTokens(taskState.diracMessages || []), [taskState.diracMessages])
+	const metrics = getApiMetrics(taskState.isaacMessages || [])
+	const lastApiReqTotalTokens = useMemo(
+		() => getLastApiReqTotalTokens(taskState.isaacMessages || []),
+		[taskState.isaacMessages],
+	)
 	const contextWindowSize = useMemo(() => {
 		const providerData = providerModels[provider]
 		if (providerData && modelId in providerData.models) {
@@ -783,11 +807,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 			<Static items={staticItems}>
 				{(item) => (
 					<Box key={item.key} paddingX={item.type === "message" ? 1 : 0} width="100%">
-						{item.type === "header" ? (
-							<ChatHeader />
-						) : (
-							<ChatMessage message={item.message} mode={mode} />
-						)}
+						{item.type === "header" ? <ChatHeader /> : <ChatMessage message={item.message} mode={mode} />}
 					</Box>
 				)}
 			</Static>
@@ -816,15 +836,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
 					</Box>
 				)}
 
-				{pendingAsk && !isYoloSuppressed(yolo, pendingAsk.ask as DiracAsk) && !isSpinnerActive && (
+				{pendingAsk && !isYoloSuppressed(yolo, pendingAsk.ask as IsaacAsk) && !isSpinnerActive && (
 					<Box paddingX={1}>
 						<AskPrompt />
 					</Box>
 				)}
 
-				{isSpinnerActive && (
-					<ThinkingIndicator mode={mode} onCancel={handleCancel} startTime={spinnerStartTime} />
-				)}
+				{isSpinnerActive && <ThinkingIndicator mode={mode} onCancel={handleCancel} startTime={spinnerStartTime} />}
 
 				{!activePanel && !isExiting && (
 					<ChatInputBar
@@ -912,35 +930,32 @@ export const ChatView: React.FC<ChatViewProps> = ({
 				)}
 			</Box>
 
-				{imagePaths.length > 0 && !activePanel && (
-					<Box
-						{...({
-							position: "absolute",
-							width: stdout?.columns || 80,
-							height: stdout?.rows || 24,
-							flexDirection: "column",
-							justifyContent: "flex-end",
-							alignItems: "flex-end",
-							paddingRight: 2,
-							paddingBottom: 1,
-						} as any)}>
-						<Box flexDirection="column" alignItems="flex-end">
-							<Box borderStyle="round" borderColor="magenta">
-								<Image
-									key={imagePaths[imagePaths.length - 1]}
-									src={path.resolve(imagePaths[imagePaths.length - 1])}
-									width={30}
-								/>
-							</Box>
-							<Text color="gray" dimColor>
-								{path.basename(imagePaths[imagePaths.length - 1])}
-							</Text>
+			{imagePaths.length > 0 && !activePanel && (
+				<Box
+					{...({
+						position: "absolute",
+						width: stdout?.columns || 80,
+						height: stdout?.rows || 24,
+						flexDirection: "column",
+						justifyContent: "flex-end",
+						alignItems: "flex-end",
+						paddingRight: 2,
+						paddingBottom: 1,
+					} as any)}>
+					<Box alignItems="flex-end" flexDirection="column">
+						<Box borderColor="magenta" borderStyle="round">
+							<Image
+								key={imagePaths[imagePaths.length - 1]}
+								src={path.resolve(imagePaths[imagePaths.length - 1])}
+								width={30}
+							/>
 						</Box>
+						<Text color="gray" dimColor>
+							{path.basename(imagePaths[imagePaths.length - 1])}
+						</Text>
 					</Box>
-				)}
-
-
-
+				</Box>
+			)}
 		</Box>
 	)
 }

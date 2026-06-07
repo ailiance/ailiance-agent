@@ -1,30 +1,30 @@
 import {
-    DiracAskUseSubagents,
-    DiracMessage,
-    DiracSaySubagentStatus,
-    SubagentExecutionStatus,
-    SubagentStatusItem,
+	IsaacAskUseSubagents,
+	IsaacMessage,
+	IsaacSaySubagentStatus,
+	SubagentExecutionStatus,
+	SubagentStatusItem,
 } from "@shared/ExtensionMessage"
+import {
+	BotIcon,
+	CheckIcon,
+	ChevronDownIcon,
+	ChevronRightIcon,
+	CircleSlashIcon,
+	CircleXIcon,
+	LoaderCircleIcon,
+	NetworkIcon,
+} from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import MarkdownBlock from "@/shared/ui/MarkdownBlock"
+import { useChatStore } from "../store/chatStore"
 import { ApprovalBox } from "./ChatRow/ApprovalBox"
 import { useMessageHandlers } from "./ChatView/hooks/useMessageHandlers"
-import { useChatStore } from "../store/chatStore"
-import {
-    BotIcon,
-    CheckIcon,
-    ChevronDownIcon,
-    ChevronRightIcon,
-    CircleSlashIcon,
-    CircleXIcon,
-    LoaderCircleIcon,
-    NetworkIcon,
-} from "lucide-react"
-import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import MarkdownBlock from "@/shared/ui/MarkdownBlock"
 
 interface SubagentStatusRowProps {
-	message: DiracMessage
+	message: IsaacMessage
 	isLast: boolean
-	lastModifiedMessage?: DiracMessage
+	lastModifiedMessage?: IsaacMessage
 }
 
 type DisplayStatus = SubagentExecutionStatus | "cancelled"
@@ -75,14 +75,14 @@ const formatCost = (value: number | undefined): string => {
 	}).format(normalized)
 }
 
-function parseSubagentRowData(message: DiracMessage): SubagentRowData | null {
+function parseSubagentRowData(message: IsaacMessage): SubagentRowData | null {
 	if (!message.text) {
 		return null
 	}
 
 	try {
 		if (message.ask === "use_subagents" || message.say === "use_subagents") {
-			const parsed = JSON.parse(message.text) as DiracAskUseSubagents
+			const parsed = JSON.parse(message.text) as IsaacAskUseSubagents
 			if (!Array.isArray(parsed.prompts)) {
 				return null
 			}
@@ -110,7 +110,7 @@ function parseSubagentRowData(message: DiracMessage): SubagentRowData | null {
 			}
 		}
 
-		const parsed = JSON.parse(message.text) as DiracSaySubagentStatus
+		const parsed = JSON.parse(message.text) as IsaacSaySubagentStatus
 		if (!Array.isArray(parsed.items)) {
 			return null
 		}
@@ -183,9 +183,9 @@ function SubagentPromptText({ prompt, isExpanded, onShowMore }: SubagentPromptTe
 }
 
 export default function SubagentStatusRow({ message, isLast, lastModifiedMessage }: SubagentStatusRowProps) {
-	const messages = useChatStore((state: any) => state.diracMessages)
+	const messages = useChatStore((state: any) => state.isaacMessages)
 	const chatState = {
-		diracAsk: message.ask,
+		isaacAsk: message.ask,
 		lastMessage: message,
 		setInputValue: () => {},
 		setActiveQuote: () => {},
@@ -209,7 +209,7 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 				setIsProcessing(false)
 			}
 		},
-		[executeButtonAction, isProcessing]
+		[executeButtonAction, isProcessing],
 	)
 
 	const isPending = message.ask === "use_subagents"
@@ -237,7 +237,7 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 			resumedBeforeNextVisibleMessage)
 
 	const singular = data.items.length === 1
-	const title = singular ? "Dirac wants to use a subagent:" : "Dirac wants to use subagents:"
+	const title = singular ? "Isaac wants to use a subagent:" : "Isaac wants to use subagents:"
 	const isPromptConstructionRow = message.ask === "use_subagents" || message.say === "use_subagents"
 	const toggleItem = (index: number) => {
 		setExpandedItems((prev) => ({
@@ -269,7 +269,10 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 					const isStreamingPromptUnderConstruction =
 						isPromptConstructionRow && message.partial === true && index === data.items.length - 1
 					const shouldShowStats = !isStreamingPromptUnderConstruction
-					const cacheInfo = (entry.cacheWrites || entry.cacheReads) ? ` · cache: ${formatCount(entry.cacheReads)}r/${formatCount(entry.cacheWrites)}w` : ""
+					const cacheInfo =
+						entry.cacheWrites || entry.cacheReads
+							? ` · cache: ${formatCount(entry.cacheReads)}r/${formatCount(entry.cacheWrites)}w`
+							: ""
 					const statsText = `${formatCount(entry.toolCalls)} tools called · ${formatCount(entry.contextTokens)} tokens${cacheInfo} · ${formatCost(entry.totalCost)}`
 					const latestToolCallText = entry.latestToolCall?.trim() || ""
 					return (
@@ -327,8 +330,8 @@ export default function SubagentStatusRow({ message, isLast, lastModifiedMessage
 	if (message.ask === "use_subagents") {
 		return (
 			<ApprovalBox
-				isProcessing={isProcessing}
 				description={singular ? "Approve subagent" : `Approve ${data.items.length} subagents`}
+				isProcessing={isProcessing}
 				onApprove={() => handleAction("approve")}
 				onReject={() => handleAction("reject")}>
 				{content}

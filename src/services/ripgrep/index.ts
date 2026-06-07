@@ -1,4 +1,4 @@
-import { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
+import { IsaacIgnoreController } from "@core/ignore/IsaacIgnoreController"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import { formatLineWithHash } from "@utils/line-hashing"
 import * as childProcess from "child_process"
@@ -154,7 +154,7 @@ export async function regexSearchFiles(
 	directoryPath: string,
 	regex: string,
 	filePattern?: string,
-	diracIgnoreController?: DiracIgnoreController,
+	isaacIgnoreController?: IsaacIgnoreController,
 	taskId?: string,
 	contextLines?: number,
 	excludeFilePatterns?: string[],
@@ -220,8 +220,8 @@ export async function regexSearchFiles(
 	const fileResults: FileSearchResult[] = []
 	let finalMatchCount = 0
 	for (const [filePath, lineMap] of resultsByFile.entries()) {
-		// Filter by diracIgnoreController if provided
-		if (diracIgnoreController && !diracIgnoreController.validateAccess(filePath)) {
+		// Filter by isaacIgnoreController if provided
+		if (isaacIgnoreController && !isaacIgnoreController.validateAccess(filePath)) {
 			continue
 		}
 

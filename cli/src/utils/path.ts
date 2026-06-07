@@ -3,11 +3,11 @@ import os from "node:os"
 import path from "node:path"
 import { rgPath } from "@vscode/ripgrep"
 
-const data = process.env.DIRAC_DATA_DIR ?? path.join(os.homedir(), ".dirac", "data")
+const data = process.env.ISAAC_DATA_DIR ?? path.join(os.homedir(), ".isaac", "data")
 
-const log = process.env.DIRAC_LOG_DIR ?? path.join(data, "logs")
+const log = process.env.ISAAC_LOG_DIR ?? path.join(data, "logs")
 
-export const DIRAC_CLI_DIR = {
+export const ISAAC_CLI_DIR = {
 	data,
 	log,
 }

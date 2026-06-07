@@ -1,7 +1,7 @@
 import { version as CLI_VERSION } from "../package.json"
-import { window } from "./vscode-shim"
 import type { CliContext, InitOptions } from "./types"
 import { setActiveContext } from "./utils/state"
+import { window } from "./vscode-shim"
 
 /**
  * Initialize all CLI infrastructure and return context needed for commands
@@ -10,17 +10,17 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const { setRuntimeHooksDir } = await import("@/core/storage/disk")
 	const { initializeCliContext } = await import("./vscode-context")
 	const { Logger } = await import("@/shared/services/Logger")
-	const { DiracEndpoint } = await import("@/config")
+	const { IsaacEndpoint } = await import("@/config")
 	const { autoUpdateOnStartup } = await import("./utils/update")
 	const { Session } = await import("@/shared/services/Session")
-	const { AuthHandler } = await import("@/hosts/external/AuthHandler")
+	const { AuthHandler } = await import("@/services/auth/AuthHandler")
 	const { HostProvider } = await import("@/hosts/host-provider")
 	const { CliWebviewProvider } = await import("./controllers/CliWebviewProvider")
 	const { FileEditProvider } = await import("@/integrations/editor/FileEditProvider")
 	const { CliCommentReviewController } = await import("./controllers/CliCommentReviewController")
 	const { StandaloneTerminalManager } = await import("@/integrations/terminal/standalone/StandaloneTerminalManager")
 	const { createCliHostBridgeProvider } = await import("./controllers")
-	const { getCliBinaryPath, DIRAC_CLI_DIR } = await import("./utils/path")
+	const { getCliBinaryPath, ISAAC_CLI_DIR } = await import("./utils/path")
 	const { StateManager } = await import("@/core/storage/StateManager")
 	const { ErrorService } = await import("@/services/error/ErrorService")
 	const { telemetryService } = await import("@/services/telemetry")
@@ -29,18 +29,18 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const workspacePath = options.cwd || process.cwd()
 	setRuntimeHooksDir(options.hooksDir)
 	const { extensionContext, storageContext, DATA_DIR, EXTENSION_DIR } = initializeCliContext({
-		diracDir: options.config,
+		isaacDir: options.config,
 		workspaceDir: workspacePath,
 	})
 
-	// Set up output channel and Logger early so DiracEndpoint.initialize logs are captured
+	// Set up output channel and Logger early so IsaacEndpoint.initialize logs are captured
 	const outputChannel = window.createOutputChannel("ISAAC CLI")
 	const logToChannel = (message: string) => outputChannel.appendLine(message)
 
 	// Configure the shared Logging class early to capture all initialization logs
 	Logger.subscribe(logToChannel)
 
-	await DiracEndpoint.initialize(EXTENSION_DIR)
+	await IsaacEndpoint.initialize(EXTENSION_DIR)
 
 	// Auto-update check (after endpoints initialized, so we can detect bundled configs)
 	autoUpdateOnStartup(CLI_VERSION)
@@ -53,7 +53,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	}
 
 	outputChannel.appendLine(
-		`ISAAC CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${DIRAC_CLI_DIR.log}`,
+		`ISAAC CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${ISAAC_CLI_DIR.log}`,
 	)
 
 	HostProvider.initialize(
@@ -84,12 +84,10 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 		}
 	}
 	// ailiance-agent fork: ailiance default fallback (touches: cli/src/init.ts)
-	const { applyEuKikiDefault } = await import("./utils/ailiance-default")
-	const euKikiDecision = applyEuKikiDefault(stateManager)
-	if (euKikiDecision.applied) {
-		outputChannel.appendLine(
-			`ailiance default applied (${euKikiDecision.reason}) gateway=${euKikiDecision.gatewayUrl}`,
-		)
+	const { applyAilianceDefault } = await import("./utils/ailiance-default")
+	const ailianceDecision = applyAilianceDefault(stateManager)
+	if (ailianceDecision.applied) {
+		outputChannel.appendLine(`ailiance default applied (${ailianceDecision.reason}) gateway=${ailianceDecision.gatewayUrl}`)
 	}
 	await ErrorService.initialize()
 
@@ -109,7 +107,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 		console.error(`[ISAAC] ${formatPrewarmLog(prewarm)}`)
 	}
 
-	const webview = HostProvider.get().createDiracWebviewProvider() as any
+	const webview = HostProvider.get().createIsaacWebviewProvider() as any
 	const controller = webview.controller as any
 
 	await telemetryService.captureExtensionActivated()
@@ -120,7 +118,7 @@ export async function initializeCli(options: InitOptions): Promise<CliContext> {
 	SymbolIndexService.getInstance()
 		.initialize(workspacePath)
 		.catch((error) => {
-			Logger.error("[Dirac] Failed to initialize SymbolIndexService:", error)
+			Logger.error("[Isaac] Failed to initialize SymbolIndexService:", error)
 		})
 
 	const ctx = { extensionContext, dataDir: DATA_DIR, extensionDir: EXTENSION_DIR, workspacePath, controller }

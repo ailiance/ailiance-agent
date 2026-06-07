@@ -64,8 +64,8 @@ interface AppProps {
 	globalState?: Record<string, any>
 	workspaceState?: Record<string, any>
 	// Rules toggles
-	globalDiracRulesToggles?: Record<string, boolean>
-	localDiracRulesToggles?: Record<string, boolean>
+	globalIsaacRulesToggles?: Record<string, boolean>
+	localIsaacRulesToggles?: Record<string, boolean>
 	localCursorRulesToggles?: Record<string, boolean>
 	localWindsurfRulesToggles?: Record<string, boolean>
 	localAgentsRulesToggles?: Record<string, boolean>
@@ -121,8 +121,8 @@ const InternalApp: React.FC<AppProps> = ({
 	globalState = {},
 	workspaceState = {},
 	// Rules
-	globalDiracRulesToggles,
-	localDiracRulesToggles,
+	globalIsaacRulesToggles,
+	localIsaacRulesToggles,
 	localCursorRulesToggles,
 	localWindsurfRulesToggles,
 	localAgentsRulesToggles,
@@ -236,15 +236,15 @@ const InternalApp: React.FC<AppProps> = ({
 			content = (
 				<ConfigView
 					dataDir={dataDir}
-					globalDiracRulesToggles={globalDiracRulesToggles}
 					globalHooks={globalHooks}
+					globalIsaacRulesToggles={globalIsaacRulesToggles}
 					globalSkills={globalSkills}
 					globalState={globalState}
 					globalWorkflowToggles={globalWorkflowToggles}
 					hooksEnabled={hooksEnabled}
 					localAgentsRulesToggles={localAgentsRulesToggles}
-					localDiracRulesToggles={localDiracRulesToggles}
 					localCursorRulesToggles={localCursorRulesToggles}
+					localIsaacRulesToggles={localIsaacRulesToggles}
 					localSkills={localSkills}
 					localWindsurfRulesToggles={localWindsurfRulesToggles}
 					localWorkflowToggles={localWorkflowToggles}

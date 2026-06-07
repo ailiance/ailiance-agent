@@ -1,6 +1,6 @@
 import type { HookOutputStreamMeta } from "@shared/ExtensionMessage"
-import { DiracMessage } from "@shared/ExtensionMessage"
-import type { HookOutput } from "@shared/proto/dirac/hooks"
+import { IsaacMessage } from "@shared/ExtensionMessage"
+import type { HookOutput } from "@shared/proto/isaac/hooks"
 import { Logger } from "@/shared/services/Logger"
 import { MessageStateHandler } from "../task/message-state"
 import { HookExecutionError } from "./HookError"
@@ -264,10 +264,10 @@ async function updateHookMessage(
 	hookMessageTs: number,
 	metadata: Record<string, any>,
 ): Promise<void> {
-	const diracMessages = messageStateHandler.getDiracMessages()
-	const hookMessageIndex = diracMessages.findIndex((m: DiracMessage) => m.ts === hookMessageTs)
+	const isaacMessages = messageStateHandler.getIsaacMessages()
+	const hookMessageIndex = isaacMessages.findIndex((m: IsaacMessage) => m.ts === hookMessageTs)
 	if (hookMessageIndex !== -1) {
-		await messageStateHandler.updateDiracMessage(hookMessageIndex, {
+		await messageStateHandler.updateIsaacMessage(hookMessageIndex, {
 			text: JSON.stringify(metadata),
 		})
 	}
@@ -284,15 +284,15 @@ async function updateHookMessage(
  * 4. Re-add the tool message at the end (after hook messages)
  */
 async function reorderHookAndToolMessages(messageStateHandler: MessageStateHandler): Promise<void> {
-	const diracMessages = messageStateHandler.getDiracMessages()
+	const isaacMessages = messageStateHandler.getIsaacMessages()
 
 	// Define all message types that represent tool executions with PreToolUse hooks
 	const toolMessageTypes = ["tool", "command", "browser_action_launch"]
 
 	// Find the most recent tool message
 	let lastToolMessageIndex = -1
-	for (let i = diracMessages.length - 1; i >= 0; i--) {
-		const msgType = diracMessages[i].ask || diracMessages[i].say
+	for (let i = isaacMessages.length - 1; i >= 0; i--) {
+		const msgType = isaacMessages[i].ask || isaacMessages[i].say
 		if (msgType && toolMessageTypes.includes(msgType)) {
 			lastToolMessageIndex = i
 			break
@@ -305,8 +305,8 @@ async function reorderHookAndToolMessages(messageStateHandler: MessageStateHandl
 
 	// Check if there are any hook messages after the tool message
 	let hasHookMessagesAfterTool = false
-	for (let i = lastToolMessageIndex + 1; i < diracMessages.length; i++) {
-		if (diracMessages[i].say === "hook_status" || diracMessages[i].say === "hook_output_stream") {
+	for (let i = lastToolMessageIndex + 1; i < isaacMessages.length; i++) {
+		if (isaacMessages[i].say === "hook_status" || isaacMessages[i].say === "hook_output_stream") {
 			hasHookMessagesAfterTool = true
 			break
 		}
@@ -317,11 +317,11 @@ async function reorderHookAndToolMessages(messageStateHandler: MessageStateHandl
 	}
 
 	// Store the tool message (deep copy to preserve all properties)
-	const toolMessage = { ...diracMessages[lastToolMessageIndex] }
+	const toolMessage = { ...isaacMessages[lastToolMessageIndex] }
 
 	// Delete the tool message at its current position
-	await messageStateHandler.deleteDiracMessage(lastToolMessageIndex)
+	await messageStateHandler.deleteIsaacMessage(lastToolMessageIndex)
 
 	// Re-add the tool message at the end (after hook messages)
-	await messageStateHandler.addToDiracMessages(toolMessage)
+	await messageStateHandler.addToIsaacMessages(toolMessage)
 }

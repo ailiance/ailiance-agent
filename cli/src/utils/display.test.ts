@@ -1,4 +1,4 @@
-import type { DiracMessage, ExtensionState } from "@shared/ExtensionMessage"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { colorize, formatMessage, formatState, formatTimestamp, Spinner, separator, style, taskHeader } from "./display"
 
@@ -74,14 +74,14 @@ describe("display", () => {
 	})
 
 	describe("formatMessage", () => {
-		const createMessage = (overrides: Partial<DiracMessage>): DiracMessage =>
+		const createMessage = (overrides: Partial<IsaacMessage>): IsaacMessage =>
 			({
 				ts: Date.now(),
 				type: "say",
 				say: "text",
 				text: "test message",
 				...overrides,
-			}) as DiracMessage
+			}) as IsaacMessage
 
 		describe("say messages", () => {
 			it("should format text message", () => {
@@ -316,7 +316,7 @@ describe("display", () => {
 	describe("formatState", () => {
 		it("should format state with messages", () => {
 			const state: Partial<ExtensionState> = {
-				diracMessages: [{ ts: Date.now(), type: "say", say: "text", text: "Hello" } as DiracMessage],
+				isaacMessages: [{ ts: Date.now(), type: "say", say: "text", text: "Hello" } as IsaacMessage],
 			}
 			const result = formatState(state as ExtensionState)
 			expect(result).toContain("Hello")
@@ -333,7 +333,7 @@ describe("display", () => {
 					modelId: "gpt-4",
 					totalCost: 0.0025,
 				},
-				diracMessages: [],
+				isaacMessages: [],
 			}
 			const result = formatState(state as ExtensionState)
 			expect(result).toContain("Task: task-1")
@@ -341,7 +341,7 @@ describe("display", () => {
 
 		it("should handle empty messages array", () => {
 			const state: Partial<ExtensionState> = {
-				diracMessages: [],
+				isaacMessages: [],
 			}
 			const result = formatState(state as ExtensionState)
 			expect(result).toBe("")

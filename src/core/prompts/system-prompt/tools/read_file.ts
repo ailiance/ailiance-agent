@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.FILE_READ
+const id = IsaacDefaultTool.FILE_READ
 
-export const read_file: DiracToolSpec = {
+export const read_file = {
 	id,
 	name: "read_file",
 	description:
@@ -32,4 +33,11 @@ export const read_file: DiracToolSpec = {
 			usage: "50",
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * The handler reads scalar params through these names; a rename/removal of a
+ * spec parameter changes this union and breaks the handler compile (kills drift).
+ */
+export type ReadFileParam = ParamNames<typeof read_file>

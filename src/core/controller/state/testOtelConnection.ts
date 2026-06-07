@@ -1,5 +1,5 @@
-import { EmptyRequest } from "@shared/proto/dirac/common"
-import { TestConnectionResult } from "@shared/proto/dirac/state"
+import { EmptyRequest } from "@shared/proto/isaac/common"
+import { TestConnectionResult } from "@shared/proto/isaac/state"
 
 const REMOTE_CONFIG_OTEL_PROVIDER_ID = "remote-config-otel"
 
@@ -25,13 +25,13 @@ export async function testOtelConnection(_controller: Controller, _: EmptyReques
 			})
 		}
 
-		otelProvider.log("dirac.test.connection", {
+		otelProvider.log("isaac.test.connection", {
 			test: true,
 			timestamp: new Date().toISOString(),
 			source: "remote_config_settings",
 		})
 
-		otelProvider.recordCounter("dirac.test.connection", 1)
+		otelProvider.recordCounter("isaac.test.connection", 1)
 
 		await otelProvider.forceFlush()
 

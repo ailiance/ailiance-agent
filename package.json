@@ -1,7 +1,7 @@
 {
 	"name": "isaac",
 	"displayName": "ISAAC",
-	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Isaac, routed to ailiance LLM gateway by default",
 	"version": "0.9.1-beta",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
@@ -36,7 +36,7 @@
 		"high-bandwidth",
 		"isaac",
 		"ailiance",
-		"dirac",
+		"isaac",
 		"ast",
 		"hash-anchor",
 		"claude",
@@ -58,7 +58,7 @@
 	"main": "./dist/extension.js",
 	"contributes": {
 		"icons": {
-			"dirac-icon": {
+			"isaac-icon": {
 				"description": "ISAAC",
 				"default": {
 					"fontPath": "node_modules/@vscode/codicons/dist/codicon.ttf",
@@ -70,7 +70,7 @@
 			{
 				"id": "AgentKikiWalkthrough",
 				"title": "ISAAC, the EU-sovereign autonomous coding agent",
-				"description": "ISAAC is a Dirac fork routed to the ailiance LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
+				"description": "ISAAC is a Isaac fork routed to the ailiance LLM gateway by default, with per-task JSONL traces for EU AI Act audit support.",
 				"steps": [
 					{
 						"id": "hash-anchored-edits",
@@ -113,17 +113,17 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "dirac-ActivityBar",
+					"id": "isaac-ActivityBar",
 					"title": "ISAAC",
 					"icon": "assets/icons/icon.svg"
 				}
 			]
 		},
 		"views": {
-			"dirac-ActivityBar": [
+			"isaac-ActivityBar": [
 				{
 					"type": "webview",
-					"id": "dirac.SidebarProvider",
+					"id": "isaac.SidebarProvider",
 					"name": "",
 					"icon": "assets/icons/icon.svg"
 				}
@@ -131,115 +131,115 @@
 		},
 		"commands": [
 			{
-				"command": "dirac.plusButtonClicked",
+				"command": "isaac.plusButtonClicked",
 				"title": "New Task",
 				"icon": "$(add)"
 			},
 			{
-				"command": "dirac.historyButtonClicked",
+				"command": "isaac.historyButtonClicked",
 				"title": "History",
 				"icon": "$(history)"
 			},
 			{
-				"command": "dirac.settingsButtonClicked",
+				"command": "isaac.settingsButtonClicked",
 				"title": "Settings",
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "dirac.dev.createTestTasks",
+				"command": "isaac.dev.createTestTasks",
 				"title": "Create Test Tasks",
 				"category": "ISAAC",
-				"when": "dirac.isDevMode"
+				"when": "isaac.isDevMode"
 			},
 			{
-				"command": "dirac.addToChat",
+				"command": "isaac.addToChat",
 				"title": "Add to ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.addTerminalOutputToChat",
+				"command": "isaac.addTerminalOutputToChat",
 				"title": "Add to ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.focusChatInput",
+				"command": "isaac.focusChatInput",
 				"title": "Jump to Chat Input",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.generateGitCommitMessage",
+				"command": "isaac.generateGitCommitMessage",
 				"title": "Generate Commit Message with ISAAC",
 				"category": "ISAAC",
-				"icon": "$(dirac-icon)"
+				"icon": "$(isaac-icon)"
 			},
 			{
-				"command": "dirac.abortGitCommitMessage",
+				"command": "isaac.abortGitCommitMessage",
 				"title": "Generate Commit Message with ISAAC - Stop",
 				"category": "ISAAC",
 				"icon": "$(debug-stop)"
 			},
 			{
-				"command": "dirac.explainCode",
+				"command": "isaac.explainCode",
 				"title": "Explain with ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.improveCode",
+				"command": "isaac.improveCode",
 				"title": "Improve with ISAAC",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.jupyterGenerateCell",
+				"command": "isaac.jupyterGenerateCell",
 				"title": "Generate Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(sparkle)"
 			},
 			{
-				"command": "dirac.jupyterExplainCell",
+				"command": "isaac.jupyterExplainCell",
 				"title": "Explain Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(question)"
 			},
 			{
-				"command": "dirac.jupyterImproveCell",
+				"command": "isaac.jupyterImproveCell",
 				"title": "Improve Jupyter Cell with ISAAC",
 				"category": "ISAAC",
 				"icon": "$(lightbulb)"
 			},
 			{
-				"command": "dirac.openWalkthrough",
+				"command": "isaac.openWalkthrough",
 				"title": "Open Walkthrough",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.reconstructTaskHistory",
+				"command": "isaac.reconstructTaskHistory",
 				"title": "Reconstruct Task History",
 				"category": "ISAAC"
 			},
 			{
-				"command": "dirac.reviewComment.reply",
+				"command": "isaac.reviewComment.reply",
 				"title": "Reply",
 				"category": "ISAAC",
 				"enablement": "!commentIsEmpty"
 			},
 			{
-				"command": "dirac.reviewComment.addToChat",
+				"command": "isaac.reviewComment.addToChat",
 				"title": "Add to ISAAC Chat",
 				"category": "ISAAC",
 				"icon": "$(link-external)"
 			},
 			{
-				"command": "dirac.acceptEdit",
+				"command": "isaac.acceptEdit",
 				"title": "Accept",
 				"icon": "assets/icons/review-accept.svg"
 			},
 			{
-				"command": "dirac.saveWithMyChanges",
+				"command": "isaac.saveWithMyChanges",
 				"title": "Save with My Changes",
 				"icon": "assets/icons/review-save.svg"
 			},
 			{
-				"command": "dirac.rejectEdit",
+				"command": "isaac.rejectEdit",
 				"title": "Reject",
 				"icon": "assets/icons/review-reject.svg"
 			}
@@ -248,10 +248,10 @@
 			{
 				"command": "editor.action.submitComment",
 				"key": "enter",
-				"when": "commentEditorFocused && commentController == dirac-ai-review && !commentIsEmpty"
+				"when": "commentEditorFocused && commentController == isaac-ai-review && !commentIsEmpty"
 			},
 			{
-				"command": "dirac.addToChat",
+				"command": "isaac.addToChat",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -259,11 +259,11 @@
 				"when": "editorHasSelection"
 			},
 			{
-				"command": "dirac.generateGitCommitMessage",
+				"command": "isaac.generateGitCommitMessage",
 				"when": "config.git.enabled && scmProvider == git"
 			},
 			{
-				"command": "dirac.focusChatInput",
+				"command": "isaac.focusChatInput",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -274,108 +274,108 @@
 		"menus": {
 			"editor/title": [
 				{
-					"command": "dirac.acceptEdit",
+					"command": "isaac.acceptEdit",
 					"group": "navigation@1",
-					"when": "dirac.isFileUnderReview && !dirac.isFileModified"
+					"when": "isaac.isFileUnderReview && !isaac.isFileModified"
 				},
 				{
-					"command": "dirac.saveWithMyChanges",
+					"command": "isaac.saveWithMyChanges",
 					"group": "navigation@1",
-					"when": "dirac.isFileUnderReview && dirac.isFileModified"
+					"when": "isaac.isFileUnderReview && isaac.isFileModified"
 				},
 				{
-					"command": "dirac.rejectEdit",
+					"command": "isaac.rejectEdit",
 					"group": "navigation@2",
-					"when": "dirac.isFileUnderReview"
+					"when": "isaac.isFileUnderReview"
 				}
 			],
 			"view/title": [
 				{
-					"command": "dirac.plusButtonClicked",
+					"command": "isaac.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				},
 				{
-					"command": "dirac.historyButtonClicked",
+					"command": "isaac.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				},
 				{
-					"command": "dirac.settingsButtonClicked",
+					"command": "isaac.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "view == dirac.SidebarProvider"
+					"when": "view == isaac.SidebarProvider"
 				}
 			],
 			"editor/context": [
 				{
-					"command": "dirac.addToChat",
+					"command": "isaac.addToChat",
 					"group": "navigation",
 					"when": "editorHasSelection"
 				}
 			],
 			"terminal/context": [
 				{
-					"command": "dirac.addTerminalOutputToChat",
+					"command": "isaac.addTerminalOutputToChat",
 					"group": "navigation"
 				}
 			],
 			"scm/title": [
 				{
-					"command": "dirac.generateGitCommitMessage",
+					"command": "isaac.generateGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && !dirac.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && !isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.abortGitCommitMessage",
+					"command": "isaac.abortGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && dirac.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && isaac.isGeneratingCommit"
 				}
 			],
 			"notebook/toolbar": [
 				{
-					"command": "dirac.jupyterGenerateCell",
+					"command": "isaac.jupyterGenerateCell",
 					"group": "navigation/add@1",
 					"when": "notebookType == 'jupyter-notebook'"
 				}
 			],
 			"notebook/cell/title": [
 				{
-					"command": "dirac.jupyterExplainCell",
+					"command": "isaac.jupyterExplainCell",
 					"group": "inline@1",
 					"when": "notebookType == 'jupyter-notebook'"
 				},
 				{
-					"command": "dirac.jupyterImproveCell",
+					"command": "isaac.jupyterImproveCell",
 					"group": "inline@2",
 					"when": "notebookType == 'jupyter-notebook'"
 				}
 			],
 			"commandPalette": [
 				{
-					"command": "dirac.generateGitCommitMessage",
-					"when": "config.git.enabled && !dirac.isGeneratingCommit"
+					"command": "isaac.generateGitCommitMessage",
+					"when": "config.git.enabled && !isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.abortGitCommitMessage",
-					"when": "config.git.enabled && dirac.isGeneratingCommit"
+					"command": "isaac.abortGitCommitMessage",
+					"when": "config.git.enabled && isaac.isGeneratingCommit"
 				},
 				{
-					"command": "dirac.reviewComment.reply",
+					"command": "isaac.reviewComment.reply",
 					"when": "false"
 				}
 			],
 			"comments/commentThread/context": [
 				{
-					"command": "dirac.reviewComment.reply",
+					"command": "isaac.reviewComment.reply",
 					"group": "inline",
-					"when": "commentController == dirac-ai-review"
+					"when": "commentController == isaac-ai-review"
 				}
 			],
 			"comments/commentThread/title": [
 				{
-					"command": "dirac.reviewComment.addToChat",
+					"command": "isaac.reviewComment.addToChat",
 					"group": "inline",
-					"when": "commentController == dirac-ai-review"
+					"when": "commentController == isaac-ai-review"
 				}
 			]
 		},
@@ -387,18 +387,13 @@
 	"scripts": {
 		"vscode:prepublish": "npm run package",
 		"compile": "npm run check-types && npm run lint && node esbuild.mjs",
-		"compile-standalone": "npm run check-types && npm run lint && node esbuild.mjs --standalone",
-		"compile-standalone-npm": "npm run protos && npm run check-types && npm run lint && node esbuild.mjs --standalone",
 		"cli:link": "cd cli && npm run link",
 		"cli:build": "npm run protos && cd cli && npm run build",
 		"cli:run": "node cli/dist/cli.mjs",
 		"cli:build:production": "npm run protos && cd cli && npm run build:production",
 		"cli:watch": "cd cli && npm run watch",
 		"cli:test": "cd cli && npm run test",
-		"test:install": "bash scripts/test-install.sh",
 		"cli:dev": "cd cli && npm run dev",
-		"postcompile-standalone": "node scripts/package-standalone.mjs",
-		"postcompile-standalone-npm": "node scripts/package-npm.mjs",
 		"dev": "npm run protos && npm run watch",
 		"watch": "npx npm-run-all -p watch:*",
 		"watch:esbuild": "node esbuild.mjs --watch",
@@ -421,7 +416,7 @@
 		"fix:all": "biome check --no-errors-on-unmatched --files-ignore-unknown=true --write --diagnostic-level=error --unsafe",
 		"ci:check-all": "npx npm-run-all -p check-types lint format",
 		"ci:build": "npm run protos && npm run build:webview && node esbuild.mjs && npm run compile-tests",
-		"pretest": "npm run compile && npm run compile-tests && npm run compile-standalone && npm run lint",
+		"pretest": "npm run compile && npm run compile-tests && npm run lint",
 		"test": "npx npm-run-all test:unit test:integration",
 		"test:integration": "vscode-test",
 		"test:unit": "npx npm-run-all --continue-on-error test:unit:mocha test:unit:mcp",
@@ -434,7 +429,6 @@
 		"test:e2e:build": "vsce package --allow-package-secrets sendgrid --no-dependencies --out dist/e2e.vsix",
 		"test:e2e": "playwright install && npm run test:e2e:build && node src/test/e2e/utils/build.mjs && playwright test",
 		"test:e2e:optimal": "npm run test:e2e:build && node src/test/e2e/utils/build.mjs && playwright test",
-		"test:e2e:cli:tui": "cd tests/e2e/cli && tui-test",
 		"test:e2e:ui": "npx tsx scripts/interactive-playwright.ts",
 		"install:all": "npm install && cd webview-ui && npm install",
 		"dev:webview": "cd webview-ui && npm run dev",
@@ -458,7 +452,7 @@
 	"lint-staged": {
 		"src/shared/storage/state-keys.ts": [
 			"node scripts/generate-state-proto.mjs",
-			"git add proto/dirac/state.proto"
+			"git add proto/isaac/state.proto"
 		],
 		"*": [
 			"biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true"
@@ -467,7 +461,6 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
 		"@bufbuild/buf": "^1.54.0",
-		"@microsoft/tui-test": "0.0.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/chai": "^5.0.1",
 		"@types/clone-deep": "^4.0.4",
@@ -487,7 +480,6 @@
 		"@vscode/test-cli": "^0.0.12",
 		"@vscode/test-electron": "^2.5.2",
 		"@vscode/vsce": "^3.6.0",
-		"c8": "^10.1.3",
 		"chai": "^4.3.10",
 		"chalk": "5.6.2",
 		"cross-env": "^10.1.0",
@@ -497,9 +489,7 @@
 		"husky": "^9.1.7",
 		"lint-staged": "^16.1.0",
 		"npm-run-all": "^4.1.5",
-		"nyc": "^17.1.0",
 		"prebuild-install": "^7.1.3",
-		"protoc-gen-ts": "^0.8.7",
 		"proxyquire": "^2.1.3",
 		"rimraf": "^6.0.1",
 		"should": "^13.2.3",
@@ -508,20 +498,17 @@
 		"ts-node": "^10.9.2",
 		"ts-proto": "^2.6.1",
 		"tsconfig-paths": "^4.2.0",
-		"typescript": "^5.4.5"
+		"typescript": "^5.4.5",
+		"vitest": "^4.1.8"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.88.0",
-		"@anthropic-ai/vertex-sdk": "^0.15.0",
-		"@aws-sdk/client-bedrock-runtime": "^3.922.0",
-		"@aws-sdk/credential-providers": "^3.922.0",
+		"@anthropic-ai/sdk": "^0.101.0",
+		"@azure/identity": "^4.13.1",
 		"@bufbuild/protobuf": "^2.2.5",
-		"@cerebras/cerebras_cloud_sdk": "^1.64.1",
 		"@google/genai": "^1.49.0",
 		"@grpc/grpc-js": "^1.9.15",
 		"@grpc/reflection": "^1.0.4",
 		"@huggingface/transformers": "3.3.3",
-		"@mistralai/mistralai": "^2.1.2",
 		"@modelcontextprotocol/sdk": "^1.25.1",
 		"@opentelemetry/api": "^1.9.0",
 		"@opentelemetry/core": "^2.1.0",
@@ -531,20 +518,17 @@
 		"@opentelemetry/exporter-metrics-otlp-grpc": "^0.56.0",
 		"@opentelemetry/exporter-metrics-otlp-http": "^0.56.0",
 		"@opentelemetry/exporter-metrics-otlp-proto": "^0.56.0",
-		"@opentelemetry/exporter-prometheus": "^0.56.0",
 		"@opentelemetry/exporter-trace-otlp-http": "^0.56.0",
 		"@opentelemetry/instrumentation": "^0.205.0",
 		"@opentelemetry/instrumentation-http": "^0.205.0",
 		"@opentelemetry/resources": "^1.30.1",
 		"@opentelemetry/sdk-logs": "^0.56.0",
 		"@opentelemetry/sdk-metrics": "^1.30.1",
-		"@opentelemetry/sdk-node": "^0.56.0",
 		"@opentelemetry/sdk-trace-base": "^2.1.0",
 		"@opentelemetry/sdk-trace-node": "^1.30.1",
 		"@opentelemetry/semantic-conventions": "^1.37.0",
 		"@playwright/test": "^1.55.1",
 		"@streamparser/json": "^0.0.22",
-		"@tailwindcss/vite": "^4.1.14",
 		"@types/sql.js": "^1.4.10",
 		"@types/uuid": "^10.0.0",
 		"@vscode/codicons": "^0.0.36",
@@ -556,7 +540,6 @@
 		"chokidar": "^4.0.1",
 		"chrome-launcher": "^1.1.2",
 		"clone-deep": "^4.0.1",
-		"default-shell": "^2.2.0",
 		"diff": "^5.2.0",
 		"exceljs": "^4.4.0",
 		"execa": "^9.5.2",
@@ -569,38 +552,36 @@
 		"ignore": "^7.0.3",
 		"image-size": "^2.0.2",
 		"isbinaryfile": "^5.0.2",
+		"js-yaml": "^4.1.1",
 		"jschardet": "^3.1.4",
-		"json5": "^2.2.3",
 		"mammoth": "^1.11.0",
+		"minimist": "^1.2.8",
 		"nanoid": "^5.1.6",
 		"nice-grpc": "^2.1.12",
 		"node-machine-id": "^1.1.12",
 		"open": "^10.1.2",
 		"open-graph-scraper": "^6.9.0",
 		"openai": "^6.34.0",
-		"os-name": "^6.0.0",
+		"p-limit": "^2.3.0",
 		"p-mutex": "^1.0.0",
 		"p-timeout": "^6.1.4",
 		"p-wait-for": "^5.0.2",
 		"pdf-parse": "^1.1.1",
 		"picomatch": "^4.0.3",
-		"posthog-node": "^5.8.0",
+		"playwright": "^1.55.1",
 		"puppeteer-chromium-resolver": "^23.0.0",
 		"puppeteer-core": "^23.4.0",
-		"reconnecting-eventsource": "^1.6.4",
 		"serialize-error": "^11.0.3",
-		"sharp": "^0.34.5",
 		"shell-quote": "^1.8.3",
 		"simple-git": "^3.27.0",
 		"sql.js": "^1.14.1",
-		"strip-ansi": "^7.1.2",
-		"tailwindcss": "^4.1.14",
+		"tar": "^7.5.2",
 		"tree-sitter-wasms": "^0.1.13",
 		"ts-morph": "^25.0.1",
 		"turndown": "^7.2.0",
 		"ulid": "^2.4.0",
 		"undici": "^7.16.0",
-		"uuid": "^11.1.0",
+		"uuid": "^11.1.1",
 		"vscode-uri": "^3.1.0",
 		"web-tree-sitter": "^0.22.6",
 		"zod": "^3.24.2"
@@ -611,45 +592,17 @@
 		"vite": "^7.1.11",
 		"js-yaml": "^4.1.1",
 		"protobufjs": "^8.0.3",
-		"serialize-javascript": "^6.0.2",
+		"serialize-javascript": "^7.0.5",
 		"lodash": "^4.18.0",
 		"lodash-es": "^4.18.0",
 		"@xmldom/xmldom": "^0.9.10",
-		"basic-ftp": "^5.3.1"
-	},
-	"c8": {
-		"reporter": [
-			"lcov",
-			"html"
-		],
-		"exclude": [
-			"**/testing-platform/**",
-			"**/webview-ui/**",
-			"**/.vscode-test/**",
-			"**/node_modules/**",
-			"node_modules",
-			"**/dist-standalone/src/**",
-			"**/dist-standalone/vsce-extension/https:/**",
-			"**/dist-standalone/vsce-extension/**",
-			"**/dist-standalone/https:/**",
-			"**/dist-standalone/LIB/src/**",
-			"**/dist-standalone/pdfjs-dist/**",
-			"**/*.d.ts",
-			"**/*.{test,spec}.{js,jsx,ts,tsx,mjs,cjs}",
-			"**/__tests__/**",
-			"**/test/**",
-			"**/tests/**",
-			"**/.nyc_output/**",
-			"**/tests-results/**",
-			"src/test/**",
-			"**/src/xml/**",
-			"**/standalone/**",
-			"**/src/generated/**",
-			"**/evals/cli/dist/**",
-			"**/evals/cli/src/**",
-			"dist"
-		],
-		"all": true,
-		"exclude-after-remap": true
+		"basic-ftp": "^5.3.1",
+		"uuid": "$uuid",
+		"mocha": {
+			"diff": "^8.0.3"
+		},
+		"sinon": {
+			"diff": "^8.0.3"
+		}
 	}
 }

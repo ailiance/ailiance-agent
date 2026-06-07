@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.REPLACE_SYMBOL
+const id = IsaacDefaultTool.REPLACE_SYMBOL
 
-export const replace_symbol: DiracToolSpec = {
+export const replace_symbol = {
 	id,
 	name: "replace_symbol",
 	description:
@@ -33,11 +34,22 @@ export const replace_symbol: DiracToolSpec = {
 					},
 					type: {
 						type: "string",
-						description: "Optional type of the symbol to help with disambiguation (e.g., 'function', 'method', 'class').",
+						description:
+							"Optional type of the symbol to help with disambiguation (e.g., 'function', 'method', 'class').",
 					},
 				},
 				required: ["path", "symbol", "text"],
 			},
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * This tool only has the array param `replacements` (the handler also accepts
+ * legacy singular `path`/`symbol`/`text`/`type` aliases that are not part of the
+ * spec). No scalar `readParam` call applies; the typed link is preserved via
+ * this export + the `replace_symbol_unit`. Nested `items`/`required` JSON Schema
+ * fields are preserved verbatim by `as const satisfies IsaacToolSpec`.
+ */
+export type ReplaceSymbolParam = ParamNames<typeof replace_symbol>

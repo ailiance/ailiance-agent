@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.RENAME_SYMBOL
+const id = IsaacDefaultTool.RENAME_SYMBOL
 
-export const rename_symbol: DiracToolSpec = {
+export const rename_symbol = {
 	id,
 	name: "rename_symbol",
 	description:
@@ -32,4 +33,12 @@ export const rename_symbol: DiracToolSpec = {
 			usage: '"calculateGrandTotal"',
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * The handler reads the scalar `existing_symbol`/`new_symbol` params through this
+ * contract; the array `paths` is read via `coerceToStringArray`. A rename/removal
+ * of a spec parameter changes this union and breaks the handler compile.
+ */
+export type RenameSymbolParam = ParamNames<typeof rename_symbol>

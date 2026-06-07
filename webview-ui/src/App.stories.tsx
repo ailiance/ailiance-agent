@@ -1,7 +1,7 @@
 import { HeroUIProvider } from "@heroui/react"
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
-import { type ApiConfiguration, bedrockModels } from "@shared/api"
-import type { DiracMessage, DiracSayTool } from "@shared/ExtensionMessage"
+import type { ApiConfiguration } from "@shared/api"
+import type { IsaacMessage, IsaacSayTool } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect, useMemo, useState } from "react"
@@ -42,7 +42,7 @@ const meta: Meta<typeof MockApp> = {
 		docs: {
 			description: {
 				component: `
-The ChatView component is the main interface for interacting with Dirac. It provides a comprehensive chat experience with AI assistance, task management, and various tools.
+The ChatView component is the main interface for interacting with Isaac. It provides a comprehensive chat experience with AI assistance, task management, and various tools.
 
 **Key Features:**
 - **Task Management**: Create, resume, and manage AI-assisted tasks
@@ -85,7 +85,7 @@ type Story = StoryObj<typeof MockApp>
 
 // Mock data factories
 const createApiConfig = (overrides: Partial<ApiConfiguration> = {}): ApiConfiguration => ({
-	actModeApiProvider: "anthropic",
+	actModeApiProvider: "openrouter",
 	actModeApiModelId: "claude-3-5-sonnet-20241022",
 	actModeOpenRouterModelInfo: {
 		maxTokens: 8000,
@@ -98,7 +98,7 @@ const createApiConfig = (overrides: Partial<ApiConfiguration> = {}): ApiConfigur
 
 const mockApiConfiguration = createApiConfig()
 const mockApiConfigurationPlan = createApiConfig({
-	planModeApiProvider: "anthropic",
+	planModeApiProvider: "openrouter",
 	planModeApiModelId: "claude-3-5-sonnet-20241022",
 })
 
@@ -138,11 +138,11 @@ const mockTaskHistory: HistoryItem[] = [
 
 const createMessage = (
 	minutesAgo: number,
-	type: DiracMessage["type"],
-	say: DiracMessage["say"],
+	type: IsaacMessage["type"],
+	say: IsaacMessage["say"],
 	text: string,
-	overrides: Partial<DiracMessage> = {},
-): DiracMessage => ({
+	overrides: Partial<IsaacMessage> = {},
+): IsaacMessage => ({
 	ts: Date.now() - minutesAgo * 60000,
 	type,
 	say,
@@ -152,9 +152,9 @@ const createMessage = (
 
 const createSayToolMessage = (
 	minutesAgo: number,
-	sayTool: DiracSayTool,
-	overrides: Partial<DiracMessage> = {},
-): DiracMessage => ({
+	sayTool: IsaacSayTool,
+	overrides: Partial<IsaacMessage> = {},
+): IsaacMessage => ({
 	ts: Date.now() - minutesAgo * 60000,
 	type: "say",
 	say: "tool",
@@ -182,7 +182,7 @@ const createApiReqMessage = (minutesAgo: number, request: string, metrics: any =
 		}),
 	)
 
-const mockActiveMessages: DiracMessage[] = [
+const mockActiveMessages: IsaacMessage[] = [
 	createMessage(5, "say", "task", "Help me create a responsive navigation component for a React application"),
 	createApiReqMessage(4.9, "Initial analysis request"),
 	createMessage(
@@ -199,7 +199,8 @@ const mockActiveMessages: DiracMessage[] = [
 		JSON.stringify({
 			tool: "listFilesTopLevel",
 			paths: ["src/components", "src/utils"],
-			content: "Contents of src/components:\n2 out of 2 elements listed below:\nNavigation/\nUserProfile/\n\n====================\n\nContents of src/utils:\n1 out of 1 elements listed below:\nmath.ts",
+			content:
+				"Contents of src/components:\n2 out of 2 elements listed below:\nNavigation/\nUserProfile/\n\n====================\n\nContents of src/utils:\n1 out of 1 elements listed below:\nmath.ts",
 		}),
 	),
 	createApiReqMessage(4.2, "Component creation request", { tokensIn: 12020, tokensOut: 6180, cost: 0.042 }),
@@ -228,7 +229,7 @@ const mockActiveMessages: DiracMessage[] = [
 	),
 ]
 
-const mockStreamingMessages: DiracMessage[] = [
+const mockStreamingMessages: IsaacMessage[] = [
 	...mockActiveMessages,
 	createMessage(
 		0.17,
@@ -246,11 +247,11 @@ const createMockState = (overrides: any = {}) => ({
 	version: "0.0.1-stories",
 	welcomeViewCompleted: true,
 	showWelcome: false,
-	diracMessages: mockActiveMessages,
+	isaacMessages: mockActiveMessages,
 	taskHistory: mockTaskHistory,
 	apiConfiguration: mockApiConfiguration,
 	onboardingModels: undefined,
-	openRouterModels: bedrockModels,
+	openRouterModels: {},
 	showAnnouncement: false,
 	backgroundEditEnabled: false,
 	...overrides,
@@ -272,7 +273,7 @@ const createStoryDecorator =
 	}
 
 export const EmptyState: Story = {
-	decorators: [createStoryDecorator({ diracMessages: [], taskHistory: [], isNewUser: true, showAnnouncement: true })],
+	decorators: [createStoryDecorator({ isaacMessages: [], taskHistory: [], isNewUser: true, showAnnouncement: true })],
 	parameters: {
 		docs: {
 			description: {
@@ -284,7 +285,7 @@ export const EmptyState: Story = {
 
 export const ReturnUser: Story = {
 	decorators: [
-		createStoryDecorator({ diracMessages: [], taskHistory: mockTaskHistory, isNewUser: true, showAnnouncement: false }),
+		createStoryDecorator({ isaacMessages: [], taskHistory: mockTaskHistory, isNewUser: true, showAnnouncement: false }),
 	],
 	parameters: {
 		docs: {
@@ -300,14 +301,14 @@ export const ActiveConversation: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: "An active conversation showing a typical interaction with Dirac, including task creation, tool usage, and AI responses.",
+				story: "An active conversation showing a typical interaction with Isaac, including task creation, tool usage, and AI responses.",
 			},
 		},
 	},
 }
 
 export const StreamingResponse: Story = {
-	decorators: [createStoryDecorator({ diracMessages: mockStreamingMessages })],
+	decorators: [createStoryDecorator({ isaacMessages: mockStreamingMessages })],
 	parameters: {
 		docs: {
 			description: {
@@ -317,7 +318,7 @@ export const StreamingResponse: Story = {
 	},
 }
 
-const createLongMessages = (): DiracMessage[] => [
+const createLongMessages = (): IsaacMessage[] => [
 	createMessage(30, "say", "task", "Help me build a complete e-commerce application with React, Node.js, and MongoDB"),
 	createMessage(
 		29.7,
@@ -372,7 +373,7 @@ const createLongMessages = (): DiracMessage[] => [
 ]
 
 export const LongConversation: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createLongMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createLongMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -418,11 +419,11 @@ const createAskMessage = (type: string, text: string, streamingFailedMessage?: s
 })
 
 export const ErrorState: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createErrorMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createErrorMessages() })],
 	parameters: {
 		docs: {
 			description: {
-				story: "Shows how Dirac handles and displays error messages, helping users understand and resolve issues.",
+				story: "Shows how Isaac handles and displays error messages, helping users understand and resolve issues.",
 			},
 		},
 	},
@@ -440,7 +441,7 @@ export const AutoApprovalEnabled: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: "Shows the interface with auto-approval enabled, allowing Dirac to execute certain actions automatically without user confirmation.",
+				story: "Shows the interface with auto-approval enabled, allowing Isaac to execute certain actions automatically without user confirmation.",
 			},
 		},
 	},
@@ -465,7 +466,7 @@ const createPlanModeMessages = () => [
 export const PlanMode: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: createPlanModeMessages(),
+			isaacMessages: createPlanModeMessages(),
 			apiConfiguration: mockApiConfigurationPlan,
 			mode: "plan" as const,
 		}),
@@ -473,7 +474,7 @@ export const PlanMode: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: "Shows Dirac in Plan mode, where it focuses on creating detailed plans and discussing approaches before implementation.",
+				story: "Shows Isaac in Plan mode, where it focuses on creating detailed plans and discussing approaches before implementation.",
 			},
 		},
 	},
@@ -505,11 +506,11 @@ const createBrowserMessages = () => [
 ]
 
 export const BrowserAutomation: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createBrowserMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createBrowserMessages() })],
 	parameters: {
 		docs: {
 			description: {
-				story: "Shows Dirac performing browser automation tasks, including launching browsers, clicking elements, and testing web applications.",
+				story: "Shows Isaac performing browser automation tasks, including launching browsers, clicking elements, and testing web applications.",
 			},
 		},
 	},
@@ -523,7 +524,7 @@ const createToolApprovalMessages = () => [
 ]
 
 export const ToolApproval: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createToolApprovalMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createToolApprovalMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -536,7 +537,7 @@ export const ToolApproval: Story = {
 export const ToolSave: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Update the README file with new instructions"),
 				createMessage(4.7, "say", "text", "I'll update your README file with the new instructions."),
 				createAskMessage("tool", JSON.stringify({ tool: "editedExistingFile", path: "README.md" })),
@@ -562,7 +563,7 @@ const quickStory = (
 ): Story => ({
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				...createLongMessages(),
 				createMessage(6, "say", "task", `Help with ${name.toLowerCase()}`),
 				createMessage(5, "say", "reasoning", `Thinking about helping user with ${name.toLowerCase()}`),
@@ -584,7 +585,7 @@ export const CommandExecution: Story = quickStory(
 export const CommandOutput: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createAskMessage("command", "npm install"),
 				createAskMessage("command_output", "Installing packages... This may take a few minutes."),
 			],
@@ -628,7 +629,7 @@ export const Followup = quickStory(
 	"Follow-up",
 	"followup",
 	"What would you like me to work on next?",
-	"Shows followup question state where Dirac asks for next steps.",
+	"Shows followup question state where Isaac asks for next steps.",
 )
 export const ResumeTask = quickStory(
 	"Resume Task",
@@ -645,7 +646,7 @@ export const NewTaskWithContext = quickStory(
 export const ApiRequestActive: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "text", "Processing your request...", { partial: true }),
 				createApiReqMessage(4.7, "Making API request to generate response", { partial: true }),
 			],
@@ -657,7 +658,7 @@ export const PlanModeResponse = quickStory(
 	"Plan Mode Response",
 	"plan_mode_respond",
 	"Here's my comprehensive plan for refactoring your React application with TypeScript migration and performance optimization phases.\n\n\n\n\nPhase 1: TypeScript Migration\n1. Set up TypeScript in the project\n2. Rename .js files to .tsx/.ts\n3. Add type definitions for components and props\n4. Fix type errors and ensure type safety\n\nPhase 2: Performance Optimization\n1. Analyze current performance bottlenecks\n2. Implement code-splitting and lazy loading\n3. Optimize rendering with React.memo and useCallback\n4. Minimize bundle size with tree-shaking and minification\n5. Test performance improvements using profiling tools",
-	"Shows plan mode response where Dirac presents a detailed plan for user approval.",
+	"Shows plan mode response where Isaac presents a detailed plan for user approval.",
 )
 export const CondenseConversation = quickStory(
 	"Condense Conversation",
@@ -669,8 +670,8 @@ export const ReportBug = quickStory(
 	"Report Bug",
 	"report_bug",
 	JSON.stringify({
-		steps_to_reproduce: "1. Open Dirac\n2. Start a new task\n3. Observe the error",
-		what_happened: "Dirac crashes unexpectedly",
+		steps_to_reproduce: "1. Open Isaac\n2. Start a new task\n3. Observe the error",
+		what_happened: "Isaac crashes unexpectedly",
 	}),
 	"Shows utility action to report bugs to the GitHub repository.",
 )
@@ -684,7 +685,7 @@ export const ResumeCompletedTask = quickStory(
 export const ShellIntegrationWarningWithSuggestion: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning_with_suggestion", ""),
@@ -704,7 +705,7 @@ export const ShellIntegrationWarningWithSuggestion: Story = {
 export const ShellIntegrationWarningBackgroundEnabled: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning_with_suggestion", ""),
@@ -724,7 +725,7 @@ export const ShellIntegrationWarningBackgroundEnabled: Story = {
 export const ShellIntegrationWarning: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Run a command"),
 				createMessage(4.7, "say", "text", "I'll run the command for you."),
 				createMessage(4.5, "say", "shell_integration_warning", ""),
@@ -743,7 +744,7 @@ export const ShellIntegrationWarning: Story = {
 export const ErrorRetryInProgress: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Process a request"),
 				createMessage(4.7, "say", "text", "Attempting to process your request."),
 				createMessage(
@@ -767,7 +768,7 @@ export const ErrorRetryInProgress: Story = {
 export const ErrorRetryFailed: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Process a request"),
 				createMessage(4.7, "say", "text", "Attempting to process your request."),
 				createMessage(
@@ -791,7 +792,7 @@ export const ErrorRetryFailed: Story = {
 export const GenerateExplanationInProgress: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -820,7 +821,7 @@ export const GenerateExplanationInProgress: Story = {
 export const GenerateExplanationComplete: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -849,7 +850,7 @@ export const GenerateExplanationComplete: Story = {
 export const GenerateExplanationError: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -879,7 +880,7 @@ export const GenerateExplanationError: Story = {
 export const GenerateExplanationCancelled: Story = {
 	decorators: [
 		createStoryDecorator({
-			diracMessages: [
+			isaacMessages: [
 				createMessage(5, "say", "task", "Explain my recent changes"),
 				createMessage(4.7, "say", "text", "I'll generate an explanation of your changes."),
 				createMessage(
@@ -954,7 +955,7 @@ const createNewFormatMultiFileMessages = () => [
 ]
 
 export const DiffEditNewFormat: Story = {
-	decorators: [createStoryDecorator({ backgroundEditEnabled: true, diracMessages: createNewFormatMultiFileMessages() })],
+	decorators: [createStoryDecorator({ backgroundEditEnabled: true, isaacMessages: createNewFormatMultiFileMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -967,11 +968,11 @@ export const DiffEditNewFormat: Story = {
 export const DiffEditNewFormatStreaming: Story = {
 	decorators: [
 		(Story) => {
-			const [messages, setMessages] = useState<DiracMessage[]>([
+			const [messages, setMessages] = useState<IsaacMessage[]>([
 				createMessage(5, "say", "task", "Add TypeScript types to the user module"),
 				createMessage(4.7, "say", "text", "I'll add TypeScript types to improve type safety."),
 			])
-			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, diracMessages: messages }), [messages])
+			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, isaacMessages: messages }), [messages])
 
 			useEffect(() => {
 				// Simulate streaming: progressively add more content
@@ -998,7 +999,7 @@ export const DiffEditNewFormatStreaming: Story = {
 
 				// Add initial partial message
 				const timer1 = setTimeout(() => {
-					setMessages((prev: DiracMessage[]) => [
+					setMessages((prev: IsaacMessage[]) => [
 						...prev,
 						createSayToolMessage(
 							4.3,
@@ -1014,7 +1015,7 @@ export const DiffEditNewFormatStreaming: Story = {
 
 				// Add more content
 				const timer2 = setTimeout(() => {
-					setMessages((prev: DiracMessage[]) => {
+					setMessages((prev: IsaacMessage[]) => {
 						const updated = [...prev]
 						updated[updated.length - 1] = createSayToolMessage(
 							4.3,
@@ -1031,7 +1032,7 @@ export const DiffEditNewFormatStreaming: Story = {
 
 				// Complete the patch
 				const timer3 = setTimeout(() => {
-					setMessages((prev: DiracMessage[]) => {
+					setMessages((prev: IsaacMessage[]) => {
 						const updated = [...prev]
 						updated[updated.length - 1] = createSayToolMessage(
 							4.3,
@@ -1094,7 +1095,7 @@ function validateEmail(email: string): boolean {
 ]
 
 export const DiffEditReplaceDiffFormat: Story = {
-	decorators: [createStoryDecorator({ backgroundEditEnabled: true, diracMessages: createReplaceDiffFormatPatchMessages() })],
+	decorators: [createStoryDecorator({ backgroundEditEnabled: true, isaacMessages: createReplaceDiffFormatPatchMessages() })],
 	parameters: {
 		docs: {
 			description: {
@@ -1107,11 +1108,11 @@ export const DiffEditReplaceDiffFormat: Story = {
 export const DiffEditReplaceDiffFormatStreaming: Story = {
 	decorators: [
 		(Story) => {
-			const [messages, setMessages] = useState<DiracMessage[]>([
+			const [messages, setMessages] = useState<IsaacMessage[]>([
 				createMessage(5, "say", "task", "Update error handling"),
 				createMessage(4.7, "say", "text", "I'll improve the error handling in the API client."),
 			])
-			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, diracMessages: messages }), [messages])
+			const mockState = useMemo(() => createMockState({ backgroundEditEnabled: true, isaacMessages: messages }), [messages])
 
 			useEffect(() => {
 				const completePatch = `------- SEARCH
@@ -1143,7 +1144,7 @@ try {
 						return
 					}
 
-					setMessages((prev: DiracMessage[]) => {
+					setMessages((prev: IsaacMessage[]) => {
 						const updated = [...prev]
 						updated[updated.length - 1] = createSayToolMessage(
 							4.3,
@@ -1229,7 +1230,7 @@ async function login(username: string, password: string): Promise<AuthResult> {
 ]
 
 export const DiffEditMixedFormats: Story = {
-	decorators: [createStoryDecorator({ diracMessages: createMixedFormatMessages() })],
+	decorators: [createStoryDecorator({ isaacMessages: createMixedFormatMessages() })],
 	parameters: {
 		docs: {
 			description: {

@@ -119,7 +119,7 @@ export async function migrateTaskHistoryToFile(context: vscode.ExtensionContext)
 }
 
 export async function migrateEnableCheckpointsSetting(enableCheckpointsSettingRaw: boolean | undefined): Promise<boolean> {
-	const config = vscode.workspace.getConfiguration("dirac")
+	const config = vscode.workspace.getConfiguration("isaac")
 	const enableCheckpoints = config.get<boolean>("enableCheckpoints")
 	if (enableCheckpoints !== undefined) {
 		// Remove from VSCode configuration
@@ -134,9 +134,9 @@ export async function migrateCustomInstructionsToGlobalRules(context: vscode.Ext
 		const customInstructions = (await context.globalState.get("customInstructions")) as string | undefined
 
 		if (customInstructions?.trim()) {
-			Logger.log("Migrating custom instructions to global Dirac rules...")
+			Logger.log("Migrating custom instructions to global Isaac rules...")
 
-			// Create global .diracrules directory if it doesn't exist
+			// Create global .isaacrules directory if it doesn't exist
 			const globalRulesDir = await ensureRulesDirectoryExists()
 
 			// Use a fixed filename for custom instructions
@@ -166,7 +166,7 @@ export async function migrateCustomInstructionsToGlobalRules(context: vscode.Ext
 
 			// Remove customInstructions from global state only after successful file creation
 			await context.globalState.update("customInstructions", undefined)
-			Logger.log("Successfully migrated custom instructions to global Dirac rules")
+			Logger.log("Successfully migrated custom instructions to global Isaac rules")
 		}
 	} catch (error) {
 		Logger.error("Failed to migrate custom instructions to global rules:", error)
@@ -526,7 +526,7 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 			// Fetch API keys directly from secrets
 			const apiKey = await context.secrets.get("apiKey")
 			const openRouterApiKey = await context.secrets.get("openRouterApiKey")
-			const diracAccountId = await context.secrets.get("diracAccountId")
+			const isaacAccountId = await context.secrets.get("isaacAccountId")
 			const openAiApiKey = await context.secrets.get("openAiApiKey")
 			const liteLlmApiKey = await context.secrets.get("liteLlmApiKey")
 			const geminiApiKey = await context.secrets.get("geminiApiKey")
@@ -572,7 +572,7 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 				mistralApiKey,
 				planModeVsCodeLmModelSelector,
 				actModeVsCodeLmModelSelector,
-				diracAccountId,
+				isaacAccountId,
 				xaiApiKey,
 				sambanovaApiKey,
 				difyApiKey,
@@ -595,8 +595,8 @@ export async function cleanupOldApiKey(context: vscode.ExtensionContext) {
 		// Old API Keys were introduced in March 2025 and later replaced with tokens
 		// Now that we have new API keys that are prefixed with `sk_`,
 		// we need to clean up the old ones to free the secret storage
-		await context.secrets.delete("diracApiKey")
+		await context.secrets.delete("isaacApiKey")
 	} catch (error) {
-		Logger.error("Failed to cleanup old diracApiKey", error)
+		Logger.error("Failed to cleanup old isaacApiKey", error)
 	}
 }

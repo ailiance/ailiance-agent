@@ -1,11 +1,11 @@
 import { strict as assert } from "node:assert"
 import { describe, it } from "mocha"
-import { ExecuteCommandToolHandler } from "../ExecuteCommandToolHandler"
-import { ToolValidator } from "../../ToolValidator"
-import { TaskState } from "../../../TaskState"
-import type { TaskConfig } from "../../types/TaskConfig"
-import { DiracDefaultTool } from "@/shared/tools"
 import sinon from "sinon"
+import { IsaacDefaultTool } from "@/shared/tools"
+import { TaskState } from "../../../TaskState"
+import { ToolValidator } from "../../ToolValidator"
+import type { TaskConfig } from "../../types/TaskConfig"
+import { ExecuteCommandToolHandler } from "../ExecuteCommandToolHandler"
 
 function createConfig() {
 	const taskState = new TaskState()
@@ -15,8 +15,8 @@ function createConfig() {
 		sayAndCreateMissingParamError: sinon.stub().resolves("missing"),
 		removeLastPartialMessageIfExistsWithType: sinon.stub().resolves(),
 		executeCommandTool: sinon.stub().resolves([false, "ok"]),
-		getDiracMessages: sinon.stub().returns([]),
-		updateDiracMessage: sinon.stub().resolves(),
+		getIsaacMessages: sinon.stub().returns([]),
+		updateIsaacMessage: sinon.stub().resolves(),
 	}
 
 	const config = {
@@ -44,7 +44,7 @@ function createConfig() {
 			commandPermissionController: {
 				validateCommand: () => ({ allowed: true }),
 			},
-			diracIgnoreController: {
+			isaacIgnoreController: {
 				validateCommand: () => undefined,
 			},
 		},
@@ -67,11 +67,11 @@ describe("ExecuteCommandToolHandler", () => {
 		const result = await handler.execute(config, {
 			type: "tool_use",
 			call_id: "t1",
-			name: DiracDefaultTool.BASH,
+			name: IsaacDefaultTool.BASH,
 			params: { commands: [`cat ${longPath}`] },
 			partial: false,
 		})
-		
+
 		const parsed = JSON.parse(result as string)
 		assert.equal(parsed.ok, false)
 		assert.equal(parsed.error, "PATH_TOO_LONG")
@@ -85,11 +85,11 @@ describe("ExecuteCommandToolHandler", () => {
 		const result = await handler.execute(config, {
 			type: "tool_use",
 			call_id: "t1",
-			name: DiracDefaultTool.BASH,
+			name: IsaacDefaultTool.BASH,
 			params: { commands: [`cat ${normalPath}`] },
 			partial: false,
 		})
-		
+
 		// If it passed validation, it would proceed to ask for approval or execute.
 		// In our mock config, it should return the result of executeCommandTool or similar.
 		// Since we stubbed executeCommandTool to return "ok", and it's wrapped in results array.
@@ -104,11 +104,11 @@ describe("ExecuteCommandToolHandler", () => {
 		const result = await handler.execute(config, {
 			type: "tool_use",
 			call_id: "t1",
-			name: DiracDefaultTool.BASH,
+			name: IsaacDefaultTool.BASH,
 			params: { commands: [`ls ${longPath}`] },
 			partial: false,
 		})
-		
+
 		const parsed = JSON.parse(result as string)
 		assert.equal(parsed.ok, false)
 		assert.equal(parsed.error, "PATH_TOO_LONG")
@@ -121,11 +121,11 @@ describe("ExecuteCommandToolHandler", () => {
 		const result = await handler.execute(config, {
 			type: "tool_use",
 			call_id: "t1",
-			name: DiracDefaultTool.BASH,
+			name: IsaacDefaultTool.BASH,
 			params: { commands: [longCommand] },
 			partial: false,
 		})
-		
+
 		assert.ok(typeof result === "string")
 		assert.ok(!result.includes("PATH_TOO_LONG"))
 	})

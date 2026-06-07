@@ -5,7 +5,6 @@
 import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
-import { anthropicDefaultModelId, geminiDefaultModelId, openAiNativeDefaultModelId } from "@/shared/api"
 import providersData from "@/shared/providers/providers.json"
 
 // Import source types
@@ -13,8 +12,8 @@ export type ImportSource = "codex" | "opencode"
 
 // Imported key structure
 export interface ImportedKey {
-	provider: string // Dirac provider ID
-	keyField: string // Dirac API key field name
+	provider: string // Isaac provider ID
+	keyField: string // Isaac API key field name
 	key: string // The API key value
 	modelId?: string // Optional default model ID
 }
@@ -117,20 +116,20 @@ function findOpenCodeAuthPath(): string | null {
 }
 
 /**
- * Map Codex key names to Dirac providers
+ * Map Codex key names to Isaac providers
  */
 const CODEX_KEY_MAP: Record<string, { provider: string; keyField: string; modelId?: string }> = {
-	OPENAI_API_KEY: { provider: "openai-native", keyField: "openAiNativeApiKey", modelId: openAiNativeDefaultModelId },
-	ANTHROPIC_API_KEY: { provider: "anthropic", keyField: "apiKey", modelId: anthropicDefaultModelId },
+	OPENAI_API_KEY: { provider: "openai-native", keyField: "openAiNativeApiKey" },
+	ANTHROPIC_API_KEY: { provider: "anthropic", keyField: "apiKey" },
 }
 
 /**
- * Map OpenCode provider IDs to Dirac providers
+ * Map OpenCode provider IDs to Isaac providers
  */
 const OPENCODE_PROVIDER_MAP: Record<string, { provider: string; keyField: string; modelId?: string }> = {
-	openai: { provider: "openai-native", keyField: "openAiNativeApiKey", modelId: openAiNativeDefaultModelId },
-	anthropic: { provider: "anthropic", keyField: "apiKey", modelId: anthropicDefaultModelId },
-	gemini: { provider: "gemini", keyField: "geminiApiKey", modelId: geminiDefaultModelId },
+	openai: { provider: "openai-native", keyField: "openAiNativeApiKey" },
+	anthropic: { provider: "anthropic", keyField: "apiKey" },
+	gemini: { provider: "gemini", keyField: "geminiApiKey" },
 	mistral: { provider: "mistral", keyField: "mistralApiKey" },
 	groq: { provider: "groq", keyField: "groqApiKey" },
 	deepseek: { provider: "deepseek", keyField: "deepSeekApiKey" },

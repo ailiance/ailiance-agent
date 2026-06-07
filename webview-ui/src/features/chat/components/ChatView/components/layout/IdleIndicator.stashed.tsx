@@ -10,7 +10,7 @@
  * 3. Add the indicator to the Virtuoso Footer component
  */
 
-import { DiracMessage } from "@shared/ExtensionMessage"
+import { IsaacMessage } from "@shared/ExtensionMessage"
 import { useEffect, useRef, useState } from "react"
 
 // Idle timeout in milliseconds before showing indicator
@@ -20,7 +20,7 @@ const IDLE_TIMEOUT_MS = 3000
  * Hook that detects when the DOM has been idle for IDLE_TIMEOUT_MS
  * Uses MutationObserver to track actual content changes
  */
-export function useIdleIndicator(scrollContainerRef: React.RefObject<HTMLDivElement>, diracMessages: DiracMessage[]): boolean {
+export function useIdleIndicator(scrollContainerRef: React.RefObject<HTMLDivElement>, isaacMessages: IsaacMessage[]): boolean {
 	const [showIdleIndicator, setShowIdleIndicator] = useState(false)
 	const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
 	const timerStartTimeRef = useRef<number | null>(null)
@@ -32,7 +32,7 @@ export function useIdleIndicator(scrollContainerRef: React.RefObject<HTMLDivElem
 		}
 
 		// Check if task is complete
-		const isTaskComplete = diracMessages.some(
+		const isTaskComplete = isaacMessages.some(
 			(msg) => msg.ask === "completion_result" || msg.say === "completion_result" || msg.ask === "plan_mode_respond",
 		)
 
@@ -108,7 +108,7 @@ export function useIdleIndicator(scrollContainerRef: React.RefObject<HTMLDivElem
 			}
 			timerStartTimeRef.current = null
 		}
-	}, [scrollContainerRef, diracMessages])
+	}, [scrollContainerRef, isaacMessages])
 
 	return showIdleIndicator
 }

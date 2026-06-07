@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.FIND_SYMBOL_REFERENCES
+const id = IsaacDefaultTool.FIND_SYMBOL_REFERENCES
 
-export const find_symbol_references: DiracToolSpec = {
+export const find_symbol_references = {
 	id,
 	name: "find_symbol_references",
 	description:
@@ -34,4 +35,13 @@ export const find_symbol_references: DiracToolSpec = {
 				'Specifies the type of references to find. "definition" returns only definitions, "reference" returns only references, and "both" (default) returns both.',
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * The handler reads the scalar `find_type` param through this contract; a
+ * rename/removal of a spec parameter changes this union and breaks the handler
+ * compile (kills drift). The `enum` field on `find_type` is preserved verbatim
+ * by `as const satisfies IsaacToolSpec` and flows through to the OpenAI schema.
+ */
+export type FindSymbolReferencesParam = ParamNames<typeof find_symbol_references>

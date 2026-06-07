@@ -50,9 +50,9 @@ function escapeUnixShellPath(path: string): string {
  * may contain spaces or special characters.
  *
  * Use cases:
- * - Global hooks directory: ~/Documents/Dirac/Hooks/
- * - Workspace hooks: /path/to/My Project/.diracrules/hooks/
- * - Multi-root workspaces: each root's .diracrules/hooks/
+ * - Global hooks directory: ~/Documents/Isaac/Hooks/
+ * - Workspace hooks: /path/to/My Project/.isaacrules/hooks/
+ * - Multi-root workspaces: each root's .isaacrules/hooks/
  *
  * Examples:
  * - "/Users/user/My Project/hooks/PreToolUse" → "'/Users/user/My Project/hooks/PreToolUse'"

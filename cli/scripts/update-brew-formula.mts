@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const CLI_DIR = join(__dirname, "..")
-const FORMULA_PATH = join(CLI_DIR, "dirac.rb")
+const FORMULA_PATH = join(CLI_DIR, "isaac.rb")
 
 interface PackageJson {
 	version: string
@@ -25,7 +25,7 @@ async function packAndGetSHA256(version: string): Promise<string> {
 	console.log("Packing local package...")
 	execSync("npm run package", { cwd: CLI_DIR, stdio: "inherit" })
 
-	const tarballPath = join(CLI_DIR, "dist", `dirac-cli-${version}.tgz`)
+	const tarballPath = join(CLI_DIR, "dist", `isaac-cli-${version}.tgz`)
 	console.log(`Computing SHA256 for ${tarballPath}...`)
 
 	const buffer = await readFile(tarballPath)
@@ -42,10 +42,10 @@ async function updateFormula(version: string, sha256: string) {
 
 	let formula = await readFile(FORMULA_PATH, "utf-8")
 
-	const tarballUrl = `https://registry.npmjs.org/dirac-cli/-/dirac-cli-${version}.tgz`
+	const tarballUrl = `https://registry.npmjs.org/isaac-cli/-/isaac-cli-${version}.tgz`
 
-	// Update URL - matches pattern like: url "https://registry.npmjs.org/dirac/-/dirac-1.0.10.tgz"
-	formula = formula.replace(/url "https:\/\/registry\.npmjs\.org\/dirac-cli\/-\/dirac-cli-[\d.]+\.tgz"/, `url "${tarballUrl}"`)
+	// Update URL - matches pattern like: url "https://registry.npmjs.org/isaac/-/isaac-1.0.10.tgz"
+	formula = formula.replace(/url "https:\/\/registry\.npmjs\.org\/isaac-cli\/-\/isaac-cli-[\d.]+\.tgz"/, `url "${tarballUrl}"`)
 
 	// Update SHA256
 	formula = formula.replace(/sha256 "[a-f0-9]+"/, `sha256 "${sha256}"`)
@@ -61,15 +61,15 @@ async function main() {
 		const sha256 = await packAndGetSHA256(version)
 		console.log(`SHA256: ${sha256}`)
 
-		const tarballUrl = `https://registry.npmjs.org/dirac-cli/-/dirac-cli-${version}.tgz`
+		const tarballUrl = `https://registry.npmjs.org/isaac-cli/-/isaac-cli-${version}.tgz`
 		console.log(`Tarball URL: ${tarballUrl}`)
 
 		await updateFormula(version, sha256)
 
 		console.log("\n✓ Homebrew formula updated successfully!")
 		console.log("\nNext steps:")
-		console.log("1. Review the changes in dirac.rb")
-		console.log("2. Test locally: brew install --build-from-source ./dirac.rb")
+		console.log("1. Review the changes in isaac.rb")
+		console.log("2. Test locally: brew install --build-from-source ./isaac.rb")
 		console.log("3. Commit and push to your homebrew tap repository")
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)

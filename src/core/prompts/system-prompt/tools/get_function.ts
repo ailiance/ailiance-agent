@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.GET_FUNCTION
+const id = IsaacDefaultTool.GET_FUNCTION
 
-export const get_function: DiracToolSpec = {
+export const get_function = {
 	id,
 	name: "get_function",
 	description:
@@ -26,4 +27,11 @@ export const get_function: DiracToolSpec = {
 			usage: '["Foo.calculateSum", "Bar.findMax"]',
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * A rename/removal of a spec parameter changes this union and breaks any
+ * handler that reads params through the typed contract (kills drift).
+ */
+export type GetFunctionParam = ParamNames<typeof get_function>

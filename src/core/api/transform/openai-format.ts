@@ -2,13 +2,13 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { ApiProvider } from "@/shared/api"
 import {
-	DiracAssistantRedactedThinkingBlock,
-	DiracAssistantThinkingBlock,
-	DiracAssistantToolUseBlock,
-	DiracImageContentBlock,
-	DiracStorageMessage,
-	DiracTextContentBlock,
-	DiracUserToolResultContentBlock,
+	IsaacAssistantRedactedThinkingBlock,
+	IsaacAssistantThinkingBlock,
+	IsaacAssistantToolUseBlock,
+	IsaacImageContentBlock,
+	IsaacStorageMessage,
+	IsaacTextContentBlock,
+	IsaacUserToolResultContentBlock,
 } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 
@@ -33,7 +33,7 @@ function isOpenAIResponseToolId(callId: string): boolean {
  * to ensure they match - otherwise OpenAI will reject the request with:
  * "Invalid parameter: 'tool_call_id' of 'xxx' not found in 'tool_calls' of previous message."
  *
- * @param toolId - The original tool ID from Dirac/Anthropic format
+ * @param toolId - The original tool ID from Isaac/Anthropic format
  * @param provider - The API provider that the OpenAI formatted messages will be sent to
  * @returns The transformed ID suitable for OpenAI API
  */
@@ -44,10 +44,12 @@ function transformToolCallIdForNativeApi(toolId: string, provider?: ApiProvider)
 		// Use the last 33 chars + "call_" (5 chars) to stay under the 40-char limit.
 		return `call_${toolId.slice(toolId.length - (MAX_TOOL_CALL_ID_LENGTH - 5))}`
 	}
-	if (provider !== "openai-native") {
+	if (provider !== "openai") {
 		return toolId
 	}
-	// Ensure ID doesn't exceed max length
+	// The OpenAI Chat Completions API rejects tool_call_id values longer than 40 chars
+	// ("Invalid parameter: 'tool_call_id' ... not found in 'tool_calls'"). Ensure the ID
+	// stays within the limit for the native OpenAI provider.
 	if (toolId.length > MAX_TOOL_CALL_ID_LENGTH) {
 		return toolId.slice(0, MAX_TOOL_CALL_ID_LENGTH)
 	}
@@ -55,20 +57,20 @@ function transformToolCallIdForNativeApi(toolId: string, provider?: ApiProvider)
 }
 
 /**
- * Converts an array of DiracStorageMessage objects to OpenAI's Completions API format.
+ * Converts an array of IsaacStorageMessage objects to OpenAI's Completions API format.
  *
- * Handles conversion of Dirac-specific content types (tool uses, tool results, images, reasoning details)
+ * Handles conversion of Isaac-specific content types (tool uses, tool results, images, reasoning details)
  * into OpenAI's expected message structure, including tool_calls and tool_call_id fields.
  *
- * @param anthropicMessages - Array of DiracStorageMessage objects to be converted
+ * @param anthropicMessages - Array of IsaacStorageMessage objects to be converted
  * @param provider - Optional parameter to indicate the API provider, which may affect ID transformation logic
  * @param supportsImages - Whether the model supports image attachments
  * @returns Array of OpenAI.Chat.ChatCompletionMessageParam objects
  */
 export function convertToOpenAiMessages(
-	anthropicMessages: Omit<DiracStorageMessage, "modelInfo">[],
+	anthropicMessages: Omit<IsaacStorageMessage, "modelInfo">[],
 	provider?: ApiProvider,
-	supportsImages: boolean = true,
+	supportsImages = true,
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
 	const openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = []
 
@@ -83,14 +85,14 @@ export function convertToOpenAiMessages(
 			// ensure it contains the content-type of the image: data:image/png;base64,
 			if (anthropicMessage.role === "user") {
 				const { nonToolMessages, toolMessages } = anthropicMessage.content.reduce<{
-					nonToolMessages: (DiracTextContentBlock | DiracImageContentBlock)[]
-					toolMessages: DiracUserToolResultContentBlock[]
+					nonToolMessages: (IsaacTextContentBlock | IsaacImageContentBlock)[]
+					toolMessages: IsaacUserToolResultContentBlock[]
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_result") {
-							acc.toolMessages.push(part as DiracUserToolResultContentBlock)
+							acc.toolMessages.push(part as IsaacUserToolResultContentBlock)
 						} else if (part.type === "text" || part.type === "image") {
-							acc.nonToolMessages.push(part as DiracTextContentBlock | DiracImageContentBlock)
+							acc.nonToolMessages.push(part as IsaacTextContentBlock | IsaacImageContentBlock)
 						}
 						return acc
 					},
@@ -98,7 +100,7 @@ export function convertToOpenAiMessages(
 				)
 
 				// Process tool result messages FIRST since they must follow the tool use messages
-				const toolResultImages: DiracImageContentBlock[] = []
+				const toolResultImages: IsaacImageContentBlock[] = []
 				toolMessages.forEach((toolMessage) => {
 					let content: string
 
@@ -110,7 +112,7 @@ export function convertToOpenAiMessages(
 								?.map((part) => {
 									if (part.type === "image") {
 										if (supportsImages) {
-											toolResultImages.push(part as DiracImageContentBlock)
+											toolResultImages.push(part as IsaacImageContentBlock)
 										}
 										return "(see following user message for image)"
 									}
@@ -158,9 +160,8 @@ export function convertToOpenAiMessages(
 													: (part.source as any).url,
 										},
 									}
-								} else {
-									return { type: "text", text: "[Image]" }
 								}
+								return { type: "text", text: "[Image]" }
 							}
 							return { type: "text", text: part.text || "" }
 						}),
@@ -169,16 +170,16 @@ export function convertToOpenAiMessages(
 			} else if (anthropicMessage.role === "assistant") {
 				const { nonToolMessages, toolMessages } = anthropicMessage.content.reduce<{
 					nonToolMessages: (
-						| DiracTextContentBlock
-						| DiracImageContentBlock
-						| DiracAssistantThinkingBlock
-						| DiracAssistantRedactedThinkingBlock
+						| IsaacTextContentBlock
+						| IsaacImageContentBlock
+						| IsaacAssistantThinkingBlock
+						| IsaacAssistantRedactedThinkingBlock
 					)[]
-					toolMessages: DiracAssistantToolUseBlock[]
+					toolMessages: IsaacAssistantToolUseBlock[]
 				}>(
 					(acc, part) => {
 						if (part.type === "tool_use") {
-							acc.toolMessages.push(part as DiracAssistantToolUseBlock)
+							acc.toolMessages.push(part as IsaacAssistantToolUseBlock)
 						} else if (
 							part.type === "text" ||
 							part.type === "image" ||
@@ -187,10 +188,10 @@ export function convertToOpenAiMessages(
 						) {
 							acc.nonToolMessages.push(
 								part as
-									| DiracTextContentBlock
-									| DiracImageContentBlock
-									| DiracAssistantThinkingBlock
-									| DiracAssistantRedactedThinkingBlock,
+									| IsaacTextContentBlock
+									| IsaacImageContentBlock
+									| IsaacAssistantThinkingBlock
+									| IsaacAssistantRedactedThinkingBlock,
 							)
 						}
 						return acc
@@ -201,10 +202,10 @@ export function convertToOpenAiMessages(
 				// Process non-tool messages
 				let content: string | undefined
 				const reasoningDetails: any[] = []
-				const thinkingBlock: DiracAssistantThinkingBlock[] = []
+				const thinkingBlock: IsaacAssistantThinkingBlock[] = []
 
-				const isTextBlock = (part: any): part is DiracTextContentBlock => part.type === "text"
-				const isThinkingBlock = (part: any): part is DiracAssistantThinkingBlock => part.type === "thinking"
+				const isTextBlock = (part: any): part is IsaacTextContentBlock => part.type === "text"
+				const isThinkingBlock = (part: any): part is IsaacAssistantThinkingBlock => part.type === "thinking"
 
 				if (nonToolMessages.length > 0) {
 					nonToolMessages.forEach((part) => {
@@ -366,7 +367,7 @@ function consolidateReasoningDetails(reasoningDetails: ReasoningDetail[]): Reaso
 	return consolidated
 }
 
-const UNIQUE_ERROR_TOOL_NAME = "_dirac_error_unknown_function_"
+const UNIQUE_ERROR_TOOL_NAME = "_isaac_error_unknown_function_"
 
 export function convertToAnthropicMessage(completion: OpenAI.Chat.Completions.ChatCompletion): Anthropic.Messages.Message {
 	const openAiMessage = completion.choices[0].message

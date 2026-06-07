@@ -17,9 +17,9 @@ export { getProviderLabel }
  */
 function isProviderConfigured(providerId: string, config: ApiConfiguration): boolean {
 	switch (providerId) {
-		case "dirac":
-			// Check if user has Dirac API key stored
-			return !!config.diracApiKey
+		case "isaac":
+			// Check if user has Isaac API key stored
+			return !!config.isaacApiKey
 		case "anthropic":
 			return !!config.apiKey
 		case "openrouter":

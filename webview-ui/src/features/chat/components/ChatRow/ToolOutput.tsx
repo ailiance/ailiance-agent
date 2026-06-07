@@ -1,24 +1,23 @@
-import { DiracMessage, DiracSayTool } from "@shared/ExtensionMessage"
-import { useMemo, useState, useCallback } from "react"
-import { serializeToolToDisplayUnits } from "../ChatView/utils/toolSerialization"
-import { ToolRow } from "./ToolRow"
+import { IsaacMessage, IsaacSayTool } from "@shared/ExtensionMessage"
+import { StringRequest } from "@shared/proto/isaac/common"
+import { useCallback, useMemo, useState } from "react"
 import { FileServiceClient } from "@/shared/api/grpc-client"
-import { StringRequest } from "@shared/proto/dirac/common"
-import { getComponentForTool } from "./ToolRegistry"
-import { ApprovalBox } from "./ApprovalBox"
-import { useMessageHandlers } from "../ChatView/hooks/useMessageHandlers"
 import { useChatStore } from "../../store/chatStore"
+import { useMessageHandlers } from "../ChatView/hooks/useMessageHandlers"
+import { serializeToolToDisplayUnits } from "../ChatView/utils/toolSerialization"
+import { ApprovalBox } from "./ApprovalBox"
+import { getComponentForTool } from "./ToolRegistry"
+import { ToolRow } from "./ToolRow"
 
 const handlePathClick = (path: string) => {
 	FileServiceClient.openFileRelativePath(StringRequest.create({ value: path })).catch((err: any) =>
-		console.error("Failed to open file:", err)
+		console.error("Failed to open file:", err),
 	)
 }
 
-
 interface ToolOutputProps {
-	tool: DiracSayTool
-	message: DiracMessage
+	tool: IsaacSayTool
+	message: IsaacMessage
 	isExpanded: boolean
 	onToggleExpand: (ts: number) => void
 	onHeightChange?: (isTaller: boolean) => void
@@ -28,9 +27,9 @@ interface ToolOutputProps {
 export const ToolOutput = ({ tool, message, isExpanded, onToggleExpand, backgroundEditEnabled }: ToolOutputProps) => {
 	const [isProcessing, setIsProcessing] = useState(false)
 	const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
-	const messages = useChatStore((state) => state.diracMessages)
+	const messages = useChatStore((state) => state.isaacMessages)
 	const chatState = {
-		diracAsk: message.ask,
+		isaacAsk: message.ask,
 		lastMessage: message,
 		setInputValue: () => {},
 		setActiveQuote: () => {},
@@ -51,7 +50,7 @@ export const ToolOutput = ({ tool, message, isExpanded, onToggleExpand, backgrou
 				setIsProcessing(false)
 			}
 		},
-		[executeButtonAction, isProcessing]
+		[executeButtonAction, isProcessing],
 	)
 
 	const displayUnits = useMemo(() => {
@@ -73,22 +72,22 @@ export const ToolOutput = ({ tool, message, isExpanded, onToggleExpand, backgrou
 	const content = (
 		<div className="flex flex-col gap-1 min-w-0">
 			{displayUnits.map((unit) => (
-				<div key={unit.id} className="flex flex-col gap-1">
+				<div className="flex flex-col gap-1" key={unit.id}>
 					<ToolRow
-						unit={unit}
 						isExpanded={expandedItems[unit.id] ?? isExpanded}
-						onToggleExpand={handleToggleExpand}
 						onPathClick={handlePathClick}
+						onToggleExpand={handleToggleExpand}
+						unit={unit}
 					/>
 					{Component && (expandedItems[unit.id] ?? isExpanded) && (
 						<div className="ml-4 mt-1 border-l-2 border-editor-group-border pl-2">
 							<Component
-								unit={unit}
-								tool={tool}
-								message={message}
-								isExpanded={true}
-								onToggleExpand={() => handleToggleExpand(unit.id)}
 								backgroundEditEnabled={backgroundEditEnabled}
+								isExpanded={true}
+								message={message}
+								onToggleExpand={() => handleToggleExpand(unit.id)}
+								tool={tool}
+								unit={unit}
 							/>
 						</div>
 					)}
@@ -99,22 +98,22 @@ export const ToolOutput = ({ tool, message, isExpanded, onToggleExpand, backgrou
 
 	if (isPending) {
 		const description =
-			displayUnits.length > 1
-				? `Approve ${displayUnits.length} actions`
-				: `Approve ${displayUnits[0].label}`
+			displayUnits.length > 1 ? `Approve ${displayUnits.length} actions` : `Approve ${displayUnits[0].label}`
 
-		const hint = tool.hint ? `
+		const hint = tool.hint
+			? `
 
-\${tool.hint}` : ""
+\${tool.hint}`
+			: ""
 		const fullDescription = description + hint
 
 		return (
 			<ApprovalBox
-				isProcessing={isProcessing}
 				description={fullDescription}
+				isProcessing={isProcessing}
 				onApprove={() => handleAction("approve")}
-				onReject={() => handleAction("reject")}
-				onEdit={undefined}>
+				onEdit={undefined}
+				onReject={() => handleAction("reject")}>
 				{content}
 			</ApprovalBox>
 		)
@@ -122,4 +121,3 @@ export const ToolOutput = ({ tool, message, isExpanded, onToggleExpand, backgrou
 
 	return content
 }
-

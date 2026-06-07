@@ -4,10 +4,10 @@ import type { TaskState } from "@core/task/TaskState"
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { createTaskCheckpointManager } from "@integrations/checkpoints"
-import { MultiRootCheckpointManager } from "@integrations/checkpoints/MultiRootCheckpointManager"
 import type { ICheckpointManager } from "@integrations/checkpoints/types"
 import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
 import { StateManager } from "@/core/storage/StateManager"
+import { Logger } from "@/shared/services/Logger"
 
 /**
  * Simple predicate abstracting our multi-root decision.
@@ -76,8 +76,25 @@ export function buildCheckpointManager(args: BuildArgs): ICheckpointManager {
 	const enableCheckpoints = stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
 
 	if (shouldUseMultiRoot({ workspaceManager, enableCheckpoints, stateManager })) {
-		// Multi-root manager (init should be kicked off externally, non-blocking)
-		return new MultiRootCheckpointManager(workspaceManager!, taskId, enableCheckpoints, messageStateHandler)
+		// ailiance-agent fork (P1 #9): MultiRootCheckpointManager is an incomplete
+		// stub — restoreCheckpoint() is a no-op returning {} and
+		// doesLatestTaskCompletionHaveNewChanges() always returns false. Routing
+		// here silently loses checkpoints/restores for ALL roots. Until the
+		// multi-root implementation is finished, fall back to the proven
+		// single-root manager scoped to the primary workspace root: the primary
+		// root is checkpointed and restorable as usual, and we warn loudly that
+		// secondary roots are not yet covered (instead of failing silently).
+		const roots = workspaceManager!.getRoots()
+		const primary = workspaceManager!.getPrimaryRoot()
+		const secondaryNames = roots
+			.filter((r) => r.path !== primary?.path)
+			.map((r) => r.name)
+			.join(", ")
+		Logger.warn(
+			`[checkpoints] Multi-root checkpointing is not yet supported. Checkpoints will track only the primary workspace root` +
+				`${primary ? ` (${primary.name})` : ""}. Changes in secondary root(s) [${secondaryNames}] will NOT be checkpointed or restored.`,
+		)
+		// Fall through to the single-root manager below.
 	}
 
 	// Single-root manager

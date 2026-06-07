@@ -11,7 +11,7 @@
 
 import type { ApiHandler } from "@core/api"
 import type { Controller } from "@core/controller"
-import type { DiracIgnoreController } from "@core/ignore/DiracIgnoreController"
+import type { IsaacIgnoreController } from "@core/ignore/IsaacIgnoreController"
 import type { CommandPermissionController } from "@core/permissions"
 import type { StateManager } from "@core/storage/StateManager"
 import type { ICheckpointManager } from "@integrations/checkpoints/types"
@@ -43,8 +43,8 @@ export interface TaskDependencies {
 	/** Fetches remote URL content for context injection. */
 	urlContentFetcher: UrlContentFetcher
 
-	/** Respects .diracignore rules for file access. */
-	diracIgnoreController: DiracIgnoreController
+	/** Respects .isaacignore rules for file access. */
+	isaacIgnoreController: IsaacIgnoreController
 
 	/** Manages shell-command permission prompts. */
 	commandPermissionController: CommandPermissionController

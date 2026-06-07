@@ -1,11 +1,11 @@
 import { buildApiHandler } from "@core/api"
 
-import { Empty } from "@shared/proto/dirac/common"
-import { PlanActMode, UpdateSettingsRequestCli } from "@shared/proto/dirac/state"
+import { Empty } from "@shared/proto/isaac/common"
+import { PlanActMode, UpdateSettingsRequestCli } from "@shared/proto/isaac/state"
 import { convertProtoToApiProvider } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { Settings } from "@shared/storage/state-keys"
 import { TelemetrySetting } from "@shared/TelemetrySetting"
-import { DiracEnv } from "@/config"
+import { IsaacEnv } from "@/config"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
 import { Logger } from "@/shared/services/Logger"
@@ -27,7 +27,7 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 
 	try {
 		if (request.environment !== undefined) {
-			DiracEnv.setEnvironment(request.environment)
+			IsaacEnv.setEnvironment(request.environment)
 		}
 
 		if (request.settings) {
@@ -46,7 +46,7 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 				telemetrySetting,
 				yoloModeToggled,
 				useAutoCondense,
-				diracWebToolsEnabled,
+				isaacWebToolsEnabled,
 				worktreesEnabled,
 				subagentsEnabled,
 				browserSettings,
@@ -150,12 +150,12 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 				controller.stateManager.setGlobalState("useAutoCondense", useAutoCondense)
 			}
 
-			// Update Dirac web tools setting (requires telemetry)
-			if (diracWebToolsEnabled !== undefined) {
+			// Update Isaac web tools setting (requires telemetry)
+			if (isaacWebToolsEnabled !== undefined) {
 				if (controller.task) {
-					telemetryService.captureDiracWebToolsToggle(controller.task.ulid, diracWebToolsEnabled)
+					telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, isaacWebToolsEnabled)
 				}
-				controller.stateManager.setGlobalState("diracWebToolsEnabled", diracWebToolsEnabled)
+				controller.stateManager.setGlobalState("isaacWebToolsEnabled", isaacWebToolsEnabled)
 			}
 
 			// Update worktrees setting

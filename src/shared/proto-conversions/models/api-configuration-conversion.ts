@@ -6,13 +6,12 @@ import {
 	ApiProvider as ProtoApiProvider,
 	OcaModelInfo as ProtoOcaModelInfo,
 	ThinkingConfig,
-} from "@shared/proto/dirac/models"
+} from "@shared/proto/isaac/models"
 import {
 	ApiConfiguration,
 	ApiProvider,
 	LiteLLMModelInfo as AppLiteLLMModelInfo,
 	OpenAiCompatibleModelInfo as AppOpenAiCompatibleModelInfo,
-	BedrockModelId,
 	ModelInfo,
 	OcaModelInfo,
 } from "../../api"
@@ -244,164 +243,42 @@ function convertProtoToOpenAiCompatibleModelInfo(
 // Convert application ApiProvider to proto ApiProvider
 function convertApiProviderToProto(provider: string | undefined): ProtoApiProvider {
 	switch (provider) {
-		case "anthropic":
-			return ProtoApiProvider.ANTHROPIC
 		case "openrouter":
 			return ProtoApiProvider.OPENROUTER
-		case "bedrock":
-			return ProtoApiProvider.BEDROCK
-		case "vertex":
-			return ProtoApiProvider.VERTEX
 		case "openai":
 			return ProtoApiProvider.OPENAI
 		case "lmstudio":
 			return ProtoApiProvider.LMSTUDIO
-		case "gemini":
-			return ProtoApiProvider.GEMINI
-		case "openai-native":
-			return ProtoApiProvider.OPENAI_NATIVE
-		case "requesty":
-			return ProtoApiProvider.REQUESTY
-		case "together":
-			return ProtoApiProvider.TOGETHER
-		case "deepseek":
-			return ProtoApiProvider.DEEPSEEK
-		case "qwen":
-			return ProtoApiProvider.QWEN
-		case "qwen-code":
-			return ProtoApiProvider.QWEN_CODE
-		case "doubao":
-			return ProtoApiProvider.DOUBAO
-		case "mistral":
-			return ProtoApiProvider.MISTRAL
 		case "vscode-lm":
 			return ProtoApiProvider.VSCODE_LM
-		case "dirac":
-			return ProtoApiProvider.DIRAC
+		case "isaac":
+			return ProtoApiProvider.ISAAC
 		case "litellm":
 			return ProtoApiProvider.LITELLM
-		case "moonshot":
-			return ProtoApiProvider.MOONSHOT
-		case "huggingface":
-			return ProtoApiProvider.HUGGINGFACE
-		case "nebius":
-			return ProtoApiProvider.NEBIUS
-		case "wandb":
-			return ProtoApiProvider.WANDB
-		case "fireworks":
-			return ProtoApiProvider.FIREWORKS
-		case "xai":
-			return ProtoApiProvider.XAI
-		case "sambanova":
-			return ProtoApiProvider.SAMBANOVA
-		case "cerebras":
-			return ProtoApiProvider.CEREBRAS
-		case "groq":
-			return ProtoApiProvider.GROQ
-		case "baseten":
-			return ProtoApiProvider.BASETEN
-		case "claude-code":
-			return ProtoApiProvider.CLAUDE_CODE
-		case "huawei-cloud-maas":
-			return ProtoApiProvider.HUAWEI_CLOUD_MAAS
-		case "vercel-ai-gateway":
-			return ProtoApiProvider.VERCEL_AI_GATEWAY
-		case "zai":
-			return ProtoApiProvider.ZAI
-		case "dify":
-			return ProtoApiProvider.DIFY
-		case "aihubmix":
-			return ProtoApiProvider.AIHUBMIX
-		case "minimax":
-			return ProtoApiProvider.MINIMAX
-		case "nousResearch":
-			return ProtoApiProvider.NOUSRESEARCH
-		case "openai-codex":
-			return ProtoApiProvider.OPENAI_CODEX
 		default:
-			return ProtoApiProvider.ANTHROPIC
+			return ProtoApiProvider.OPENAI
 	}
 }
 
-// Convert proto ApiProvider to application ApiProvider
+// Convert proto ApiProvider to application ApiProvider.
+// Only the supported (KEEP) providers map to themselves; any other proto value
+// (legacy/removed provider) is coerced to "openai".
 export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
 	switch (provider) {
-		case ProtoApiProvider.ANTHROPIC:
-			return "anthropic"
 		case ProtoApiProvider.OPENROUTER:
 			return "openrouter"
-		case ProtoApiProvider.BEDROCK:
-			return "bedrock"
-		case ProtoApiProvider.VERTEX:
-			return "vertex"
 		case ProtoApiProvider.OPENAI:
 			return "openai"
 		case ProtoApiProvider.LMSTUDIO:
 			return "lmstudio"
-		case ProtoApiProvider.GEMINI:
-			return "gemini"
-		case ProtoApiProvider.OPENAI_NATIVE:
-			return "openai-native"
-		case ProtoApiProvider.REQUESTY:
-			return "requesty"
-		case ProtoApiProvider.TOGETHER:
-			return "together"
-		case ProtoApiProvider.DEEPSEEK:
-			return "deepseek"
-		case ProtoApiProvider.QWEN:
-			return "qwen"
-		case ProtoApiProvider.QWEN_CODE:
-			return "qwen-code"
-		case ProtoApiProvider.DOUBAO:
-			return "doubao"
-		case ProtoApiProvider.MISTRAL:
-			return "mistral"
 		case ProtoApiProvider.VSCODE_LM:
 			return "vscode-lm"
-		case ProtoApiProvider.DIRAC:
-			return "dirac"
+		case ProtoApiProvider.ISAAC:
+			return "isaac"
 		case ProtoApiProvider.LITELLM:
 			return "litellm"
-		case ProtoApiProvider.MOONSHOT:
-			return "moonshot"
-		case ProtoApiProvider.HUGGINGFACE:
-			return "huggingface"
-		case ProtoApiProvider.NEBIUS:
-			return "nebius"
-		case ProtoApiProvider.WANDB:
-			return "wandb"
-		case ProtoApiProvider.FIREWORKS:
-			return "fireworks"
-		case ProtoApiProvider.XAI:
-			return "xai"
-		case ProtoApiProvider.SAMBANOVA:
-			return "sambanova"
-		case ProtoApiProvider.CEREBRAS:
-			return "cerebras"
-		case ProtoApiProvider.GROQ:
-			return "groq"
-		case ProtoApiProvider.BASETEN:
-			return "baseten"
-		case ProtoApiProvider.CLAUDE_CODE:
-			return "claude-code"
-		case ProtoApiProvider.HUAWEI_CLOUD_MAAS:
-			return "huawei-cloud-maas"
-		case ProtoApiProvider.VERCEL_AI_GATEWAY:
-			return "vercel-ai-gateway"
-		case ProtoApiProvider.ZAI:
-			return "zai"
-		case ProtoApiProvider.DIFY:
-			return "dify"
-		case ProtoApiProvider.AIHUBMIX:
-			return "aihubmix"
-		case ProtoApiProvider.MINIMAX:
-			return "minimax"
-		case ProtoApiProvider.NOUSRESEARCH:
-			return "nousResearch"
-		case ProtoApiProvider.OPENAI_CODEX:
-			return "openai-codex"
 		default:
-			return "anthropic"
+			return "openai"
 	}
 }
 
@@ -473,7 +350,7 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		minimaxApiKey: config.minimaxApiKey,
 		minimaxApiLine: config.minimaxApiLine,
 		nousResearchApiKey: config.nousResearchApiKey,
-		diracApiKey: config.diracApiKey,
+		isaacApiKey: config.isaacApiKey,
 		aihubmixApiKey: config.aihubmixApiKey,
 		aihubmixBaseUrl: config.aihubmixBaseUrl,
 		aihubmixAppCode: config.aihubmixAppCode,
@@ -489,8 +366,8 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		planModeAwsBedrockCustomModelBaseId: config.planModeAwsBedrockCustomModelBaseId as string | undefined,
 		planModeOpenRouterModelId: config.planModeOpenRouterModelId,
 		planModeOpenRouterModelInfo: convertModelInfoToProtoOpenRouter(config.planModeOpenRouterModelInfo),
-		planModeDiracModelId: config.planModeDiracModelId,
-		planModeDiracModelInfo: convertModelInfoToProtoOpenRouter(config.planModeDiracModelInfo),
+		planModeIsaacModelId: config.planModeIsaacModelId,
+		planModeIsaacModelInfo: convertModelInfoToProtoOpenRouter(config.planModeIsaacModelInfo),
 		planModeOpenAiModelId: config.planModeOpenAiModelId,
 		planModeOpenAiModelInfo: convertOpenAiCompatibleModelInfoToProto(config.planModeOpenAiModelInfo),
 		planModeLmStudioModelId: config.planModeLmStudioModelId,
@@ -525,8 +402,8 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		actModeAwsBedrockCustomModelBaseId: config.actModeAwsBedrockCustomModelBaseId as string | undefined,
 		actModeOpenRouterModelId: config.actModeOpenRouterModelId,
 		actModeOpenRouterModelInfo: convertModelInfoToProtoOpenRouter(config.actModeOpenRouterModelInfo),
-		actModeDiracModelId: config.actModeDiracModelId,
-		actModeDiracModelInfo: convertModelInfoToProtoOpenRouter(config.actModeDiracModelInfo),
+		actModeIsaacModelId: config.actModeIsaacModelId,
+		actModeIsaacModelInfo: convertModelInfoToProtoOpenRouter(config.actModeIsaacModelInfo),
 		actModeOpenAiModelId: config.actModeOpenAiModelId,
 		actModeOpenAiModelInfo: convertOpenAiCompatibleModelInfoToProto(config.actModeOpenAiModelInfo),
 		actModeLmStudioModelId: config.actModeLmStudioModelId,
@@ -623,7 +500,7 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		minimaxApiKey: protoConfig.minimaxApiKey,
 		minimaxApiLine: protoConfig.minimaxApiLine,
 		nousResearchApiKey: protoConfig.nousResearchApiKey,
-		diracApiKey: protoConfig.diracApiKey,
+		isaacApiKey: protoConfig.isaacApiKey,
 
 		// Plan mode configurations
 		planModeApiProvider:
@@ -636,11 +513,11 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		planModeReasoningEffort: protoConfig.planModeReasoningEffort as OpenaiReasoningEffort | undefined,
 		planModeVsCodeLmModelSelector: protoConfig.planModeVsCodeLmModelSelector,
 		planModeAwsBedrockCustomSelected: protoConfig.planModeAwsBedrockCustomSelected,
-		planModeAwsBedrockCustomModelBaseId: protoConfig.planModeAwsBedrockCustomModelBaseId as BedrockModelId | undefined,
+		planModeAwsBedrockCustomModelBaseId: protoConfig.planModeAwsBedrockCustomModelBaseId as string | undefined,
 		planModeOpenRouterModelId: protoConfig.planModeOpenRouterModelId,
 		planModeOpenRouterModelInfo: convertProtoToModelInfo(protoConfig.planModeOpenRouterModelInfo),
-		planModeDiracModelId: protoConfig.planModeDiracModelId,
-		planModeDiracModelInfo: convertProtoToModelInfo(protoConfig.planModeDiracModelInfo),
+		planModeIsaacModelId: protoConfig.planModeIsaacModelId,
+		planModeIsaacModelInfo: convertProtoToModelInfo(protoConfig.planModeIsaacModelInfo),
 		planModeOpenAiModelId: protoConfig.planModeOpenAiModelId,
 		planModeOpenAiModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.planModeOpenAiModelInfo),
 		planModeLmStudioModelId: protoConfig.planModeLmStudioModelId,
@@ -673,11 +550,11 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		actModeReasoningEffort: protoConfig.actModeReasoningEffort as OpenaiReasoningEffort | undefined,
 		actModeVsCodeLmModelSelector: protoConfig.actModeVsCodeLmModelSelector,
 		actModeAwsBedrockCustomSelected: protoConfig.actModeAwsBedrockCustomSelected,
-		actModeAwsBedrockCustomModelBaseId: protoConfig.actModeAwsBedrockCustomModelBaseId as BedrockModelId | undefined,
+		actModeAwsBedrockCustomModelBaseId: protoConfig.actModeAwsBedrockCustomModelBaseId as string | undefined,
 		actModeOpenRouterModelId: protoConfig.actModeOpenRouterModelId,
 		actModeOpenRouterModelInfo: convertProtoToModelInfo(protoConfig.actModeOpenRouterModelInfo),
-		actModeDiracModelId: protoConfig.actModeDiracModelId,
-		actModeDiracModelInfo: convertProtoToModelInfo(protoConfig.actModeDiracModelInfo),
+		actModeIsaacModelId: protoConfig.actModeIsaacModelId,
+		actModeIsaacModelInfo: convertProtoToModelInfo(protoConfig.actModeIsaacModelInfo),
 		actModeOpenAiModelId: protoConfig.actModeOpenAiModelId,
 		actModeOpenAiModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.actModeOpenAiModelInfo),
 		actModeLmStudioModelId: protoConfig.actModeLmStudioModelId,

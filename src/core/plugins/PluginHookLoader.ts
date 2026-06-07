@@ -54,7 +54,7 @@ const PluginHooksFileSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /** Events supported by ailiance-agent (keys of Hooks interface in hook-factory.ts) */
-const SUPPORTED_AGENT_KIKI_EVENTS = new Set([
+const SUPPORTED_AGENT_HOOK_EVENTS = new Set([
 	"PreToolUse",
 	"PostToolUse",
 	"UserPromptSubmit",
@@ -131,7 +131,7 @@ async function loadPluginHooksFile(
 	const results: { event: string; commands: PluginHookCommand[] }[] = []
 
 	for (const [rawEvent, matchers] of Object.entries(parsed.hooks)) {
-		if (!SUPPORTED_AGENT_KIKI_EVENTS.has(rawEvent)) {
+		if (!SUPPORTED_AGENT_HOOK_EVENTS.has(rawEvent)) {
 			if (!UNSUPPORTED_EVENTS.has(rawEvent)) {
 				UNSUPPORTED_EVENTS.add(rawEvent)
 				Logger.warn(

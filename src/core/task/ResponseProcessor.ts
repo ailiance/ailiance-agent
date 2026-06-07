@@ -2,16 +2,12 @@ import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { parseAssistantMessageV2, ToolUse } from "@core/assistant-message"
 import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
 import { telemetryService } from "@services/telemetry"
-import { convertDiracMessageToProto } from "@shared/proto-conversions/dirac-message"
+import { convertIsaacMessageToProto } from "@shared/proto-conversions/isaac-message"
 import { Session } from "@shared/services/Session"
-import { DiracDefaultTool, READ_ONLY_TOOLS, toolUseNames } from "@shared/tools"
-import { DiracAskResponse } from "@shared/WebviewMessage"
+import { IsaacDefaultTool, READ_ONLY_TOOLS, toolUseNames } from "@shared/tools"
+import { IsaacAskResponse } from "@shared/WebviewMessage"
 import cloneDeep from "clone-deep"
-import {
-	canonicaliseToolName,
-	hasHallucinatedToolXml,
-	parseHallucinatedToolXml,
-} from "@/utils/parse-hallucinated-tool-xml"
+import { canonicaliseToolName, hasHallucinatedToolXml, parseHallucinatedToolXml } from "@/utils/parse-hallucinated-tool-xml"
 import { ResponseProcessorDependencies } from "./types/response-processor"
 
 // Build the canonical tool-name set once at module load. ResponseProcessor
@@ -42,7 +38,6 @@ export class ResponseProcessor {
 		const { reasonsHandler } = this.dependencies.streamHandler.getHandlers()
 		const assistantContent = this.dependencies.streamHandler.getOrderedBlocks()
 		const assistantHasContent =
-
 			assistantContent.length > 0 || params.assistantMessage.length > 0 || this.dependencies.taskState.useNativeToolCalls
 
 		if (assistantHasContent) {
@@ -113,7 +108,7 @@ export class ResponseProcessor {
 		})
 
 		const baseErrorMessage =
-			"Invalid API Response: The provider returned an empty or unparsable response. This is a provider-side issue where the model failed to generate valid output or returned tool calls that Dirac cannot process. Retrying the request may help resolve this issue."
+			"Invalid API Response: The provider returned an empty or unparsable response. This is a provider-side issue where the model failed to generate valid output or returned tool calls that Isaac cannot process. Retrying the request may help resolve this issue."
 		const errorText = reqId ? `${baseErrorMessage} (Request ID: ${reqId})` : baseErrorMessage
 
 		await this.dependencies.say("error", errorText)
@@ -138,7 +133,7 @@ export class ResponseProcessor {
 			ts: Date.now(),
 		})
 
-		let response: DiracAskResponse
+		let response: IsaacAskResponse
 		const noResponseErrorMessage = "No assistant message was received. Would you like to retry the request?"
 
 		if (this.dependencies.taskState.autoRetryAttempts < 3) {
@@ -182,7 +177,7 @@ export class ResponseProcessor {
 
 	public async presentAssistantMessage() {
 		if (this.dependencies.taskState.abort) {
-			throw new Error("Dirac instance aborted")
+			throw new Error("Isaac instance aborted")
 		}
 
 		if (this.dependencies.taskState.presentAssistantMessageLocked) {
@@ -221,7 +216,7 @@ export class ResponseProcessor {
 						// Only act on complete text blocks (block.partial === false)
 						// so we never dispatch on a half-streamed parameter value.
 						// The parser is best-effort: when it extracts a known tool
-						// (validated against DiracDefaultTool via canonicaliseToolName),
+						// (validated against IsaacDefaultTool via canonicaliseToolName),
 						// we synthesize a non-native ToolUse and execute it
 						// immediately. Residual prose is preserved so the user can
 						// still see explanation text the model emitted alongside the
@@ -238,9 +233,7 @@ export class ResponseProcessor {
 						// case; the native path will handle the call.
 						const hasNativeToolBlock =
 							this.dependencies.taskState.useNativeToolCalls &&
-							this.dependencies.taskState.assistantMessageContent.some(
-								(b: any) => b.type === "tool_use",
-							)
+							this.dependencies.taskState.assistantMessageContent.some((b: any) => b.type === "tool_use")
 						if (!block.partial && !hasNativeToolBlock && hasHallucinatedToolXml(content)) {
 							const parsed = parseHallucinatedToolXml(content)
 							if (parsed.calls.length > 0) {
@@ -258,7 +251,7 @@ export class ResponseProcessor {
 									}
 									const synthetic: ToolUse = {
 										type: "tool_use",
-										name: canonical as DiracDefaultTool,
+										name: canonical as IsaacDefaultTool,
 										params: call.params,
 										partial: false,
 										isNativeToolCall: false,
@@ -348,11 +341,7 @@ export class ResponseProcessor {
 		}
 	}
 
-	public async processNativeToolCalls(
-		assistantTextOnly: string,
-		toolBlocks: ToolUse[] = [],
-		isStreamComplete: boolean = false,
-	) {
+	public async processNativeToolCalls(assistantTextOnly: string, toolBlocks: ToolUse[] = [], isStreamComplete = false) {
 		const prevLength = this.dependencies.taskState.assistantMessageContent.length
 
 		const parsedBlocks = parseAssistantMessageV2(assistantTextOnly)
@@ -362,12 +351,12 @@ export class ResponseProcessor {
 			})
 		}
 
-		const diracMessages = this.dependencies.messageStateHandler.getDiracMessages()
-		
+		const isaacMessages = this.dependencies.messageStateHandler.getIsaacMessages()
+
 		// Find the last partial say message that is text or reasoning
 		let lastPartialMessageIndex = -1
-		for (let i = diracMessages.length - 1; i >= 0; i--) {
-			const msg = diracMessages[i]
+		for (let i = isaacMessages.length - 1; i >= 0; i--) {
+			const msg = isaacMessages[i]
 			if (msg.partial && msg.type === "say" && (msg.say === "text" || msg.say === "reasoning")) {
 				lastPartialMessageIndex = i
 				break
@@ -375,7 +364,7 @@ export class ResponseProcessor {
 		}
 
 		if (lastPartialMessageIndex !== -1) {
-			const lastMessage = diracMessages[lastPartialMessageIndex]
+			const lastMessage = isaacMessages[lastPartialMessageIndex]
 			const correspondingBlock = [...parsedBlocks].reverse().find((b) => b.type === lastMessage.say)
 			if (correspondingBlock) {
 				const content =
@@ -388,8 +377,8 @@ export class ResponseProcessor {
 				if (correspondingBlock.partial) {
 					lastMessage.partial = true
 				}
-				await this.dependencies.messageStateHandler.saveDiracMessagesAndUpdateHistory()
-				const protoMessage = convertDiracMessageToProto(lastMessage)
+				await this.dependencies.messageStateHandler.saveIsaacMessagesAndUpdateHistory()
+				const protoMessage = convertIsaacMessageToProto(lastMessage)
 				await sendPartialMessageEvent(protoMessage)
 			}
 		}

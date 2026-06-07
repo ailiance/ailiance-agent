@@ -4,7 +4,7 @@ import { extractPathLikeStrings, RuleEvaluationContext, toWorkspaceRelativePosix
 type WorkspaceRoot = { path: string }
 type WorkspaceManagerLike = { getRoots(): WorkspaceRoot[] }
 
-type DiracMessageLike = {
+type IsaacMessageLike = {
 	type: string
 	ask?: string
 	say?: string
@@ -12,7 +12,7 @@ type DiracMessageLike = {
 }
 
 type MessageStateHandlerLike = {
-	getDiracMessages(): DiracMessageLike[]
+	getIsaacMessages(): IsaacMessageLike[]
 }
 
 export type RuleContextBuilderDeps = {
@@ -22,11 +22,11 @@ export type RuleContextBuilderDeps = {
 }
 
 /**
- * Builds the evaluation context used for conditional Dirac Rules (e.g. YAML frontmatter `paths:`).
+ * Builds the evaluation context used for conditional Isaac Rules (e.g. YAML frontmatter `paths:`).
  *
  * Kept in the user-instructions domain so Task remains orchestration-focused.
  *
- * Path context is gathered from multiple sources in diracMessages:
+ * Path context is gathered from multiple sources in isaacMessages:
  * - User messages (task, user_feedback)
  * - Visible/open tabs
  * - Tool results (say="tool") - completed operations
@@ -47,13 +47,13 @@ export class RuleContextBuilder {
 
 	private static async getRulePathContext(deps: RuleContextBuilderDeps): Promise<string[]> {
 		const candidates: string[] = []
-		const diracMessages = deps.messageStateHandler.getDiracMessages()
+		const isaacMessages = deps.messageStateHandler.getIsaacMessages()
 
 		// (1) Current-turn user message evidence:
 		// Use the most recent user-authored text (initial task or subsequent feedback).
 		// NOTE: We intentionally prefer the latest user_feedback over the original task to
 		// support first-turn activation on later turns.
-		const lastUserMsg = [...diracMessages]
+		const lastUserMsg = [...isaacMessages]
 			.reverse()
 			.find((m) => m.type === "say" && (m.say === "user_feedback" || m.say === "task") && typeof m.text === "string")
 		if (lastUserMsg?.text) {
@@ -74,9 +74,9 @@ export class RuleContextBuilder {
 			}
 		}
 
-		// (3) Files edited by Dirac during this task (completed operations):
+		// (3) Files edited by Isaac during this task (completed operations):
 		// Parse say="tool" messages for tool results indicating file operations.
-		for (const msg of diracMessages) {
+		for (const msg of isaacMessages) {
 			if (msg.type !== "say" || msg.say !== "tool" || !msg.text) continue
 			try {
 				const tool = JSON.parse(msg.text) as { tool?: string; path?: string }
@@ -97,7 +97,7 @@ export class RuleContextBuilder {
 		// - The tool hasn't completed yet
 		// - The tool fails (intent was still expressed)
 		// - Files don't exist yet (new file creation)
-		for (const msg of diracMessages) {
+		for (const msg of isaacMessages) {
 			if (msg.type !== "ask" || msg.ask !== "tool" || !msg.text) continue
 			try {
 				const tool = JSON.parse(msg.text) as {

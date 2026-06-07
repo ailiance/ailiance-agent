@@ -44,7 +44,7 @@ describe("timeline-loader", () => {
 	})
 
 	describe("loadTimeline", () => {
-		const fakeHistoryPath = path.join(os.homedir(), ".dirac", "data", "state", "taskHistory.json")
+		const fakeHistoryPath = path.join(os.homedir(), ".isaac", "data", "state", "taskHistory.json")
 
 		beforeEach(() => {
 			vi.spyOn(fs, "readFileSync")

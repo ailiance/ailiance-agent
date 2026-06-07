@@ -41,7 +41,7 @@ export const TASK_SERVICES_KEYS = [
 	"urlContentFetcher",
 	"diffViewProvider",
 	"fileContextTracker",
-	"diracIgnoreController",
+	"isaacIgnoreController",
 	"commandPermissionController",
 	"contextManager",
 	"stateManager",
@@ -92,7 +92,7 @@ export const BROWSER_ACTIONS = ["launch", "click", "type", "scroll_down", "scrol
 /**
  * Common validation error patterns
  */
-export const VALIDATION_ERROR_PATTERNS = ["Missing required parameter", "blocked by .diracignore"] as const
+export const VALIDATION_ERROR_PATTERNS = ["Missing required parameter", "blocked by .isaacignore"] as const
 
 /**
  * Type helpers for better type safety

@@ -1,10 +1,12 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { plan_mode_respond } from "@core/prompts/system-prompt/tools/plan_mode_respond"
 import { findLast, parsePartialArrayString } from "@shared/array"
 import { telemetryService } from "@/services/telemetry"
-import { DiracPlanModeResponse } from "@/shared/ExtensionMessage"
+import { IsaacPlanModeResponse } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import type { IPartialBlockHandler, IToolHandler } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
@@ -12,7 +14,7 @@ import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { getTaskCompletionTelemetry } from "../utils"
 
 export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandler {
-	readonly name = DiracDefaultTool.PLAN_MODE
+	readonly name = IsaacDefaultTool.PLAN_MODE
 
 	getDescription(block: ToolUse): string {
 		return `[${block.name}]`
@@ -32,15 +34,18 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 		const sharedMessage = {
 			response: uiHelpers.removeClosingTag(block, "response", response),
 			options: parsePartialArrayString(uiHelpers.removeClosingTag(block, "options", optionsRaw)),
-		} satisfies DiracPlanModeResponse
+		} satisfies IsaacPlanModeResponse
 
 		await uiHelpers.ask(this.name, JSON.stringify(sharedMessage), true).catch(() => {})
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const response: string | undefined = block.params.response
+		// Lot E: read scalar params through the typed contract derived from the
+		// spec. Renaming `response`/`needs_more_exploration` in the spec breaks
+		// this handler's compile. `options` is a legacy alias not in the spec.
+		const response: string | undefined = readParam(plan_mode_respond_unit, block.params, "response")
 		const optionsRaw: string | undefined = block.params.options
-		const needsMoreExploration: boolean = block.params.needs_more_exploration === "true"
+		const needsMoreExploration: boolean = readParam(plan_mode_respond_unit, block.params, "needs_more_exploration") === "true"
 
 		// Validate required parameters
 		if (!response) {
@@ -77,13 +82,13 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 
 			if (switchSuccessful) {
 				// Complete the plan mode response tool call (this is a unique case where we auto-respond to the user with an ask response)
-				const lastPlanMessage = findLast(config.messageState.getDiracMessages(), (m: any) => m.ask === this.name)
+				const lastPlanMessage = findLast(config.messageState.getIsaacMessages(), (m: any) => m.ask === this.name)
 				if (lastPlanMessage) {
 					lastPlanMessage.text = JSON.stringify({
 						...sharedMessage,
-					} satisfies DiracPlanModeResponse)
+					} satisfies IsaacPlanModeResponse)
 					lastPlanMessage.partial = false
-					await config.messageState.saveDiracMessagesAndUpdateHistory()
+					await config.messageState.saveIsaacMessagesAndUpdateHistory()
 				}
 
 				// we dont need to process any text, options, files or other content here
@@ -113,13 +118,13 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 			telemetryService.captureOptionSelected(config.ulid, options.length, "plan")
 			// Valid option selected, don't show user message in UI
 			// Update last plan message with selected option
-			const lastPlanMessage = findLast(config.messageState.getDiracMessages(), (m: any) => m.ask === this.name)
+			const lastPlanMessage = findLast(config.messageState.getIsaacMessages(), (m: any) => m.ask === this.name)
 			if (lastPlanMessage) {
 				lastPlanMessage.text = JSON.stringify({
 					...sharedMessage,
 					selected: text,
-				} satisfies DiracPlanModeResponse)
-				await config.messageState.saveDiracMessagesAndUpdateHistory()
+				} satisfies IsaacPlanModeResponse)
+				await config.messageState.saveIsaacMessagesAndUpdateHistory()
 			}
 		} else {
 			// Option not selected, send user feedback
@@ -163,7 +168,6 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 				block.isNativeToolCall,
 			)
 
-
 			return result
 		}
 		// if we didn't switch to ACT MODE, then we can just send the user_feedback message
@@ -181,7 +185,19 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 			block.isNativeToolCall,
 		)
 
-
 		return formatResponse.toolResult(`<user_message>\n${text}\n</user_message>`, images, fileContentString)
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `plan_mode_respond`. Co-locates the prompt spec
+ * with the handler factory and the read-only flag, exposing the drift-detecting
+ * typed link between spec params and the handler. This handler takes no validator.
+ * Coexists with the legacy registration paths (no cutover yet).
+ */
+export const plan_mode_respond_unit = defineTool({
+	id: IsaacDefaultTool.PLAN_MODE,
+	spec: plan_mode_respond,
+	readonly: true,
+	createHandler: (_validator: unknown) => new PlanModeRespondHandler(),
+})

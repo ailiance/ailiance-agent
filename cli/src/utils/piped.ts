@@ -33,7 +33,7 @@ export async function readStdinIfPiped(): Promise<string | null> {
 
 	// Use async approach - more reliable for piped input from other commands
 	// The synchronous readFileSync(0) can fail with EAGAIN when the pipe
-	// isn't ready yet (common when piping from another dirac command)
+	// isn't ready yet (common when piping from another isaac command)
 	return new Promise((resolve) => {
 		let data = ""
 		process.stdin.setEncoding("utf8")

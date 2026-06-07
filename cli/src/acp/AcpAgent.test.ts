@@ -4,7 +4,7 @@ import { AcpAgent } from "./AcpAgent.js"
 
 const mocks = vi.hoisted(() => {
 	const callOrder: string[] = []
-	const diracAgentInstance = {
+	const isaacAgentInstance = {
 		setPermissionHandler: vi.fn(),
 		initialize: vi.fn(),
 		newSession: vi.fn(),
@@ -22,15 +22,15 @@ const mocks = vi.hoisted(() => {
 
 	return {
 		callOrder,
-		diracAgentInstance,
-		DiracAgent: vi.fn(function DiracAgent() {
-			return diracAgentInstance
+		isaacAgentInstance,
+		IsaacAgent: vi.fn(function IsaacAgent() {
+			return isaacAgentInstance
 		}),
 	}
 })
 
-vi.mock("../agent/DiracAgent.js", () => ({
-	DiracAgent: mocks.DiracAgent,
+vi.mock("../agent/IsaacAgent.js", () => ({
+	IsaacAgent: mocks.IsaacAgent,
 }))
 
 describe("AcpAgent", () => {
@@ -43,12 +43,12 @@ describe("AcpAgent", () => {
 		mocks.callOrder.length = 0
 		vi.clearAllMocks()
 		vi.useRealTimers()
-		mocks.diracAgentInstance.newSession.mockResolvedValue({ sessionId: "session-1" })
-		mocks.diracAgentInstance.loadSession.mockResolvedValue({})
-		mocks.diracAgentInstance.publishSessionSetupUpdates.mockImplementation(async () => {
+		mocks.isaacAgentInstance.newSession.mockResolvedValue({ sessionId: "session-1" })
+		mocks.isaacAgentInstance.loadSession.mockResolvedValue({})
+		mocks.isaacAgentInstance.publishSessionSetupUpdates.mockImplementation(async () => {
 			mocks.callOrder.push("publish")
 		})
-		mocks.diracAgentInstance.emitterForSession.mockImplementation(() => {
+		mocks.isaacAgentInstance.emitterForSession.mockImplementation(() => {
 			mocks.callOrder.push("subscribe")
 			return new EventEmitter()
 		})
@@ -56,23 +56,23 @@ describe("AcpAgent", () => {
 
 	it("publishes initial session updates after returning from newSession", async () => {
 		vi.useFakeTimers()
-		const agent = new AcpAgent(connection, { diracDir: "/tmp/dirac-config", cwd: "/tmp/workspace" })
+		const agent = new AcpAgent(connection, { isaacDir: "/tmp/isaac-config", cwd: "/tmp/workspace" })
 
 		await expect(agent.newSession({ cwd: "/tmp/workspace", mcpServers: [] })).resolves.toEqual({ sessionId: "session-1" })
 
-		expect(mocks.diracAgentInstance.newSession).toHaveBeenCalledWith({ cwd: "/tmp/workspace", mcpServers: [] })
+		expect(mocks.isaacAgentInstance.newSession).toHaveBeenCalledWith({ cwd: "/tmp/workspace", mcpServers: [] })
 		expect(mocks.callOrder).toEqual(["subscribe"])
-		expect(mocks.diracAgentInstance.publishSessionSetupUpdates).not.toHaveBeenCalled()
+		expect(mocks.isaacAgentInstance.publishSessionSetupUpdates).not.toHaveBeenCalled()
 
 		await vi.runAllTimersAsync()
 
 		expect(mocks.callOrder).toEqual(["subscribe", "publish"])
-		expect(mocks.diracAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledWith("session-1")
+		expect(mocks.isaacAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledWith("session-1")
 	})
 
 	it("publishes initial session updates before the first prompt if needed", async () => {
 		vi.useFakeTimers()
-		mocks.diracAgentInstance.prompt.mockImplementation(async () => {
+		mocks.isaacAgentInstance.prompt.mockImplementation(async () => {
 			mocks.callOrder.push("prompt")
 			return { stopReason: "end_turn" }
 		})
@@ -88,31 +88,31 @@ describe("AcpAgent", () => {
 		).resolves.toEqual({ stopReason: "end_turn" })
 
 		expect(mocks.callOrder).toEqual(["subscribe", "publish", "prompt"])
-		expect(mocks.diracAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledTimes(1)
+		expect(mocks.isaacAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledTimes(1)
 
 		await vi.runAllTimersAsync()
-		expect(mocks.diracAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledTimes(1)
+		expect(mocks.isaacAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledTimes(1)
 	})
 
-	it("passes config and cwd through to DiracAgent", () => {
-		new AcpAgent(connection, { diracDir: "/tmp/dirac-config", cwd: "/tmp/workspace", hooksDir: "/tmp/hooks" })
+	it("passes config and cwd through to IsaacAgent", () => {
+		new AcpAgent(connection, { isaacDir: "/tmp/isaac-config", cwd: "/tmp/workspace", hooksDir: "/tmp/hooks" })
 
-		expect(mocks.DiracAgent).toHaveBeenCalledWith({
-			diracDir: "/tmp/dirac-config",
+		expect(mocks.IsaacAgent).toHaveBeenCalledWith({
+			isaacDir: "/tmp/isaac-config",
 			cwd: "/tmp/workspace",
 			hooksDir: "/tmp/hooks",
 		})
 	})
 
 	it("delegates unstable_setSessionConfigOption", async () => {
-		mocks.diracAgentInstance.unstable_setSessionConfigOption.mockResolvedValue({ configOptions: [] })
+		mocks.isaacAgentInstance.unstable_setSessionConfigOption.mockResolvedValue({ configOptions: [] })
 		const agent = new AcpAgent(connection, {})
 
 		await expect(
 			agent.unstable_setSessionConfigOption({ sessionId: "session-1", configId: "mode", value: "plan" }),
 		).resolves.toEqual({ configOptions: [] })
 
-		expect(mocks.diracAgentInstance.unstable_setSessionConfigOption).toHaveBeenCalledWith({
+		expect(mocks.isaacAgentInstance.unstable_setSessionConfigOption).toHaveBeenCalledWith({
 			sessionId: "session-1",
 			configId: "mode",
 			value: "plan",
@@ -125,7 +125,7 @@ describe("AcpAgent", () => {
 
 		await expect(agent.loadSession({ sessionId: "session-1", cwd: "/tmp/workspace", mcpServers: [] })).resolves.toEqual({})
 
-		expect(mocks.diracAgentInstance.loadSession).toHaveBeenCalledWith({
+		expect(mocks.isaacAgentInstance.loadSession).toHaveBeenCalledWith({
 			sessionId: "session-1",
 			cwd: "/tmp/workspace",
 			mcpServers: [],
@@ -134,6 +134,6 @@ describe("AcpAgent", () => {
 
 		await vi.runAllTimersAsync()
 		expect(mocks.callOrder).toEqual(["subscribe", "publish"])
-		expect(mocks.diracAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledWith("session-1")
+		expect(mocks.isaacAgentInstance.publishSessionSetupUpdates).toHaveBeenCalledWith("session-1")
 	})
 })

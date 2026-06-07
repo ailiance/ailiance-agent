@@ -1,8 +1,9 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-export const execute_command: DiracToolSpec = {
-	id: DiracDefaultTool.BASH,
+export const execute_command = {
+	id: IsaacDefaultTool.BASH,
 	name: "execute_command",
 	description:
 		"Executes CLI commands or scripts. " +
@@ -36,4 +37,12 @@ export const execute_command: DiracToolSpec = {
 			instruction: "The language of the script (e.g., 'bash', 'python', 'node'). Defaults to 'bash'.",
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * The handler reads the scalar `script`/`language` params through this contract;
+ * the array `commands` is read via `coerceToStringArray`. A rename/removal of a
+ * spec parameter changes this union and breaks the handler compile (kills drift).
+ */
+export type ExecuteCommandParam = ParamNames<typeof execute_command>

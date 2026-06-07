@@ -1,39 +1,18 @@
 import type { ToolUse } from "@core/assistant-message"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../index"
-import { AskFollowupQuestionToolHandler } from "./handlers/AskFollowupQuestionToolHandler"
-import { AttemptCompletionHandler } from "./handlers/AttemptCompletionHandler"
-import { BrowserToolHandler } from "./handlers/BrowserToolHandler"
 import { CondenseHandler } from "./handlers/CondenseHandler"
-import { DiagnosticsScanToolHandler } from "./handlers/DiagnosticsScanToolHandler"
-import { EditFileToolHandler } from "./handlers/EditFileToolHandler"
-import { ExecuteCommandToolHandler } from "./handlers/ExecuteCommandToolHandler"
-import { FindSymbolReferencesToolHandler } from "./handlers/FindSymbolReferencesToolHandler"
-import { FindToolsToolHandler } from "./handlers/FindToolsToolHandler"
-import { GenerateExplanationToolHandler } from "./handlers/GenerateExplanationToolHandler"
-import { GetFileSkeletonToolHandler } from "./handlers/GetFileSkeletonToolHandler"
-import { GetFunctionToolHandler } from "./handlers/GetFunctionToolHandler"
-import { GetToolResultToolHandler } from "./handlers/GetToolResultToolHandler"
-import { ListFilesToolHandler } from "./handlers/ListFilesToolHandler"
-import { ListSkillsToolHandler } from "./handlers/ListSkillsToolHandler"
-import { NewTaskHandler } from "./handlers/NewTaskHandler"
-import { PlanModeRespondHandler } from "./handlers/PlanModeRespondHandler"
-import { ReadFileToolHandler } from "./handlers/ReadFileToolHandler"
-import { RenameSymbolToolHandler } from "./handlers/RenameSymbolToolHandler"
-import { ReplaceSymbolToolHandler } from "./handlers/ReplaceSymbolToolHandler"
 import { ReportBugHandler } from "./handlers/ReportBugHandler"
-import { SearchFilesToolHandler } from "./handlers/SearchFilesToolHandler"
 import { UseSubagentsToolHandler } from "./handlers/SubagentToolHandler"
-import { SummarizeTaskHandler } from "./handlers/SummarizeTaskHandler"
-import { UseSkillToolHandler } from "./handlers/UseSkillToolHandler"
 import { WriteToFileToolHandler } from "./handlers/WriteToFileToolHandler"
 import { AgentConfigLoader } from "./subagent/AgentConfigLoader"
 import { ToolValidator } from "./ToolValidator"
 import type { TaskConfig } from "./types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "./types/UIHelpers"
+import { getUnits } from "./units"
 
 export interface IToolHandler {
-	readonly name: DiracDefaultTool
+	readonly name: IsaacDefaultTool
 	execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse>
 	getDescription(block: ToolUse): string
 }
@@ -52,7 +31,7 @@ export interface IFullyManagedTool extends IToolHandler, IPartialBlockHandler {
  */
 export class SharedToolHandler implements IFullyManagedTool {
 	constructor(
-		public readonly name: DiracDefaultTool,
+		public readonly name: IsaacDefaultTool,
 		private baseHandler: IFullyManagedTool,
 	) {}
 
@@ -78,38 +57,36 @@ export class ToolExecutorCoordinator {
 	private dynamicSubagentHandlers = new Map<string, IToolHandler>()
 	private mcpHandlers = new Map<string, IToolHandler>()
 
-	private readonly toolHandlersMap: Record<DiracDefaultTool, (v: ToolValidator) => IToolHandler | undefined> = {
-		[DiracDefaultTool.ASK]: (_v: ToolValidator) => new AskFollowupQuestionToolHandler(),
-		[DiracDefaultTool.ATTEMPT]: (_v: ToolValidator) => new AttemptCompletionHandler(),
-		[DiracDefaultTool.BASH]: (v: ToolValidator) => new ExecuteCommandToolHandler(v),
-		[DiracDefaultTool.FILE_READ]: (v: ToolValidator) => new ReadFileToolHandler(v),
-		[DiracDefaultTool.FILE_NEW]: (v: ToolValidator) => new WriteToFileToolHandler(v),
-		[DiracDefaultTool.SEARCH]: (v: ToolValidator) => new SearchFilesToolHandler(v),
-		[DiracDefaultTool.LIST_FILES]: (v: ToolValidator) => new ListFilesToolHandler(v),
-		[DiracDefaultTool.GET_FUNCTION]: (v: ToolValidator) => new GetFunctionToolHandler(v),
-		[DiracDefaultTool.GET_FILE_SKELETON]: (v: ToolValidator) => new GetFileSkeletonToolHandler(v),
-		[DiracDefaultTool.FIND_SYMBOL_REFERENCES]: (v: ToolValidator) => new FindSymbolReferencesToolHandler(v),
+	/**
+	 * Lot E cutover: the per-tool handler factories come from the migrated tool
+	 * *units* (`getUnits()`), built lazily into a name→factory map. This removes
+	 * the previously-duplicated `toolHandlersMap`.
+	 *
+	 * Four tools have no unit and keep their legacy registration here, reproducing
+	 * the exact prior behavior:
+	 *  - `new_rule`       — SharedToolHandler aliasing the write_to_file handler.
+	 *  - `use_subagents`  — dynamic per-subagent names (see `getHandler`).
+	 *  - `condense`       — slash-command only.
+	 *  - `report_bug`     — slash-command only.
+	 */
+	private readonly legacyHandlersMap: Partial<Record<IsaacDefaultTool, (v: ToolValidator) => IToolHandler | undefined>> = {
+		[IsaacDefaultTool.NEW_RULE]: (v: ToolValidator) =>
+			new SharedToolHandler(IsaacDefaultTool.NEW_RULE, new WriteToFileToolHandler(v)),
+		[IsaacDefaultTool.CONDENSE]: (_v: ToolValidator) => new CondenseHandler(),
+		[IsaacDefaultTool.REPORT_BUG]: (_v: ToolValidator) => new ReportBugHandler(),
+		[IsaacDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
+	}
 
-		[DiracDefaultTool.EDIT_FILE]: (v: ToolValidator) => new EditFileToolHandler(v),
-		[DiracDefaultTool.DIAGNOSTICS_SCAN]: (v: ToolValidator) => new DiagnosticsScanToolHandler(v),
-		[DiracDefaultTool.REPLACE_SYMBOL]: (v: ToolValidator) => new ReplaceSymbolToolHandler(v),
-		[DiracDefaultTool.RENAME_SYMBOL]: (v: ToolValidator) => new RenameSymbolToolHandler(v),
-		[DiracDefaultTool.BROWSER]: (_v: ToolValidator) => new BrowserToolHandler(),
+	private unitHandlerFactories?: Map<IsaacDefaultTool, (v: ToolValidator) => IToolHandler | undefined>
 
-		[DiracDefaultTool.NEW_TASK]: (_v: ToolValidator) => new NewTaskHandler(),
-		[DiracDefaultTool.PLAN_MODE]: (_v: ToolValidator) => new PlanModeRespondHandler(),
-		[DiracDefaultTool.CONDENSE]: (_v: ToolValidator) => new CondenseHandler(),
-		[DiracDefaultTool.SUMMARIZE_TASK]: (_v: ToolValidator) => new SummarizeTaskHandler(_v),
-		[DiracDefaultTool.REPORT_BUG]: (_v: ToolValidator) => new ReportBugHandler(),
-		[DiracDefaultTool.NEW_RULE]: (v: ToolValidator) =>
-			new SharedToolHandler(DiracDefaultTool.NEW_RULE, new WriteToFileToolHandler(v)),
-		[DiracDefaultTool.GENERATE_EXPLANATION]: (_v: ToolValidator) => new GenerateExplanationToolHandler(),
-		[DiracDefaultTool.USE_SKILL]: (_v: ToolValidator) => new UseSkillToolHandler(),
-		[DiracDefaultTool.LIST_SKILLS]: (_v: ToolValidator) => new ListSkillsToolHandler(),
-		[DiracDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
-		[DiracDefaultTool.GET_TOOL_RESULT]: (_v: ToolValidator) => new GetToolResultToolHandler(),
-
-		[DiracDefaultTool.FIND_TOOLS]: (_v: ToolValidator) => new FindToolsToolHandler(),
+	private getHandlerFactory(toolName: IsaacDefaultTool): ((v: ToolValidator) => IToolHandler | undefined) | undefined {
+		if (!this.unitHandlerFactories) {
+			this.unitHandlerFactories = new Map()
+			for (const unit of getUnits()) {
+				this.unitHandlerFactories.set(unit.id, (v: ToolValidator) => unit.createHandler(v))
+			}
+		}
+		return this.unitHandlerFactories.get(toolName) ?? this.legacyHandlersMap[toolName]
 	}
 
 	/**
@@ -119,15 +96,15 @@ export class ToolExecutorCoordinator {
 		this.handlers.set(handler.name, handler)
 	}
 
-	registerByName(toolName: DiracDefaultTool, validator: ToolValidator): void {
-		const handler = this.toolHandlersMap[toolName]?.(validator)
+	registerByName(toolName: IsaacDefaultTool, validator: ToolValidator): void {
+		const handler = this.getHandlerFactory(toolName)?.(validator)
 		if (handler) {
 			this.register(handler)
 		}
 	}
 
 	/**
-	 * Register a dynamically-named tool handler (e.g. MCP tools whose names are not in DiracDefaultTool).
+	 * Register a dynamically-named tool handler (e.g. MCP tools whose names are not in IsaacDefaultTool).
 	 */
 	registerDynamicTool(toolName: string, handler: IToolHandler): void {
 		this.mcpHandlers.set(toolName, handler)
@@ -159,7 +136,7 @@ export class ToolExecutorCoordinator {
 			if (existingHandler) {
 				return existingHandler
 			}
-			const handler = new SharedToolHandler(toolName as DiracDefaultTool, new UseSubagentsToolHandler())
+			const handler = new SharedToolHandler(toolName as IsaacDefaultTool, new UseSubagentsToolHandler())
 			this.dynamicSubagentHandlers.set(toolName, handler)
 			return handler
 		}

@@ -1,12 +1,14 @@
 import path from "node:path"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { list_files } from "@core/prompts/system-prompt/tools/list_files"
 import { getWorkspaceBasename, resolveWorkspacePath } from "@core/workspace"
 import { type FileInfo, listFiles } from "@services/glob/list-files"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import { notifyAsyncTool } from "../../AsyncToolNotifier"
 import type { ToolResponse } from "../../index"
 import type { TaskMessenger } from "../../TaskMessenger"
@@ -35,9 +37,18 @@ interface PerPathListing {
 
 export class ListFilesToolHandler implements IFullyManagedTool {
 	private static readonly MAX_FILES_LIMIT = 200
-	readonly name = DiracDefaultTool.LIST_FILES
+	readonly name = IsaacDefaultTool.LIST_FILES
 
 	constructor(private validator: ToolValidator) {}
+
+	/**
+	 * Lot E: read the `recursive` param through the typed contract derived from
+	 * the spec. The param name is checked against `list_files`'s declared params
+	 * at compile time — renaming it in the spec breaks this call.
+	 */
+	private parseRecursive(params: Record<string, unknown>): boolean {
+		return String(readParam(list_files_unit, params, "recursive") ?? "").toLowerCase() === "true"
+	}
 
 	getDescription(block: ToolUse): string {
 		const relPaths = coerceToStringArray(block.params.paths)
@@ -54,8 +65,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 		}
 
 		// Create and show partial UI message
-		const recursiveRaw = block.params.recursive
-		const recursive = String(recursiveRaw ?? "").toLowerCase() === "true"
+		const recursive = this.parseRecursive(block.params)
 		const sharedMessageProps = {
 			tool: recursive ? "listFilesRecursive" : "listFilesTopLevel",
 			paths: relPaths.map((p) => getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, "paths", p))),
@@ -97,8 +107,8 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 				throw err
 			}
 
-			// Check diracignore access before performing any IO.
-			const accessValidation = this.validator.checkDiracIgnorePath(relDirPath)
+			// Check isaacignore access before performing any IO.
+			const accessValidation = this.validator.checkIsaacIgnorePath(relDirPath)
 			if (!accessValidation.ok) {
 				out.push({
 					relDirPath,
@@ -107,7 +117,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 					usedWorkspaceHint: false,
 					fileInfos: [],
 					didHitLimit: false,
-					error: `Access to ${relDirPath} is blocked by .diracignore settings.`,
+					error: `Access to ${relDirPath} is blocked by .isaacignore settings.`,
 				})
 				continue
 			}
@@ -162,7 +172,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 				l.absolutePath,
 				l.fileInfos,
 				l.didHitLimit,
-				config.services.diracIgnoreController,
+				config.services.isaacIgnoreController,
 			)
 			results.push(`Contents of ${l.relDirPath}:\n${formattedList}`)
 		}
@@ -171,8 +181,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = coerceToStringArray(block.params.paths)
-		const recursiveRaw = block.params.recursive
-		const recursive = String(recursiveRaw ?? "").toLowerCase() === "true"
+		const recursive = this.parseRecursive(block.params)
 
 		// Extract provider using the proven pattern from ReportBugHandler
 		const apiConfig = config.services.stateManager.getApiConfiguration()
@@ -190,7 +199,7 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 			if (validation.paramName) {
 				return await config.callbacks.sayAndCreateMissingParamError(this.name, validation.paramName as any)
 			}
-			await config.callbacks.say("error", `Dirac tried to use ${this.name} without providing any paths. Retrying...`)
+			await config.callbacks.say("error", `Isaac tried to use ${this.name} without providing any paths. Retrying...`)
 			return formatResponse.toolError(validation.error!)
 		}
 
@@ -333,8 +342,8 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 			} else {
 				const notificationMessage =
 					relPaths.length > 1
-						? `Dirac wants to view ${relPaths.length} directories`
-						: `Dirac wants to view directory ${relPaths[0]}/`
+						? `Isaac wants to view ${relPaths.length} directories`
+						: `Isaac wants to view directory ${relPaths[0]}/`
 				showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 				await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 				const { didApprove } = await ToolResultUtils.askApprovalAndPushFeedback("tool", placeholderMessage, config)
@@ -462,8 +471,8 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 		} else {
 			const notificationMessage =
 				relPaths.length > 1
-					? `Dirac wants to view ${relPaths.length} directories`
-					: `Dirac wants to view directory ${getWorkspaceBasename(absolutePaths[0], "ListFilesToolHandler.notification")}/`
+					? `Isaac wants to view ${relPaths.length} directories`
+					: `Isaac wants to view directory ${getWorkspaceBasename(absolutePaths[0], "ListFilesToolHandler.notification")}/`
 
 			showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 
@@ -511,3 +520,24 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 		return finalResult
 	}
 }
+
+/**
+ * Lot E pilot — unified tool unit for `list_files`.
+ *
+ * Co-locates the prompt spec (imported from the prompts layer, the allowed
+ * task → prompts direction) with the handler factory and the read-only flag.
+ * This is the single source registration shape the migration will converge on:
+ * a registry can read `spec` for the prompt/schema and `createHandler` for
+ * dispatch, removing the duplicated `toolHandlersMap` entry and the separate
+ * `READ_ONLY_TOOLS` membership.
+ *
+ * Coexists with the legacy path: `list_files` is still registered via
+ * `init.ts`, and the handler is still wired through `ToolExecutorCoordinator`'s
+ * map. Nothing else changes until the registry adopts units.
+ */
+export const list_files_unit = defineTool({
+	id: IsaacDefaultTool.LIST_FILES,
+	spec: list_files,
+	readonly: true,
+	createHandler: (validator: unknown) => new ListFilesToolHandler(validator as ToolValidator),
+})

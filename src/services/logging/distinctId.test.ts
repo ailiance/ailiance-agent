@@ -28,9 +28,9 @@ describe("distinctId", () => {
 				workspaceClient: {},
 				envClient: {
 					getHostVersion: sandbox.stub().resolves({
-						diracVersion: "1.0.0",
+						isaacVersion: "1.0.0",
 						platform: "darwin",
-						diracType: "vscode",
+						isaacType: "vscode",
 					}),
 				},
 				windowClient: {},
@@ -39,7 +39,7 @@ describe("distinctId", () => {
 
 			HostProvider.initialize(
 				"extension",
-				() => null as any, // createDiracWebviewProvider
+				() => null as any, // createIsaacWebviewProvider
 				() => null as any, // createDiffViewProvider
 				() => null as any, // createCommentReviewController
 				() => null as any, // createTerminalManager
@@ -49,7 +49,7 @@ describe("distinctId", () => {
 				async () => "", // getBinaryLocation
 				"/test/extension", // extensionFsPath
 				"/test/storage", // globalStorageFsPath
-				async (_cwd: string) => undefined
+				async (_cwd: string) => undefined,
 			)
 			hostProviderInitialized = true
 		}

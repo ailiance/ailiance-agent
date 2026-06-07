@@ -1,12 +1,12 @@
 import { useInput } from "ink"
-import { isMouseEscapeSequence, isTerminalResponseSequence } from "../utils/input"
-import { extractMentionQuery, insertMention } from "../utils/file-search"
-import { extractSlashQuery, insertSlashCommand } from "../utils/slash-commands"
-import { findWordEnd, findWordStart } from "./useTextInput"
-import { moveCursorDown, moveCursorUp } from "../utils/cursor"
-import { parseImagesFromInput } from "../utils/parser"
 import { StateManager } from "@/core/storage/StateManager"
 import { readImageFromClipboard } from "../utils/clipboard-image"
+import { moveCursorDown, moveCursorUp } from "../utils/cursor"
+import { extractMentionQuery, insertMention } from "../utils/file-search"
+import { isMouseEscapeSequence, isTerminalResponseSequence } from "../utils/input"
+import { parseImagesFromInput } from "../utils/parser"
+import { extractSlashQuery, insertSlashCommand } from "../utils/slash-commands"
+import { findWordEnd, findWordStart } from "./useTextInput"
 
 interface UseChatInputHandlerProps {
 	textInputRef: React.MutableRefObject<string>
@@ -174,7 +174,7 @@ export function useChatInputHandler({
 							mode === "act"
 								? apiConfig.actModeApiProvider || apiConfig.planModeApiProvider
 								: apiConfig.planModeApiProvider || apiConfig.actModeApiProvider
-						const initialMode = !provider ? undefined : provider === "dirac" ? "featured-models" : "model-picker"
+						const initialMode = !provider ? undefined : provider === "isaac" ? "featured-models" : "model-picker"
 						const initialModelKey = mode === "act" ? "actModelId" : "planModelId"
 						setActivePanel({ type: "settings", initialMode, initialModelKey })
 						setTextInput("")

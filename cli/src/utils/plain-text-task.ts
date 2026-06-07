@@ -5,20 +5,20 @@
  * Design goals:
  * - stdout: Only the final completion result text (no prefix) - perfect for piping
  * - stderr: Errors and verbose output (won't break pipes)
- * - Enables workflows like: git diff | dirac 'explain' | dirac 'summarize'
+ * - Enables workflows like: git diff | isaac 'explain' | isaac 'summarize'
  */
 
 /* eslint-disable no-console */
 // Console output is intentional here for plain text mode
 
-import type { DiracMessage, ExtensionState } from "@shared/ExtensionMessage"
-import { StringRequest } from "@shared/proto/dirac/common"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
+import { getApiMetrics } from "@shared/getApiMetrics"
+import { StringRequest } from "@shared/proto/isaac/common"
 import type { Controller } from "@/core/controller"
 import { getRequestRegistry } from "@/core/controller/grpc-handler"
 import { subscribeToState } from "@/core/controller/state/subscribeToState"
 import { showTaskWithId } from "@/core/controller/task/showTaskWithId"
 import { emitTaskStartedMessage } from "./task-start-output"
-import { getApiMetrics } from "@shared/getApiMetrics"
 
 export interface PlainTextTaskOptions {
 	controller: Controller
@@ -58,7 +58,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 	let hasEmittedTaskStarted = false
 	// Track which messages have been processed (by timestamp)
 	const processedMessages = new Map<number, string>()
-	const lastProcessedPartialMessages = new Map<number, DiracMessage>()
+	const lastProcessedPartialMessages = new Map<number, IsaacMessage>()
 
 	const isViewTaskOnly = Boolean(options.taskId) && !prompt
 
@@ -68,14 +68,11 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 	const completionCutoffTs = Date.now()
 
 	const printPendingPartials = () => {
-		for (const partialMsg of Array.from(lastProcessedPartialMessages.values()).sort(
-			(a, b) => (a.ts || 0) - (b.ts || 0),
-		)) {
+		for (const partialMsg of Array.from(lastProcessedPartialMessages.values()).sort((a, b) => (a.ts || 0) - (b.ts || 0))) {
 			handleMessageForPipeMode(partialMsg, true, yolo || false)
 		}
 		lastProcessedPartialMessages.clear()
 	}
-
 
 	const emitTaskStarted = () => {
 		if (hasEmittedTaskStarted) {
@@ -92,7 +89,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 	}
 
 	// Helper to process a message and track completion state
-	const processMessage = (message: DiracMessage) => {
+	const processMessage = (message: IsaacMessage) => {
 		const text = message.text || ""
 		const ts = message.ts || 0
 
@@ -157,21 +154,20 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 		}
 	}
 
-	const requestId = "dirac-plain-text-task"
+	const requestId = "isaac-plain-text-task"
 	subscribeToState(
 		controller,
 		{},
 		async ({ stateJson }) => {
 			try {
 				const state = JSON.parse(stateJson) as ExtensionState
-				for (const message of state.diracMessages ?? []) {
+				for (const message of state.isaacMessages ?? []) {
 					processMessage(message)
 				}
 			} catch (error) {
 				if (jsonOutput) {
 					process.stdout.write(
-						JSON.stringify({ type: "error", message: error instanceof Error ? error.message : String(error) }) +
-							"\n",
+						JSON.stringify({ type: "error", message: error instanceof Error ? error.message : String(error) }) + "\n",
 					)
 				} else {
 					process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
@@ -208,9 +204,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 		// Wait for task completion, with optional timeout only when explicitly configured
 		if (options.timeoutSeconds) {
 			const timeoutMs = options.timeoutSeconds * 1000
-			const timeoutPromise = new Promise((_, reject) =>
-				setTimeout(() => reject(new Error("Timeout")), timeoutMs),
-			)
+			const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
 			await Promise.race([completionPromise, timeoutPromise])
 		} else {
 			await completionPromise
@@ -242,13 +236,13 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 
 	// Print final summary if verbose or yolo
 	if (!jsonOutput && (verbose || yolo)) {
-		const messages = controller.task?.messageStateHandler.getDiracMessages() || []
+		const messages = controller.task?.messageStateHandler.getIsaacMessages() || []
 		const metrics = getApiMetrics(messages)
 		if (metrics.totalTokensIn > 0 || metrics.totalCost > 0) {
 			process.stderr.write(`\n${"-".repeat(40)}\n`)
 			process.stderr.write(`Task Summary:\n`)
 			process.stderr.write(
-				`Tokens: ${metrics.totalTokensIn.toLocaleString()} in, ${metrics.totalTokensOut.toLocaleString()} out${metrics.totalReasoningTokens ? ` (+${metrics.totalReasoningTokens.toLocaleString()} thinking)` : ""}\n`
+				`Tokens: ${metrics.totalTokensIn.toLocaleString()} in, ${metrics.totalTokensOut.toLocaleString()} out${metrics.totalReasoningTokens ? ` (+${metrics.totalReasoningTokens.toLocaleString()} thinking)` : ""}\n`,
 			)
 			if (metrics.totalCacheReads || metrics.totalCacheWrites) {
 				process.stderr.write(
@@ -287,17 +281,12 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
  * - Verbose output goes to stderr
  * - Nothing else goes to stdout (stdout is reserved for final result only)
  */
-function handleMessageForPipeMode(
-	message: DiracMessage,
-	verbose: boolean,
-	yolo: boolean,
-	isUpdate?: boolean,
-): void {
+function handleMessageForPipeMode(message: IsaacMessage, verbose: boolean, yolo: boolean, isUpdate?: boolean): void {
 	const timestamp = message.ts ? `[${new Date(message.ts).toLocaleTimeString("en-GB", { hour12: false })}] ` : ""
 	const fullText = message.text ?? ""
 	const reasoning = message.reasoning ?? ""
 	const isPartial = message.partial ?? false
-	const statusPrefix = verbose ? (isPartial ? "[partial]  " : (isUpdate ? "[update]   " : "[complete] ")) : ""
+	const statusPrefix = verbose ? (isPartial ? "[partial]  " : isUpdate ? "[update]   " : "[complete] ") : ""
 
 	// 1. Handle Errors (always stderr)
 	if (message.say === "error" || message.ask === "api_req_failed") {
@@ -390,7 +379,6 @@ function handleMessageForPipeMode(
 	// 3. Handle Verbose Output
 
 	if (verbose) {
-
 		if (message.type === "say") {
 			switch (message.say) {
 				case "task":
@@ -444,7 +432,7 @@ function handleMessageForPipeMode(
 /**
  * Identify if a message is a tool call and return its type/name
  */
-function getToolType(message: DiracMessage): string | null {
+function getToolType(message: IsaacMessage): string | null {
 	if (message.type === "say") {
 		const toolSays = [
 			"tool",
@@ -510,7 +498,7 @@ function getToolType(message: DiracMessage): string | null {
 /**
  * Handle formatting and printing of API request messages
  */
-function handleApiReqMessage(message: DiracMessage, statusPrefix: string, isUpdate?: boolean): void {
+function handleApiReqMessage(message: IsaacMessage, statusPrefix: string, isUpdate?: boolean): void {
 	const timestamp = message.ts ? `[${new Date(message.ts).toLocaleTimeString("en-GB", { hour12: false })}] ` : ""
 	const fullText = message.text ?? ""
 	let info: any = {}

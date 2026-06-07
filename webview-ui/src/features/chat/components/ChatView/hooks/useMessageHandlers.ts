@@ -1,6 +1,6 @@
-import type { DiracMessage } from "@shared/ExtensionMessage"
-import { EmptyRequest, StringRequest } from "@shared/proto/dirac/common"
-import { AskResponseRequest, NewTaskRequest } from "@shared/proto/dirac/task"
+import type { IsaacMessage } from "@shared/ExtensionMessage"
+import { EmptyRequest, StringRequest } from "@shared/proto/isaac/common"
+import { AskResponseRequest, NewTaskRequest } from "@shared/proto/isaac/task"
 import { useCallback, useRef } from "react"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { SlashServiceClient, TaskServiceClient } from "@/shared/api/grpc-client"
@@ -12,7 +12,7 @@ import type { ChatState, MessageHandlers } from "../types/chatTypes"
  * Custom hook for managing message handlers
  * Handles sending messages, button clicks, and task management
  */
-export function useMessageHandlers(messages: DiracMessage[], chatState: ChatState): MessageHandlers {
+export function useMessageHandlers(messages: IsaacMessage[], chatState: ChatState): MessageHandlers {
 	const { state: interactionState } = useInteractionState()
 	const { backgroundCommandRunning, setExpandTaskHeader } = useSettingsStore() as any
 	const {
@@ -23,7 +23,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 		setSelectedFiles,
 		setSendingDisabled,
 		setEnableButtons,
-		diracAsk,
+		isaacAsk,
 		lastMessage,
 	} = chatState
 	const cancelInFlightRef = useRef(false)
@@ -46,7 +46,6 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 
 			console.log(`[ChatView] handleSendMessage - State: ${interactionState}, Sending:`, finalMessage)
 
-
 			try {
 				setExpandTaskHeader(false)
 				if (interactionState === "IDLE") {
@@ -58,7 +57,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 						}),
 					)
 				} else if (interactionState === "AWAITING_RESPONSE") {
-					const isResume = diracAsk === "resume_task" || diracAsk === "resume_completed_task"
+					const isResume = isaacAsk === "resume_task" || isaacAsk === "resume_completed_task"
 					await TaskServiceClient.askResponse(
 						AskResponseRequest.create({
 							responseType: isResume ? "yesButtonClicked" : "messageResponse",
@@ -97,7 +96,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 		[
 			interactionState,
 			backgroundCommandRunning,
-			diracAsk,
+			isaacAsk,
 			activeQuote,
 			setInputValue,
 			setActiveQuote,
@@ -201,7 +200,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 					break
 
 				case "new_task":
-					if (diracAsk === "new_task") {
+					if (isaacAsk === "new_task") {
 						await TaskServiceClient.newTask(
 							NewTaskRequest.create({
 								text: lastMessage?.text,
@@ -247,7 +246,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 				}
 
 				case "utility":
-					switch (diracAsk) {
+					switch (isaacAsk) {
 						case "condense":
 							await SlashServiceClient.condense(StringRequest.create({ value: lastMessage?.text })).catch((err) =>
 								console.error(err),
@@ -274,7 +273,6 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 						}),
 					)
 					break
-
 			}
 
 			if ("disableAutoScrollRef" in chatState) {
@@ -282,7 +280,7 @@ export function useMessageHandlers(messages: DiracMessage[], chatState: ChatStat
 			}
 		},
 		[
-			diracAsk,
+			isaacAsk,
 			lastMessage,
 			messages,
 			clearInputState,

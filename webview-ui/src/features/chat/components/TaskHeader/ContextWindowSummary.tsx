@@ -1,4 +1,4 @@
-import { ChevronDownIcon, ChevronRightIcon, ArrowUpIcon, ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 
 import React, { memo, useCallback, useMemo, useState } from "react"
 import { useChatStore } from "@/features/chat/store/chatStore"
@@ -16,7 +16,6 @@ interface TokenDetail {
 	title: string
 	value?: number
 	icon: any
-
 }
 
 interface TaskContextWindowButtonsProps {
@@ -68,8 +67,6 @@ const TOKEN_DETAILS_CONFIG: Omit<TokenDetail, "value">[] = [
 	{ title: "Completion Tokens", icon: ArrowDownIcon },
 	{ title: "Cache Writes", icon: ArrowLeftIcon },
 	{ title: "Cache Reads", icon: ArrowRightIcon },
-
-
 ]
 
 const TokenUsageDetails = memo<TokenUsageInfoProps>(({ tokensIn, tokensOut, cacheWrites, cacheReads }) => {
@@ -87,7 +84,7 @@ const TokenUsageDetails = memo<TokenUsageInfoProps>(({ tokensIn, tokensOut, cach
 			{contextTokenDetails.map((item) => (
 				<div className="flex justify-between">
 					<div className="flex items-center gap-1">
-						<item.icon size={10} className="opacity-70" />
+						<item.icon className="opacity-70" size={10} />
 						<span>{item.title}</span>
 					</div>
 
@@ -106,10 +103,10 @@ export const ContextWindowSummary: React.FC<TaskContextWindowButtonsProps> = ({
 	autoCompactThreshold = 0,
 }) => {
 	const { apiConfiguration, mode } = useSettingsStore()
-	const { diracMessages } = useChatStore()
+	const { isaacMessages } = useChatStore()
 
 	const lastApiReqStartedMessage = useMemo(() => {
-		return [...diracMessages].reverse().find((m) => {
+		return [...isaacMessages].reverse().find((m) => {
 			if (m.type !== "say" || m.say !== "api_req_started" || !m.text) {
 				return false
 			}
@@ -120,7 +117,7 @@ export const ContextWindowSummary: React.FC<TaskContextWindowButtonsProps> = ({
 				return false
 			}
 		})
-	}, [diracMessages])
+	}, [isaacMessages])
 
 	const [tokensIn, tokensOut, cacheWrites, cacheReads] = useMemo(() => {
 		if (lastApiReqStartedMessage?.text) {

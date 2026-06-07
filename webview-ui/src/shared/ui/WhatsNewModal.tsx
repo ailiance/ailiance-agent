@@ -1,4 +1,4 @@
-import { BannerAction, BannerCardData } from "@shared/dirac/banner"
+import { BannerAction, BannerCardData } from "@shared/isaac/banner"
 import React, { useCallback } from "react"
 import { useMount } from "react-use"
 import DiscordIcon from "@/assets/DiscordIcon"
@@ -28,11 +28,11 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 
 	const navigateToModelPicker = useCallback(
 		(modelId?: string) => {
-			// Switch to Dirac provider first so the model picker tab works
+			// Switch to Isaac provider first so the model picker tab works
 			// Optionally also set the model if provided
 			const updates: Record<string, any> = {
-				planModeApiProvider: "dirac",
-				actModeApiProvider: "dirac",
+				planModeApiProvider: "isaac",
+				actModeApiProvider: "isaac",
 			}
 			if (modelId) {
 				updates.planModeOpenRouterModelId = modelId
@@ -99,7 +99,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 							<a
 								aria-label="Follow us on X"
 								className="text-[var(--vscode-foreground)] hover:text-[var(--vscode-textLink-activeForeground)] transition-colors"
-								href="https://x.com/Dirac_AI"
+								href="https://x.com/Isaac_AI"
 								rel="noopener noreferrer"
 								target="_blank">
 								<XIcon />
@@ -129,7 +129,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 							<a
 								aria-label="Join our subreddit"
 								className="text-[var(--vscode-foreground)] hover:text-[var(--vscode-textLink-activeForeground)] transition-colors"
-								href="https://www.reddit.com/r/DiracDelta/"
+								href="https://www.reddit.com/r/IsaacDelta/"
 								rel="noopener noreferrer"
 								target="_blank">
 								<RedditIcon />
@@ -139,7 +139,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 							<a
 								aria-label="Follow us on LinkedIn"
 								className="text-[var(--vscode-foreground)] hover:text-[var(--vscode-textLink-activeForeground)] transition-colors"
-								href="https://www.linkedin.com/company/diracbot/"
+								href="https://www.linkedin.com/company/isaacbot/"
 								rel="noopener noreferrer"
 								target="_blank">
 								<LinkedInIcon />
@@ -148,7 +148,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, ver
 
 						{/* GitHub Star CTA */}
 						<p className="text-sm text-center" style={{ color: "var(--vscode-descriptionForeground)" }}>
-							Please support Dirac by{" "}
+							Please support Isaac by{" "}
 							<a
 								href="https://github.com/dirac-run/dirac"
 								rel="noopener noreferrer"

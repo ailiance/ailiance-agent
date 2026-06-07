@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { DiracDefaultTool } from "@shared/tools"
+import { IsaacDefaultTool } from "@shared/tools"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import * as pathUtils from "@utils/path"
 import { afterEach, beforeEach, describe, it } from "mocha"
@@ -102,7 +102,7 @@ function createConfig() {
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider: {},
-			diracIgnoreController: { validateAccess: () => true, filterPaths: (paths: string[]) => paths },
+			isaacIgnoreController: { validateAccess: () => true, filterPaths: (paths: string[]) => paths },
 			commandPermissionController: {},
 			contextManager: {},
 		},
@@ -122,7 +122,7 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-listfiles-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-listfiles-test-"))
 		sandbox.stub(pathUtils, "isLocatedInWorkspace").resolves(true)
 		AnchorStateManager.reset("ulid-1")
 	})
@@ -144,7 +144,7 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		if (recursive !== undefined) params.recursive = recursive
 		return {
 			type: "tool_use" as const,
-			name: DiracDefaultTool.LIST_FILES,
+			name: IsaacDefaultTool.LIST_FILES,
 			params,
 			partial: false,
 		}
@@ -235,20 +235,20 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		assert.equal(taskState.consecutiveMistakeCount, 3)
 	})
 
-	it("increments consecutiveMistakeCount on diracignore denial", async () => {
+	it("increments consecutiveMistakeCount on isaacignore denial", async () => {
 		const { config, taskState } = createConfig()
-		// Create a validator whose diracIgnoreController blocks all paths
+		// Create a validator whose isaacIgnoreController blocks all paths
 		const blockingValidator = new ToolValidator({ validateAccess: () => false } as any)
 		const handler = new ListFilesToolHandler(blockingValidator)
 
 		const result = await handler.execute(config, makeBlock("blocked-dir"))
 
 		assert.equal(typeof result, "string")
-		assert.ok((result as string).includes("diracignore"))
+		assert.ok((result as string).includes("isaacignore"))
 		assert.equal(taskState.consecutiveMistakeCount, 1)
 	})
 
-	it("accumulates diracignore denials across repeated calls", async () => {
+	it("accumulates isaacignore denials across repeated calls", async () => {
 		const { config, taskState } = createConfig()
 		const blockingValidator = new ToolValidator({ validateAccess: () => false } as any)
 		const handler = new ListFilesToolHandler(blockingValidator)
@@ -276,19 +276,18 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		const { config, taskState, validator } = createConfig()
 		const handler = new ListFilesToolHandler(validator)
 
-		// Mock diracIgnoreController to block one path but allow another
-		const diracIgnoreController = {
+		// Mock isaacIgnoreController to block one path but allow another
+		const isaacIgnoreController = {
 			validateAccess: (p: string) => !p.includes("blocked"),
 			filterPaths: (paths: string[]) => paths.filter((p) => !p.includes("blocked")),
 		}
-		config.services.diracIgnoreController = diracIgnoreController as any
-		// We also need to mock the validator's checkDiracIgnorePath if it uses it
-		sandbox.stub(validator, "checkDiracIgnorePath").callsFake((p: string) => {
+		config.services.isaacIgnoreController = isaacIgnoreController as any
+		// We also need to mock the validator's checkIsaacIgnorePath if it uses it
+		sandbox.stub(validator, "checkIsaacIgnorePath").callsFake((p: string) => {
 			if (!p.includes("blocked")) {
 				return { ok: true }
-			} else {
-				return { ok: false, error: "diracignore" }
 			}
+			return { ok: false, error: "isaacignore" }
 		})
 
 		// Accumulate failures first
@@ -306,7 +305,6 @@ describe("ListFilesToolHandler.execute – error recovery", () => {
 		assert.ok((result as string).includes("file.txt"))
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
-
 })
 
 // ─── SearchFilesToolHandler ─────────────────────────────────────────────────
@@ -316,7 +314,7 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-search-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-search-test-"))
 		sandbox.stub(pathUtils, "isLocatedInWorkspace").resolves(true)
 		AnchorStateManager.reset("ulid-1")
 	})
@@ -339,7 +337,7 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		if (filePattern !== undefined) params.file_pattern = filePattern
 		return {
 			type: "tool_use" as const,
-			name: DiracDefaultTool.SEARCH,
+			name: IsaacDefaultTool.SEARCH,
 			params,
 			partial: false,
 		}
@@ -492,7 +490,6 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		assert.equal(taskState.consecutiveMistakeCount, 0)
 	})
 
-
 	it("resets consecutiveMistakeCount if at least one path succeeds in a multi-path call", async () => {
 		const { config, taskState, validator } = createConfig()
 		const handler = new SearchFilesToolHandler(validator)
@@ -524,7 +521,7 @@ describe("SearchFilesToolHandler.execute – error recovery", () => {
 		// Pass array to 'path' instead of 'paths'
 		const block = {
 			type: "tool_use" as const,
-			name: DiracDefaultTool.SEARCH,
+			name: IsaacDefaultTool.SEARCH,
 			params: {
 				path: ["src/transformers/pipelines"],
 				regex: "class.*Pipeline",

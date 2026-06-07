@@ -10,6 +10,7 @@ import type { ApiProvider, ModelInfo } from "@shared/api"
 import type { ChatContent } from "@shared/ChatContent"
 import type { ExtensionState, Platform } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
+import { ShowMessageType } from "@shared/proto/host/window"
 import { type Settings } from "@shared/storage/state-keys"
 import type { Mode } from "@shared/storage/types"
 import type { TelemetrySetting } from "@shared/TelemetrySetting"
@@ -19,33 +20,32 @@ import fs from "fs/promises"
 import open from "open"
 import pWaitFor from "p-wait-for"
 import * as path from "path"
-import { DiracEnv } from "@/config"
+import { IsaacEnv } from "@/config"
 import type { FolderLockWithRetryResult } from "@/core/locks/types"
 import { HostProvider } from "@/hosts/host-provider"
+import { githubCopilotAuthManager } from "@/integrations/github-copilot/auth"
 import { ExtensionRegistryInfo } from "@/registry"
 import { BannerService } from "@/services/banner/BannerService"
 import { featureFlagsService } from "@/services/feature-flags"
 import { getDistinctId } from "@/services/logging/distinctId"
 import { telemetryService } from "@/services/telemetry"
-import { DiracExtensionContext } from "@/shared/dirac"
+import { IsaacExtensionContext } from "@/shared/isaac"
 import { getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
 import { Session } from "@/shared/services/Session"
+import { SkillMetadata } from "@/shared/skills"
 import { getLatestAnnouncementId } from "@/utils/announcements"
-import { ShowMessageType } from "@shared/proto/host/window"
 import { getCwd, getDesktopDir } from "@/utils/path"
+import { getOrDiscoverSkills } from "../context/instructions/user-instructions/skills"
 import { PromptRegistry } from "../prompts/system-prompt"
 import { ensureCacheDirectoryExists, GlobalFileNames } from "../storage/disk"
 import { type PersistenceErrorEvent, StateManager } from "../storage/StateManager"
 import { Task } from "../task"
-import { getOrDiscoverSkills } from "../context/instructions/user-instructions/skills"
-import { getDiracOnboardingModels } from "./models/getDiracOnboardingModels"
-import { appendDiracStealthModels } from "./models/refreshOpenRouterModels"
+import { getIsaacOnboardingModels } from "./models/getIsaacOnboardingModels"
+import { appendIsaacStealthModels } from "./models/refreshOpenRouterModels"
 import { checkCliInstallation } from "./state/checkCliInstallation"
 import { sendStateUpdate } from "./state/subscribeToState"
-import { githubCopilotAuthManager } from "@/integrations/github-copilot/auth"
 import { sendChatButtonClickedEvent } from "./ui/subscribeToChatButtonClicked"
-import { SkillMetadata } from "@/shared/skills"
 
 export class Controller {
 	public discoveredSkillsCache?: SkillMetadata[]
@@ -82,7 +82,7 @@ export class Controller {
 		return this.workspaceManager
 	}
 
-	constructor(readonly context: DiracExtensionContext) {
+	constructor(readonly context: IsaacExtensionContext) {
 		Session.reset() // Reset session on controller initialization
 		PromptRegistry.getInstance() // Ensure prompts and tools are registered
 		this.stateManager = StateManager.get()
@@ -112,7 +112,7 @@ export class Controller {
 			this.postStateToWebview()
 		})
 
-		Logger.log("[Controller] DiracProvider instantiated")
+		Logger.log("[Controller] IsaacProvider instantiated")
 	}
 
 	/*
@@ -367,7 +367,7 @@ export class Controller {
 			})
 
 			if (this.task) {
-				// 'abandoned' will prevent this dirac instance from affecting future dirac instance gui. this may happen if its hanging on a streaming request
+				// 'abandoned' will prevent this isaac instance from affecting future isaac instance gui. this may happen if its hanging on a streaming request
 				this.task.taskState.abandoned = true
 			}
 
@@ -500,25 +500,6 @@ export class Controller {
 		}
 	}
 
-	// Requesty
-
-	async handleRequestyCallback(code: string) {
-		const requesty: ApiProvider = "requesty"
-		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-		const currentApiConfiguration = this.stateManager.getApiConfiguration()
-		const updatedConfig = {
-			...currentApiConfiguration,
-			planModeApiProvider: requesty,
-			actModeApiProvider: requesty,
-			requestyApiKey: code,
-		}
-		this.stateManager.setApiConfiguration(updatedConfig)
-		await this.postStateToWebview()
-		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-		}
-	}
-
 	// Read OpenRouter models from disk cache
 	async readOpenRouterModels(): Promise<Record<string, ModelInfo> | undefined> {
 		const openRouterModelsFilePath = path.join(await ensureCacheDirectoryExists(), GlobalFileNames.openRouterModels)
@@ -527,7 +508,7 @@ export class Controller {
 				const fileContents = await fs.readFile(openRouterModelsFilePath, "utf8")
 				const models = JSON.parse(fileContents)
 				// Append stealth models
-				return appendDiracStealthModels(models)
+				return appendIsaacStealthModels(models)
 			}
 		} catch (error) {
 			Logger.error("Error reading cached OpenRouter models:", error)
@@ -599,7 +580,7 @@ export class Controller {
 
 	async getStateToPostToWebview(): Promise<ExtensionState> {
 		// Get API configuration from cache for immediate access
-		const onboardingModels = getDiracOnboardingModels()
+		const onboardingModels = getIsaacOnboardingModels()
 		const apiConfiguration = this.stateManager.getApiConfiguration()
 		const lastShownAnnouncementId = this.stateManager.getGlobalStateKey("lastShownAnnouncementId")
 		const taskHistory = this.stateManager.getGlobalStateKey("taskHistory")
@@ -615,7 +596,7 @@ export class Controller {
 		const telemetrySetting = this.stateManager.getGlobalSettingsKey("telemetrySetting")
 		const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
 		const enableCheckpointsSetting = this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
-		const globalDiracRulesToggles = this.stateManager.getGlobalSettingsKey("globalDiracRulesToggles")
+		const globalIsaacRulesToggles = this.stateManager.getGlobalSettingsKey("globalIsaacRulesToggles")
 		const globalWorkflowToggles = this.stateManager.getGlobalSettingsKey("globalWorkflowToggles")
 		const globalSkillsToggles = this.stateManager.getGlobalSettingsKey("globalSkillsToggles")
 		const localSkillsToggles = this.stateManager.getWorkspaceStateKey("localSkillsToggles")
@@ -639,7 +620,7 @@ export class Controller {
 		const dismissedBanners = this.stateManager.getGlobalStateKey("dismissedBanners")
 		const doubleCheckCompletionEnabled = this.stateManager.getGlobalSettingsKey("doubleCheckCompletionEnabled")
 
-		const localDiracRulesToggles = this.stateManager.getWorkspaceStateKey("localDiracRulesToggles")
+		const localIsaacRulesToggles = this.stateManager.getWorkspaceStateKey("localIsaacRulesToggles")
 		const localWindsurfRulesToggles = this.stateManager.getWorkspaceStateKey("localWindsurfRulesToggles")
 		const localCursorRulesToggles = this.stateManager.getWorkspaceStateKey("localCursorRulesToggles")
 		const localAgentsRulesToggles = this.stateManager.getWorkspaceStateKey("localAgentsRulesToggles")
@@ -656,7 +637,7 @@ export class Controller {
 		const primaryRootPath = this.workspaceManager?.getPrimaryRoot()?.path
 		const currentTaskItem = this.task?.taskId ? (taskHistory || []).find((item) => item.id === this.task?.taskId) : undefined
 		// Spread to create new array reference - React needs this to detect changes in useEffect dependencies
-		const diracMessages = [...(this.task?.messageStateHandler.getDiracMessages() || [])]
+		const isaacMessages = [...(this.task?.messageStateHandler.getIsaacMessages() || [])]
 		const checkpointManagerErrorMessage = this.task?.taskState.checkpointManagerErrorMessage
 
 		const processedTaskHistory = (taskHistory || [])
@@ -673,8 +654,8 @@ export class Controller {
 		const platform = process.platform as Platform
 		const distinctId = getDistinctId()
 		const version = ExtensionRegistryInfo.version
-		const diracConfig = DiracEnv.config()
-		const environment = diracConfig.environment
+		const isaacConfig = IsaacEnv.config()
+		const environment = isaacConfig.environment
 		const banners = BannerService.get().getActiveBanners() ?? []
 		const welcomeBanners = BannerService.get().getWelcomeBanners() ?? []
 
@@ -692,7 +673,7 @@ export class Controller {
 			version,
 			apiConfiguration,
 			currentTaskItem,
-			diracMessages,
+			isaacMessages,
 			checkpointManagerErrorMessage,
 			autoApprovalSettings,
 			browserSettings,
@@ -709,8 +690,8 @@ export class Controller {
 			platform,
 			environment,
 			distinctId,
-			globalDiracRulesToggles: globalDiracRulesToggles || {},
-			localDiracRulesToggles: localDiracRulesToggles || {},
+			globalIsaacRulesToggles: globalIsaacRulesToggles || {},
+			localIsaacRulesToggles: localIsaacRulesToggles || {},
 			localWindsurfRulesToggles: localWindsurfRulesToggles || {},
 			localCursorRulesToggles: localCursorRulesToggles || {},
 			localAgentsRulesToggles: localAgentsRulesToggles || {},
@@ -743,8 +724,8 @@ export class Controller {
 				user: this.stateManager.getGlobalStateKey("multiRootEnabled"),
 				featureFlag: true, // Multi-root workspace is now always enabled
 			},
-			diracWebToolsEnabled: {
-				user: this.stateManager.getGlobalSettingsKey("diracWebToolsEnabled"),
+			isaacWebToolsEnabled: {
+				user: this.stateManager.getGlobalSettingsKey("isaacWebToolsEnabled"),
 				featureFlag: featureFlagsService.getWebtoolsEnabled(),
 			},
 			worktreesEnabled: {

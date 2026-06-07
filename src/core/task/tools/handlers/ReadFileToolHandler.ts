@@ -2,14 +2,16 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { read_file } from "@core/prompts/system-prompt/tools/read_file"
 import { resolveWorkspacePath } from "@core/workspace"
 import { extractFileContent } from "@integrations/misc/extract-file-content"
 import { contentHash, hashLines, stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { telemetryService } from "@/services/telemetry"
-import { DiracSayTool } from "@/shared/ExtensionMessage"
-import { DiracStorageMessage } from "@/shared/messages"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacSayTool } from "@/shared/ExtensionMessage"
+import { IsaacStorageMessage } from "@/shared/messages"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -39,7 +41,7 @@ function resolveMaxFileReadSize(config: TaskConfig): number {
 }
 
 export class ReadFileToolHandler implements IFullyManagedTool {
-	readonly name = DiracDefaultTool.FILE_READ
+	readonly name = IsaacDefaultTool.FILE_READ
 
 	constructor(private validator: ToolValidator) {}
 
@@ -86,14 +88,18 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 		}
 	}
 
-	private extractLastKnownHashFromHistory(history: DiracStorageMessage[], targetPath: string): string | undefined {
+	private extractLastKnownHashFromHistory(history: IsaacStorageMessage[], targetPath: string): string | undefined {
 		return extractLastKnownHashFromHistory(history, targetPath, this.name)
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = coerceToStringArray(block.params.paths)
-		const startLineNum = block.params.start_line ? Number.parseInt(String(block.params.start_line)) : undefined
-		const endLineNum = block.params.end_line ? Number.parseInt(String(block.params.end_line)) : undefined
+		// Lot E: read scalar pagination params through the typed contract derived
+		// from the spec. Renaming `start_line`/`end_line` in the spec breaks these.
+		const startLineRaw = readParam(read_file_unit, block.params, "start_line")
+		const endLineRaw = readParam(read_file_unit, block.params, "end_line")
+		const startLineNum = startLineRaw ? Number.parseInt(String(startLineRaw)) : undefined
+		const endLineNum = endLineRaw ? Number.parseInt(String(endLineRaw)) : undefined
 		const rawOffset = (block.params as any).offset
 		const rawLimit = (block.params as any).limit
 		const offsetNum = rawOffset !== undefined && rawOffset !== "" ? Number.parseInt(String(rawOffset)) : undefined
@@ -118,7 +124,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 					status: "error" as const,
 					label: "Invalid parameters",
 				})),
-			} satisfies DiracSayTool
+			} satisfies IsaacSayTool
 			await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
 			await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 			await config.callbacks.say("tool", JSON.stringify(sharedMessageProps), undefined, undefined, false)
@@ -156,7 +162,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 					status: "error" as const,
 					label: "Invalid line numbers",
 				})),
-			} satisfies DiracSayTool
+			} satisfies IsaacSayTool
 			const completeMessage = JSON.stringify(sharedMessageProps)
 
 			await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
@@ -166,7 +172,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 			return formatResponse.toolError(error)
 		}
 
-		// Ensure apiConversationHistory is passed into TaskConfig from the main Dirac instance
+		// Ensure apiConversationHistory is passed into TaskConfig from the main Isaac instance
 		const history = config.messageState.getApiConversationHistory() || []
 
 		// Extract provider information for telemetry
@@ -199,17 +205,17 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 			const header = relPaths.length > 1 ? `--- ${relPath} ---\n` : ""
 
 			try {
-				// 1. Check diracignore access
-				const accessValidation = this.validator.checkDiracIgnorePath(relPath)
+				// 1. Check isaacignore access
+				const accessValidation = this.validator.checkIsaacIgnorePath(relPath)
 				if (!accessValidation.ok) {
 					if (!config.isSubagentExecution) {
-						await config.callbacks.say("diracignore_error", relPath)
+						await config.callbacks.say("isaacignore_error", relPath)
 					}
-					results.push(`${header}${formatResponse.diracIgnoreError(relPath)}`)
+					results.push(`${header}${formatResponse.isaacIgnoreError(relPath)}`)
 					readFileResults.push({
 						path: relPath,
 						status: "error",
-						label: "Diracignore prevented file read",
+						label: "Isaacignore prevented file read",
 					})
 					anyFailed = true
 
@@ -347,7 +353,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 				...r,
 				path: getReadablePath(config.cwd, r.path),
 			})),
-		} satisfies DiracSayTool
+		} satisfies IsaacSayTool
 
 		const completeMessage = JSON.stringify(sharedMessageProps)
 
@@ -378,7 +384,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 		} else {
 			// Manual approval flow
 			const range = startLineNum || endLineNum ? ` lines ${startLineNum || 1}-${endLineNum || "?"}` : ""
-			const notificationMessage = `Dirac wants to read ${relPaths.length} file(s)${range}`
+			const notificationMessage = `Isaac wants to read ${relPaths.length} file(s)${range}`
 			showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 
 			await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
@@ -434,3 +440,16 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 		return finalResult
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `read_file`. Co-locates the prompt spec with the
+ * handler factory and the read-only flag, exposing the drift-detecting typed
+ * link between spec params and the handler. Coexists with the legacy
+ * init.ts / ToolExecutorCoordinator registration paths (no cutover yet).
+ */
+export const read_file_unit = defineTool({
+	id: IsaacDefaultTool.FILE_READ,
+	spec: read_file,
+	readonly: true,
+	createHandler: (validator: unknown) => new ReadFileToolHandler(validator as ToolValidator),
+})

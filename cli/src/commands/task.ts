@@ -1,11 +1,11 @@
 import { exit } from "node:process"
+import { initializeCli } from "../init"
 import type { CliContext, TaskOptions } from "../types"
-import { setIsPlainTextMode } from "../utils/state"
-import { disposeCliContext, drainStdout, createInkCleanup } from "../utils/cleanup"
+import { createInkCleanup, disposeCliContext, drainStdout } from "../utils/cleanup"
+import { runInkApp } from "../utils/ink"
 import { getPlainTextModeReason, shouldUsePlainTextMode } from "../utils/mode"
 import { applyTaskOptions } from "../utils/options"
-import { initializeCli } from "../init"
-import { runInkApp } from "../utils/ink"
+import { setIsPlainTextMode } from "../utils/state"
 
 /**
  * Run a task in plain text mode (no Ink UI).
@@ -32,7 +32,7 @@ export async function runTaskInPlainTextMode(
 	// In plain text mode we can't show the interactive auth flow
 	const hasAuth = await isAuthConfigured()
 	if (!hasAuth) {
-		// ailiance-agent fork: rebrand 'dirac auth' -> 'isaac auth'
+		// ailiance-agent fork: rebrand 'isaac auth' -> 'isaac auth'
 		printWarning("Not authenticated. Please run 'isaac auth' first to configure your API credentials.")
 		await disposeCliContext(ctx)
 		exit(1)
@@ -78,24 +78,20 @@ function isTrivialGreeting(prompt: string): boolean {
 	return false
 }
 
-export async function runTask(
-	prompt: string,
-	options: TaskOptions & { images?: string[] },
-	existingContext?: CliContext,
-) {
+export async function runTask(prompt: string, options: TaskOptions & { images?: string[] }, existingContext?: CliContext) {
 	// ailiance-agent fork: short-circuit greetings before spinning up the full agent.
 	if (isTrivialGreeting(prompt)) {
 		// Use process.stdout directly — Ink isn't mounted yet.
 		process.stdout.write(
 			"\n👋 Hi! ISAAC is a coding agent — give it a task with a goal.\n" +
-			"   Examples:\n" +
-			"     isaac t -y \"create hello.py with print('hi')\"\n" +
-			"     isaac t -y \"fix the failing test in tests/foo.py\"\n" +
-			"     isaac t -y --model ailiance-qwen \"add a /healthz endpoint to api.py\"\n\n" +
-			"   For chat-style replies, hit the gateway directly:\n" +
-			"     curl http://100.78.191.52:9300/v1/chat/completions \\\n" +
-			"       -H 'Content-Type: application/json' \\\n" +
-			"       -d '{\"model\":\"ailiance-eurollm\",\"messages\":[{\"role\":\"user\",\"content\":\"...\"}]}'\n\n",
+				"   Examples:\n" +
+				"     isaac t -y \"create hello.py with print('hi')\"\n" +
+				'     isaac t -y "fix the failing test in tests/foo.py"\n' +
+				'     isaac t -y --model ailiance-qwen "add a /healthz endpoint to api.py"\n\n' +
+				"   For chat-style replies, hit the gateway directly:\n" +
+				"     curl http://100.78.191.52:9300/v1/chat/completions \\\n" +
+				"       -H 'Content-Type: application/json' \\\n" +
+				'       -d \'{"model":"ailiance-eurollm","messages":[{"role":"user","content":"..."}]}\'\n\n',
 		)
 		exit(0)
 	}
@@ -141,8 +137,8 @@ export async function runTask(
 	}
 
 	// Interactive mode: Render the welcome view with optional initial prompt/images
-	// If prompt provided (dirac task "prompt"), ChatView will auto-submit
-	// If no prompt (dirac interactive), user will type it in
+	// If prompt provided (isaac task "prompt"), ChatView will auto-submit
+	// If no prompt (isaac interactive), user will type it in
 	let taskError = false
 
 	await runInkApp(

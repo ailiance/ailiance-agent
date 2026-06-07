@@ -4,19 +4,21 @@ import { ASTAnchorBridge } from "@utils/ASTAnchorBridge"
 import { stripHashes } from "@utils/line-hashing"
 import { getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool } from "@/core/prompts/system-prompt/tool-unit"
+import { get_file_skeleton } from "@/core/prompts/system-prompt/tools/get_file_skeleton"
 import { telemetryService } from "@/services/telemetry"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
-import { ToolResultUtils } from "../utils/ToolResultUtils"
 import { coerceFirstStringArray } from "../utils/coerceArray"
+import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 export class GetFileSkeletonToolHandler implements IFullyManagedTool {
-	readonly name = DiracDefaultTool.GET_FILE_SKELETON
+	readonly name = IsaacDefaultTool.GET_FILE_SKELETON
 
 	constructor(private validator: ToolValidator) {}
 
@@ -77,7 +79,7 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 					try {
 						return await ASTAnchorBridge.getFileSkeleton(
 							absPath,
-							config.services.diracIgnoreController,
+							config.services.isaacIgnoreController,
 							config.ulid,
 							{ showCallGraph: true },
 						)
@@ -98,7 +100,9 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			return formatResponse.toolError(`Error extracting skeleton: ${errorMessage}`)
 		}
-		const result = skeletons.map((s) => `--- ${s.path} ---\nStable Anchors are provided with each line.\n ${s.content}`).join("\n\n")
+		const result = skeletons
+			.map((s) => `--- ${s.path} ---\nStable Anchors are provided with each line.\n ${s.content}`)
+			.join("\n\n")
 
 		if (
 			skeletons.some(
@@ -144,7 +148,7 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 				block.isNativeToolCall,
 			)
 		} else {
-			const notificationMessage = `Dirac wants to extract file skeleton from ${relPaths.length} file(s)`
+			const notificationMessage = `Isaac wants to extract file skeleton from ${relPaths.length} file(s)`
 			showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 
 			await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
@@ -179,3 +183,17 @@ export class GetFileSkeletonToolHandler implements IFullyManagedTool {
 		return result
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `get_file_skeleton`. Co-locates the prompt spec
+ * with the handler factory and the read-only flag, exposing the drift-detecting
+ * typed link between spec params and the handler. This tool only has the `paths`
+ * array param (read via `coerceFirstStringArray`); no scalar `readParam` call
+ * applies. Coexists with the legacy registration paths (no cutover yet).
+ */
+export const get_file_skeleton_unit = defineTool({
+	id: IsaacDefaultTool.GET_FILE_SKELETON,
+	spec: get_file_skeleton,
+	readonly: true,
+	createHandler: (validator: unknown) => new GetFileSkeletonToolHandler(validator as ToolValidator),
+})

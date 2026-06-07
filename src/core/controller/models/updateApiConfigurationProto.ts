@@ -1,5 +1,5 @@
-import { Empty } from "@shared/proto/dirac/common"
-import { UpdateApiConfigurationRequest } from "@shared/proto/dirac/models"
+import { Empty } from "@shared/proto/isaac/common"
+import { UpdateApiConfigurationRequest } from "@shared/proto/isaac/models"
 import { convertProtoToApiProvider } from "@shared/proto-conversions/models/api-configuration-conversion"
 import {
 	fromProtobufLiteLLMModelInfo,
@@ -46,8 +46,8 @@ export async function updateApiConfigurationProto(
 			planModeOpenRouterModelInfo: protoApiConfiguration.planModeOpenRouterModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.planModeOpenRouterModelInfo)
 				: undefined,
-			planModeDiracModelInfo: protoApiConfiguration.planModeDiracModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.planModeDiracModelInfo)
+			planModeIsaacModelInfo: protoApiConfiguration.planModeIsaacModelInfo
+				? fromProtobufModelInfo(protoApiConfiguration.planModeIsaacModelInfo)
 				: undefined,
 			planModeOpenAiModelInfo: protoApiConfiguration.planModeOpenAiModelInfo
 				? fromProtobufOpenAiCompatibleModelInfo(protoApiConfiguration.planModeOpenAiModelInfo)
@@ -81,8 +81,8 @@ export async function updateApiConfigurationProto(
 			actModeOpenRouterModelInfo: protoApiConfiguration.actModeOpenRouterModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.actModeOpenRouterModelInfo)
 				: undefined,
-			actModeDiracModelInfo: protoApiConfiguration.actModeDiracModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.actModeDiracModelInfo)
+			actModeIsaacModelInfo: protoApiConfiguration.actModeIsaacModelInfo
+				? fromProtobufModelInfo(protoApiConfiguration.actModeIsaacModelInfo)
 				: undefined,
 			actModeOpenAiModelInfo: protoApiConfiguration.actModeOpenAiModelInfo
 				? fromProtobufOpenAiCompatibleModelInfo(protoApiConfiguration.actModeOpenAiModelInfo)

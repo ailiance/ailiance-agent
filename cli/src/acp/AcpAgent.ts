@@ -1,33 +1,33 @@
 /**
- * AcpAgent - Thin wrapper that bridges stdio connection to DiracAgent.
+ * AcpAgent - Thin wrapper that bridges stdio connection to IsaacAgent.
  *
- * This class wraps the DiracAgent and connects it to an ACP AgentSideConnection
+ * This class wraps the IsaacAgent and connects it to an ACP AgentSideConnection
  * for stdio-based communication. It:
  * - Wires up the permission handler to call connection.requestPermission()
- * - Subscribes to DiracAgent session events and forwards them to connection.sessionUpdate()
- * - Delegates all acp.Agent methods to the internal DiracAgent
+ * - Subscribes to IsaacAgent session events and forwards them to connection.sessionUpdate()
+ * - Delegates all acp.Agent methods to the internal IsaacAgent
  *
- * For programmatic usage without stdio, use DiracAgent directly.
+ * For programmatic usage without stdio, use IsaacAgent directly.
  *
  * @module acp
  */
 
 import type * as acp from "@agentclientprotocol/sdk"
 import { Logger } from "@/shared/services/Logger.js"
-import { DiracAgent } from "../agent/DiracAgent.js"
+import { IsaacAgent } from "../agent/IsaacAgent.js"
 import { type AcpAgentOptions, type SessionUpdateType } from "../agent/types.js"
 
 /**
- * ACP Agent wrapper that bridges stdio connection to DiracAgent.
+ * ACP Agent wrapper that bridges stdio connection to IsaacAgent.
  *
  * This is the class used by runAcpMode() for stdio-based ACP communication.
- * It creates an internal DiracAgent and wires up the connection for:
+ * It creates an internal IsaacAgent and wires up the connection for:
  * - Permission requests (via connection.requestPermission)
  * - Session updates (via connection.sessionUpdate)
  */
 export class AcpAgent implements acp.Agent {
 	private readonly connection: acp.AgentSideConnection
-	private readonly diracAgent: DiracAgent
+	private readonly isaacAgent: IsaacAgent
 
 	/** Track which sessions we've subscribed to for event forwarding */
 	private readonly subscribedSessions: Set<string> = new Set()
@@ -39,11 +39,11 @@ export class AcpAgent implements acp.Agent {
 	constructor(connection: acp.AgentSideConnection, options: AcpAgentOptions) {
 		this.connection = connection
 
-		// Create the internal DiracAgent
-		this.diracAgent = new DiracAgent(options)
+		// Create the internal IsaacAgent
+		this.isaacAgent = new IsaacAgent(options)
 
 		// Wire up the permission handler to use the connection
-		this.diracAgent.setPermissionHandler(async (request) => {
+		this.isaacAgent.setPermissionHandler(async (request) => {
 			try {
 				Logger.debug("[AcpAgent] Forwarding permission request to connection")
 				return await this.connection.requestPermission({
@@ -66,7 +66,7 @@ export class AcpAgent implements acp.Agent {
 			return
 		}
 
-		const emitter = this.diracAgent.emitterForSession(sessionId)
+		const emitter = this.isaacAgent.emitterForSession(sessionId)
 
 		// Forward session update by adding the sessionUpdate discriminator
 		const forwardSessionUpdate = <K extends SessionUpdateType>(eventName: K) => {
@@ -119,7 +119,7 @@ export class AcpAgent implements acp.Agent {
 			return
 		}
 
-		const publishPromise = this.diracAgent
+		const publishPromise = this.isaacAgent
 			.publishSessionSetupUpdates(sessionId)
 			.then(() => {
 				this.initializedSessions.add(sessionId)
@@ -139,15 +139,15 @@ export class AcpAgent implements acp.Agent {
 	}
 
 	// ============================================================
-	// acp.Agent Interface Implementation - Delegate to DiracAgent
+	// acp.Agent Interface Implementation - Delegate to IsaacAgent
 	// ============================================================
 
 	async initialize(params: acp.InitializeRequest): Promise<acp.InitializeResponse> {
-		return await this.diracAgent.initialize(params, this.connection)
+		return await this.isaacAgent.initialize(params, this.connection)
 	}
 
 	async newSession(params: acp.NewSessionRequest): Promise<acp.NewSessionResponse> {
-		const response = await this.diracAgent.newSession(params)
+		const response = await this.isaacAgent.newSession(params)
 		// Subscribe to events for this new session
 		this.subscribeToSessionEvents(response.sessionId)
 		this.scheduleSessionSetupUpdates(response.sessionId)
@@ -155,7 +155,7 @@ export class AcpAgent implements acp.Agent {
 	}
 
 	async loadSession(params: acp.LoadSessionRequest): Promise<acp.LoadSessionResponse> {
-		const response = await this.diracAgent.loadSession(params)
+		const response = await this.isaacAgent.loadSession(params)
 		this.subscribeToSessionEvents(params.sessionId)
 		this.scheduleSessionSetupUpdates(params.sessionId)
 		return response
@@ -165,35 +165,35 @@ export class AcpAgent implements acp.Agent {
 		// Ensure we're subscribed to this session's events
 		this.subscribeToSessionEvents(params.sessionId)
 		await this.ensureSessionSetupUpdates(params.sessionId)
-		return this.diracAgent.prompt(params)
+		return this.isaacAgent.prompt(params)
 	}
 
 	async cancel(params: acp.CancelNotification): Promise<void> {
-		return this.diracAgent.cancel(params)
+		return this.isaacAgent.cancel(params)
 	}
 
 	async setSessionMode(params: acp.SetSessionModeRequest): Promise<acp.SetSessionModeResponse> {
-		return this.diracAgent.setSessionMode(params)
+		return this.isaacAgent.setSessionMode(params)
 	}
 
 	async unstable_setSessionModel(params: acp.SetSessionModelRequest): Promise<acp.SetSessionModelResponse> {
-		return this.diracAgent.unstable_setSessionModel(params)
+		return this.isaacAgent.unstable_setSessionModel(params)
 	}
 
 	async unstable_setSessionConfigOption(
 		params: acp.SetSessionConfigOptionRequest,
 	): Promise<acp.SetSessionConfigOptionResponse> {
-		return this.diracAgent.unstable_setSessionConfigOption(params)
+		return this.isaacAgent.unstable_setSessionConfigOption(params)
 	}
 
 	async authenticate(params: acp.AuthenticateRequest): Promise<acp.AuthenticateResponse> {
-		return this.diracAgent.authenticate(params)
+		return this.isaacAgent.authenticate(params)
 	}
 
 	async shutdown(): Promise<void> {
 		this.subscribedSessions.clear()
 		this.initializedSessions.clear()
 		this.sessionInitializationPromises.clear()
-		return this.diracAgent.shutdown()
+		return this.isaacAgent.shutdown()
 	}
 }

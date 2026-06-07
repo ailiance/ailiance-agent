@@ -2,13 +2,11 @@
 //
 // When no provider is configured (no API key env vars, no persisted
 // auth state), default to the ailiance gateway via the OpenAI-compatible
-// code path. The user can override by setting AILIANCE_GATEWAY=<url>
-// (AGENT_KIKI_GATEWAY remains supported as deprecated alias) or by
+// code path. The user can override by setting AILIANCE_GATEWAY=<url> or by
 // configuring any of the standard upstream provider env vars.
 //
 // Behaviour matrix:
 //   - AILIANCE_GATEWAY=<url> set      -> session override with that url
-//   - AGENT_KIKI_GATEWAY=<url> set    -> session override (deprecated)
 //   - upstream provider env present   -> skip (env-config wins)
 //   - persisted welcomeViewCompleted  -> skip (user already onboarded)
 //   - otherwise                       -> persist ailiance defaults so
@@ -28,7 +26,7 @@ import type { StateManager } from "@/core/storage/StateManager"
 // The /v1 suffix is REQUIRED: the OpenAI-compatible SDK appends
 // /chat/completions to the configured baseUrl, and the gateway only
 // matches the OpenAI route prefix /v1/*. Without it, every request
-// 404s. resolveEuKikiGatewayUrl normalises trailing slashes and the
+// 404s. resolveAilianceGatewayUrl normalises trailing slashes and the
 // /chat/completions suffix when present in the override URL.
 export const AILIANCE_DEFAULT_GATEWAY = "https://gateway.ailiance.fr/v1"
 export const AILIANCE_DEFAULT_MODEL = "ailiance"
@@ -47,7 +45,7 @@ export const AILIANCE_DEFAULT_MODEL = "ailiance"
  */
 export const AILIANCE_DEFAULT_API_KEY = "unused"
 
-export type EuKikiDefaultReason =
+export type AilianceDefaultReason =
 	| "env-provider-already-set"
 	| "auth-already-configured"
 	| "applied-from-env"
@@ -81,20 +79,20 @@ export function needsStaleDefaultMigration(url: string): boolean {
 	return false
 }
 
-export interface EuKikiDefaultDecision {
+export interface AilianceDefaultDecision {
 	applied: boolean
-	reason: EuKikiDefaultReason
+	reason: AilianceDefaultReason
 	gatewayUrl?: string
 }
 
 /**
- * Derive the ailiance gateway URL from env (AILIANCE_GATEWAY, or the
- * deprecated AGENT_KIKI_GATEWAY alias) or the built-in default.
+ * Derive the ailiance gateway URL from env (AILIANCE_GATEWAY) or the
+ * built-in default.
  * Trailing slashes and `/chat/completions` suffix are stripped to
  * mirror provider-config normalisation.
  */
-export function resolveEuKikiGatewayUrl(env: NodeJS.ProcessEnv = process.env): string {
-	const raw = (env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
+export function resolveAilianceGatewayUrl(env: NodeJS.ProcessEnv = process.env): string {
+	const raw = (env.AILIANCE_GATEWAY || AILIANCE_DEFAULT_GATEWAY).trim()
 	let url = raw.replace(/\/chat\/completions\/?$/, "")
 	url = url.replace(/\/+$/, "")
 	return url
@@ -102,10 +100,10 @@ export function resolveEuKikiGatewayUrl(env: NodeJS.ProcessEnv = process.env): s
 
 /**
  * Returns true when at least one upstream provider env var is present.
- * AILIANCE_GATEWAY / AGENT_KIKI_GATEWAY are intentionally excluded —
- * they are our opt-in, not competing providers.
+ * AILIANCE_GATEWAY is intentionally excluded —
+ * it is our opt-in, not a competing provider.
  */
-export function hasNonEuKikiProviderEnv(env: NodeJS.ProcessEnv = process.env): boolean {
+export function hasNonAilianceProviderEnv(env: NodeJS.ProcessEnv = process.env): boolean {
 	const sentinels = [
 		"ANTHROPIC_API_KEY",
 		"OPENAI_API_KEY",
@@ -147,24 +145,21 @@ interface ApplyOptions {
  * Returns a decision object so callers can log what happened.
  *
  * Precedence:
- *   1. Any non-kiki upstream provider env var -> skip.
- *   2. AGENT_KIKI_GATEWAY env var present     -> session override
+ *   1. Any non-ailiance upstream provider env var -> skip.
+ *   2. AILIANCE_GATEWAY env var present       -> session override
  *      (does NOT persist; respects per-run overrides).
  *   3. welcomeViewCompleted=true && persisted provider already set -> skip.
  *   4. Otherwise -> persist ailiance defaults + mark welcomeViewCompleted.
  */
-export function applyEuKikiDefault(
-	stateManager: StateManager,
-	options: ApplyOptions = {},
-): EuKikiDefaultDecision {
+export function applyAilianceDefault(stateManager: StateManager, options: ApplyOptions = {}): AilianceDefaultDecision {
 	const env = options.env ?? process.env
 
-	if (hasNonEuKikiProviderEnv(env)) {
+	if (hasNonAilianceProviderEnv(env)) {
 		return { applied: false, reason: "env-provider-already-set" }
 	}
 
-	const gatewayUrl = resolveEuKikiGatewayUrl(env)
-	const explicitOverride = !!(env.AILIANCE_GATEWAY || env.AGENT_KIKI_GATEWAY)
+	const gatewayUrl = resolveAilianceGatewayUrl(env)
+	const explicitOverride = !!env.AILIANCE_GATEWAY
 
 	if (explicitOverride) {
 		// In-memory override only; do not pollute persisted config so the
@@ -201,7 +196,7 @@ export function applyEuKikiDefault(
 			return { applied: true, reason: "migrated-stale-default", gatewayUrl }
 		}
 		// v0.8.2 retrofit: enable useAutoCondense for already-onboarded
-		// users whose persisted setting is still the upstream Dirac
+		// users whose persisted setting is still the upstream Isaac
 		// default (undefined/false). The intelligent summary-at-75% beats
 		// the truncate-at-80% path decisively on long tasks; this opt-in-
 		// on-upgrade keeps existing user state intact while still
@@ -221,7 +216,7 @@ export function applyEuKikiDefault(
 	stateManager.setGlobalState("openAiBaseUrl", gatewayUrl)
 	stateManager.setSecret("openAiApiKey", AILIANCE_DEFAULT_API_KEY)
 	stateManager.setSecret("openAiCompatibleCustomApiKey", AILIANCE_DEFAULT_API_KEY)
-	// useAutoCondense ON by default. Upstream Dirac ships this as `false`
+	// useAutoCondense ON by default. Upstream Isaac ships this as `false`
 	// which means the agent only truncates conversation history at 80% of
 	// the context window (maxAllowedSize), then brute-forces a half/quarter
 	// removal of intermediate turns. The auto-condense path instead invokes

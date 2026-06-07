@@ -1,24 +1,14 @@
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
+import { liteLlmModelInfoSaneDefaults, openRouterDefaultModelId, openRouterDefaultModelInfo } from "@shared/api"
 import { DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
 import { Environment } from "@shared/config-types"
-import type { DiracMessage, ExtensionState } from "@shared/ExtensionMessage"
-import { SkillMetadata } from "@shared/skills"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
 import { DEFAULT_PLATFORM } from "@shared/ExtensionMessage"
-import {
-	basetenDefaultModelId,
-	basetenModels,
-	groqDefaultModelId,
-	groqModels,
-	openRouterDefaultModelId,
-	openRouterDefaultModelInfo,
-	requestyDefaultModelId,
-	requestyDefaultModelInfo,
-	liteLlmModelInfoSaneDefaults,
-} from "@shared/api"
+import { EmptyRequest } from "@shared/proto/isaac/common"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
-import { EmptyRequest } from "@shared/proto/dirac/common"
-import { ModelsServiceClient } from "@/shared/api/grpc-client"
+import { SkillMetadata } from "@shared/skills"
 import { create } from "zustand"
+import { ModelsServiceClient } from "@/shared/api/grpc-client"
 
 interface SettingsState {
 	version: string
@@ -26,8 +16,8 @@ interface SettingsState {
 	navigateToAccount: () => void
 	setShowWelcome: (show: boolean) => void
 	availableTerminalProfiles: any[]
-	diracModels: any
-	refreshDiracModels: () => void
+	isaacModels: any
+	refreshIsaacModels: () => void
 	openRouterModels: any
 	refreshOpenRouterModels: () => void
 	refreshBasetenModels: () => void
@@ -71,7 +61,7 @@ interface SettingsState {
 	customPrompt?: string
 	useAutoCondense: boolean
 	subagentsEnabled: boolean
-	diracWebToolsEnabled: { user: boolean; featureFlag: boolean }
+	isaacWebToolsEnabled: { user: boolean; featureFlag: boolean }
 	worktreesEnabled: { user: boolean; featureFlag: boolean }
 	favoritedModelIds: string[]
 	lastDismissedInfoBannerVersion: number
@@ -85,8 +75,8 @@ interface SettingsState {
 	doubleCheckCompletionEnabled: boolean
 
 	// Toggles
-	globalDiracRulesToggles: Record<string, boolean>
-	localDiracRulesToggles: Record<string, boolean>
+	globalIsaacRulesToggles: Record<string, boolean>
+	localIsaacRulesToggles: Record<string, boolean>
 	localCursorRulesToggles: Record<string, boolean>
 	localWindsurfRulesToggles: Record<string, boolean>
 	localAgentsRulesToggles: Record<string, boolean>
@@ -110,7 +100,7 @@ interface SettingsState {
 	writePromptMetadataDirectory?: string
 
 	// Chat & History (Moved from other stores)
-	diracMessages: DiracMessage[]
+	isaacMessages: IsaacMessage[]
 	taskHistory: any[]
 	currentTaskItem?: any
 	checkpointManagerErrorMessage?: string
@@ -130,13 +120,13 @@ interface SettingsState {
 
 	// Actions
 	setSettings: (settings: Partial<SettingsState>) => void
-	setDiracMessages: (messages: DiracMessage[]) => void
-	updatePartialMessage: (message: DiracMessage) => void
+	setIsaacMessages: (messages: IsaacMessage[]) => void
+	updatePartialMessage: (message: IsaacMessage) => void
 	setTaskHistory: (history: any[]) => void
 	setExpandTaskHeader: (expand: boolean) => void
 	setTotalTasksSize: (size: number) => void
-	setGlobalDiracRulesToggles: (toggles: Record<string, boolean>) => void
-	setLocalDiracRulesToggles: (toggles: Record<string, boolean>) => void
+	setGlobalIsaacRulesToggles: (toggles: Record<string, boolean>) => void
+	setLocalIsaacRulesToggles: (toggles: Record<string, boolean>) => void
 	setLocalCursorRulesToggles: (toggles: Record<string, boolean>) => void
 	setLocalWindsurfRulesToggles: (toggles: Record<string, boolean>) => void
 	setLocalAgentsRulesToggles: (toggles: Record<string, boolean>) => void
@@ -176,7 +166,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	customPrompt: undefined,
 	useAutoCondense: false,
 	subagentsEnabled: false,
-	diracWebToolsEnabled: { user: true, featureFlag: false },
+	isaacWebToolsEnabled: { user: true, featureFlag: false },
 	worktreesEnabled: { user: true, featureFlag: false },
 	favoritedModelIds: [],
 	lastDismissedInfoBannerVersion: 0,
@@ -189,8 +179,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	backgroundEditEnabled: false,
 	doubleCheckCompletionEnabled: false,
 
-	globalDiracRulesToggles: {},
-	localDiracRulesToggles: {},
+	globalIsaacRulesToggles: {},
+	localIsaacRulesToggles: {},
 	localCursorRulesToggles: {},
 	localWindsurfRulesToggles: {},
 	localAgentsRulesToggles: {},
@@ -217,18 +207,18 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	navigateToAccount: () => {},
 	setShowWelcome: () => {},
 	availableTerminalProfiles: [],
-	diracModels: {},
-	refreshDiracModels: async () => {
+	isaacModels: {},
+	refreshIsaacModels: async () => {
 		try {
-			const response = await ModelsServiceClient.refreshDiracModelsRpc(EmptyRequest.create())
+			const response = await ModelsServiceClient.refreshIsaacModelsRpc(EmptyRequest.create())
 			set({
-				diracModels: {
+				isaacModels: {
 					[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 					...fromProtobufModels(response.models),
 				},
 			})
 		} catch (error) {
-			console.error("Failed to refresh Dirac models:", error)
+			console.error("Failed to refresh Isaac models:", error)
 		}
 	},
 	openRouterModels: {
@@ -277,17 +267,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 			console.error("Failed to refresh LiteLLM models:", error)
 		}
 	},
-	basetenModels: {
-		...basetenModels,
-		[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
-	},
-	groqModels: {
-		[groqDefaultModelId]: groqModels[groqDefaultModelId],
-	},
+	basetenModels: {},
+	groqModels: {},
 	huggingFaceModels: {},
-	requestyModels: {
-		[requestyDefaultModelId]: requestyDefaultModelInfo,
-	},
+	requestyModels: {},
 	githubCopilotModels: {},
 	githubCopilotIsAuthenticated: false,
 	githubCopilotEmail: undefined,
@@ -295,7 +278,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	openAiCodexEmail: undefined,
 
 	triggerNativeToolCall: false,
-	diracMessages: [],
+	isaacMessages: [],
 	taskHistory: [],
 	currentTaskItem: undefined,
 	checkpointManagerErrorMessage: undefined,
@@ -310,22 +293,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 	navigateToChat: () => {},
 	navigateToWorktrees: () => {},
 	onRelinquishControl: () => () => {},
-	setDiracMessages: (messages) => set({ diracMessages: messages }),
+	setIsaacMessages: (messages) => set({ isaacMessages: messages }),
 	updatePartialMessage: (message) =>
 		set((state) => {
-			const lastIndex = state.diracMessages.findLastIndex((msg) => msg.ts === message.ts)
+			const lastIndex = state.isaacMessages.findLastIndex((msg) => msg.ts === message.ts)
 			if (lastIndex !== -1) {
-				const newMessages = [...state.diracMessages]
+				const newMessages = [...state.isaacMessages]
 				newMessages[lastIndex] = message
-				return { diracMessages: newMessages }
+				return { isaacMessages: newMessages }
 			}
 			return state
 		}),
 	setTaskHistory: (history) => set({ taskHistory: history }),
 	setExpandTaskHeader: (expand) => set({ expandTaskHeader: expand }),
 	setTotalTasksSize: (size) => set({ totalTasksSize: size }),
-	setGlobalDiracRulesToggles: (toggles) => set({ globalDiracRulesToggles: toggles }),
-	setLocalDiracRulesToggles: (toggles) => set({ localDiracRulesToggles: toggles }),
+	setGlobalIsaacRulesToggles: (toggles) => set({ globalIsaacRulesToggles: toggles }),
+	setLocalIsaacRulesToggles: (toggles) => set({ localIsaacRulesToggles: toggles }),
 	setLocalCursorRulesToggles: (toggles) => set({ localCursorRulesToggles: toggles }),
 	setLocalWindsurfRulesToggles: (toggles) => set({ localWindsurfRulesToggles: toggles }),
 	setLocalAgentsRulesToggles: (toggles) => set({ localAgentsRulesToggles: toggles }),
@@ -342,11 +325,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 		try {
 			const response = await ModelsServiceClient.refreshBasetenModelsRpc(EmptyRequest.create())
 			set({
-				basetenModels: {
-					...basetenModels,
-					[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
-					...fromProtobufModels(response.models),
-				},
+				basetenModels: fromProtobufModels(response.models),
 			})
 		} catch (error) {
 			console.error("Failed to refresh Baseten models:", error)
@@ -356,10 +335,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 		try {
 			const response = await ModelsServiceClient.refreshGroqModelsRpc(EmptyRequest.create())
 			set({
-				groqModels: {
-					[groqDefaultModelId]: groqModels[groqDefaultModelId],
-					...fromProtobufModels(response.models),
-				},
+				groqModels: fromProtobufModels(response.models),
 			})
 		} catch (error) {
 			console.error("Failed to refresh Groq models:", error)
@@ -377,10 +353,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 		try {
 			const response = await ModelsServiceClient.refreshRequestyModels(EmptyRequest.create())
 			set({
-				requestyModels: {
-					[requestyDefaultModelId]: requestyDefaultModelInfo,
-					...fromProtobufModels(response.models),
-				},
+				requestyModels: fromProtobufModels(response.models),
 			})
 		} catch (error) {
 			console.error("Failed to refresh Requesty models:", error)

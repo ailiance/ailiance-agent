@@ -1,30 +1,31 @@
-import type { DiracMessage } from "@shared/ExtensionMessage"
+import type { IsaacMessage } from "@shared/ExtensionMessage"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import ErrorRow from "./ErrorRow"
 
 // Mock the auth context
-vi.mock("@/context/DiracAuthContext", () => ({
-	useDiracAuth: () => ({
-		diracUser: null,
+vi.mock("@/context/IsaacAuthContext", () => ({
+	useIsaacAuth: () => ({
+		isaacUser: null,
 	}),
-	useDiracSignIn: () => ({
+	useIsaacSignIn: () => ({
 		isLoginLoading: false,
 	}),
 	handleSignOut: vi.fn(),
 }))
 
 // Mock CreditLimitError component
-vi.mock("@/components/chat/CreditLimitError", () => ({
+vi.mock("@/features/chat/components/CreditLimitError", () => ({
 	default: ({ message }: { message: string }) => <div data-testid="credit-limit-error">{message}</div>,
 }))
 
-// Mock DiracError
-vi.mock("../../../../src/services/error/DiracError", () => ({
-	DiracError: {
+// Mock IsaacError — ErrorRow imports it from the grpc-client barrel (which re-exports
+// the real class from the extension host), so we mock that same specifier.
+vi.mock("@/shared/api/grpc-client", () => ({
+	IsaacError: {
 		parse: vi.fn(),
 	},
-	DiracErrorType: {
+	IsaacErrorType: {
 		Balance: "balance",
 		RateLimit: "rateLimit",
 		Auth: "auth",
@@ -32,7 +33,7 @@ vi.mock("../../../../src/services/error/DiracError", () => ({
 }))
 
 describe("ErrorRow", () => {
-	const mockMessage: DiracMessage = {
+	const mockMessage: IsaacMessage = {
 		ts: 123456789,
 		type: "say",
 		say: "error",
@@ -64,17 +65,17 @@ describe("ErrorRow", () => {
 		).toBeInTheDocument()
 	})
 
-	it("renders diracignore error", () => {
-		const diracignoreMessage = { ...mockMessage, text: "/path/to/file.txt" }
-		render(<ErrorRow errorType="diracignore_error" message={diracignoreMessage} />)
+	it("renders isaacignore error", () => {
+		const isaacignoreMessage = { ...mockMessage, text: "/path/to/file.txt" }
+		render(<ErrorRow errorType="isaacignore_error" message={isaacignoreMessage} />)
 
-		expect(screen.getByText(/Dirac tried to access/)).toBeInTheDocument()
+		expect(screen.getByText(/Isaac tried to access/)).toBeInTheDocument()
 		expect(screen.getByText("/path/to/file.txt")).toBeInTheDocument()
 	})
 
 	describe("API error handling", () => {
 		it("renders credit limit error when balance error is detected", async () => {
-			const mockDiracError = {
+			const mockIsaacError = {
 				message: "Insufficient credits",
 				isErrorType: vi.fn((type) => type === "balance"),
 				_error: {
@@ -88,8 +89,8 @@ describe("ErrorRow", () => {
 				},
 			}
 
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(mockDiracError as any)
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Insufficient credits error" errorType="error" message={mockMessage} />)
 
@@ -98,7 +99,7 @@ describe("ErrorRow", () => {
 		})
 
 		it("renders rate limit error with request ID", async () => {
-			const mockDiracError = {
+			const mockIsaacError = {
 				message: "Rate limit exceeded",
 				isErrorType: vi.fn((type) => type === "rateLimit"),
 				_error: {
@@ -106,8 +107,8 @@ describe("ErrorRow", () => {
 				},
 			}
 
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(mockDiracError as any)
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Rate limit exceeded" errorType="error" message={mockMessage} />)
 
@@ -116,31 +117,31 @@ describe("ErrorRow", () => {
 		})
 
 		it("renders auth error with sign in button when user is not signed in", async () => {
-			const mockDiracError = {
+			const mockIsaacError = {
 				message: "Authentication failed",
 				isErrorType: vi.fn((type) => type === "auth"),
-				providerId: "dirac",
+				providerId: "isaac",
 				_error: {},
 			}
 
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(mockDiracError as any)
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiRequestFailedMessage="Authentication failed" errorType="error" message={mockMessage} />)
 
 			expect(screen.getByText("Authentication failed")).toBeInTheDocument()
-			expect(screen.getByText("Sign in to Dirac")).toBeInTheDocument()
+			expect(screen.getByText("Sign in to Isaac")).toBeInTheDocument()
 		})
 
 		it("renders PowerShell troubleshooting link when error mentions PowerShell", async () => {
-			const mockDiracError = {
+			const mockIsaacError = {
 				message: "PowerShell is not recognized as an internal or external command",
 				isErrorType: vi.fn(() => false),
 				_error: {},
 			}
 
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(mockDiracError as any)
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(
 				<ErrorRow
@@ -154,33 +155,33 @@ describe("ErrorRow", () => {
 			expect(screen.getByText("troubleshooting guide")).toBeInTheDocument()
 			expect(screen.getByRole("link", { name: "troubleshooting guide" })).toHaveAttribute(
 				"href",
-				"https://github.com/dirac/dirac/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
+				"https://github.com/ailiance/isaac-cli/wiki/TroubleShooting-%E2%80%90-%22PowerShell-is-not-recognized-as-an-internal-or-external-command%22",
 			)
 		})
 
 		it("handles apiReqStreamingFailedMessage instead of apiRequestFailedMessage", async () => {
-			const mockDiracError = {
+			const mockIsaacError = {
 				message: "Streaming failed",
 				isErrorType: vi.fn(() => false),
 				_error: {},
 			}
 
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(mockDiracError as any)
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(mockIsaacError as any)
 
 			render(<ErrorRow apiReqStreamingFailedMessage="Streaming failed" errorType="error" message={mockMessage} />)
 
 			expect(screen.getByText("Streaming failed")).toBeInTheDocument()
 		})
 
-		it("falls back to regular error message when DiracError.parse returns null", async () => {
-			const { DiracError } = await import("../../../../src/services/error/DiracError")
-			vi.mocked(DiracError.parse).mockReturnValue(undefined)
+		it("falls back to regular error message when IsaacError.parse returns null", async () => {
+			const { IsaacError } = await import("@/shared/api/grpc-client")
+			vi.mocked(IsaacError.parse).mockReturnValue(undefined)
 
 			render(<ErrorRow apiRequestFailedMessage="Some API error" errorType="error" message={mockMessage} />)
 
-			// When DiracError.parse returns null, we display the raw error message for non-Dirac providers
-			// Since diracError is undefined, isDiracProvider is false, so we show the raw apiRequestFailedMessage
+			// When IsaacError.parse returns null, we display the raw error message for non-Isaac providers
+			// Since isaacError is undefined, isIsaacProvider is false, so we show the raw apiRequestFailedMessage
 			expect(screen.getByText("Some API error")).toBeInTheDocument()
 		})
 

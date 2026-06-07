@@ -4,10 +4,9 @@
  */
 
 import { registerPartialMessageCallback } from "@core/controller/ui/subscribeToPartialMessage"
-import type { DiracMessage, ExtensionState } from "@shared/ExtensionMessage"
-import { convertProtoToDiracMessage } from "@shared/proto-conversions/dirac-message"
+import type { ExtensionState, IsaacMessage } from "@shared/ExtensionMessage"
+import { convertProtoToIsaacMessage } from "@shared/proto-conversions/isaac-message"
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react"
-
 
 interface TaskContextType {
 	state: Partial<ExtensionState>
@@ -30,13 +29,12 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 	const [state, setState] = useState<Partial<ExtensionState>>(
 		() =>
 			({
-				diracMessages: [],
+				isaacMessages: [],
 				currentTaskItem: null,
 			}) as unknown as Partial<ExtensionState>,
 	)
 	const [isComplete, setIsComplete] = useState(false)
 	const [lastError, setLastError] = useState<string | null>(null)
-
 
 	// Use ref to track latest state for partial message callback
 	const stateRef = useRef(state)
@@ -51,8 +49,8 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 				const newState = await controller.getStateToPostToWebview()
 				// Ignore transient empty messages state during cancel/reinit
 				// When clearTask() runs, messages briefly become [] before new task loads them
-				const hadMessages = (stateRef.current.diracMessages?.length ?? 0) > 0
-				const hasMessages = (newState.diracMessages?.length ?? 0) > 0
+				const hadMessages = (stateRef.current.isaacMessages?.length ?? 0) > 0
+				const hasMessages = (newState.isaacMessages?.length ?? 0) > 0
 				if (hadMessages && !hasMessages) {
 					return
 				}
@@ -70,15 +68,15 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 
 		// Subscribe to partial message events (for streaming updates)
 		const unsubscribePartial = registerPartialMessageCallback((protoMessage) => {
-			const updatedMessage = convertProtoToDiracMessage(protoMessage) as DiracMessage
+			const updatedMessage = convertProtoToIsaacMessage(protoMessage) as IsaacMessage
 			setState((prevState) => {
-				const messages = prevState.diracMessages || []
+				const messages = prevState.isaacMessages || []
 				// Find and update the message by timestamp
 				const index = messages.findIndex((m) => m.ts === updatedMessage.ts)
 				if (index >= 0) {
 					const newMessages = [...messages]
 					newMessages[index] = updatedMessage
-					return { ...prevState, diracMessages: newMessages }
+					return { ...prevState, isaacMessages: newMessages }
 				}
 				return prevState
 			})
@@ -97,7 +95,7 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 	// Force clear state (bypasses the empty messages check for intentional clears like /clear)
 	const clearState = () => {
 		setState({
-			diracMessages: [],
+			isaacMessages: [],
 			currentTaskItem: null,
 		} as unknown as Partial<ExtensionState>)
 	}

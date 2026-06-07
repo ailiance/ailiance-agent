@@ -187,7 +187,7 @@ export class VscodeTerminalProcess extends EventEmitter<TerminalProcessEvents> i
 				if (this.hotTimer) {
 					clearTimeout(this.hotTimer)
 				}
-				// these markers indicate the command is some kind of local dev server recompiling the app, which we want to wait for output of before sending request to dirac
+				// these markers indicate the command is some kind of local dev server recompiling the app, which we want to wait for output of before sending request to isaac
 				const isCompiling = isCompilingOutput(data)
 				this.hotTimer = setTimeout(
 					() => {

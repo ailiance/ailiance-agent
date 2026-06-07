@@ -1,7 +1,7 @@
 import { HostProvider } from "@hosts/host-provider"
 import type { BrowserSettings } from "@shared/BrowserSettings"
-import { ApiFormat, apiFormatToJSON } from "@shared/proto/dirac/models"
 import { ShowMessageType } from "@shared/proto/host/window"
+import { ApiFormat, apiFormatToJSON } from "@shared/proto/isaac/models"
 import type { TaskFeedbackType } from "@shared/WebviewMessage"
 import * as os from "os"
 import { Setting } from "@/shared/proto/index.host"
@@ -10,98 +10,35 @@ import { Mode } from "@/shared/storage/types"
 import { version as extensionVersion } from "../../../package.json"
 import type { ITelemetryProvider, TelemetryProperties } from "./providers/ITelemetryProvider"
 import { TelemetryProviderFactory } from "./TelemetryProviderFactory"
+import { TELEMETRY_EVENTS, TELEMETRY_METRICS } from "./telemetry-constants"
+import type { TelemetryCategory } from "./telemetry-types"
 
-/**
- * Represents telemetry event categories that can be individually enabled or disabled
- * When adding a new category, add it both here and to the initial values in telemetryCategoryEnabled
- * Ensure `if (!this.isCategoryEnabled('<category_name>')` is added to the capture method
- */
-type TelemetryCategory = "checkpoints" | "browser" | "subagents" | "skills" | "hooks"
+// Re-export shared telemetry types/enums so existing imports from this module
+// (and the package index.ts) keep working unchanged after extraction.
+export type {
+	StandaloneOutputMethod,
+	TelemetryMetadata,
+	TerminalOutputMethod,
+	TerminalType,
+	TokenUsage,
+	VscodeOutputMethod,
+} from "./telemetry-types"
+export { TerminalHangStage, TerminalOutputFailureReason, TerminalUserInterventionAction } from "./telemetry-types"
 
-/**
- * Terminal type for telemetry differentiation
- */
-export type TerminalType = "vscode" | "standalone"
-
-/**
- * VSCode-specific output capture methods
- */
-export type VscodeOutputMethod = "shell_integration" | "clipboard" | "none"
-
-/**
- * Standalone-specific output capture methods
- */
-export type StandaloneOutputMethod = "child_process" | "child_process_error"
-
-/**
- * Combined type for terminal output methods
- */
-export type TerminalOutputMethod = VscodeOutputMethod | StandaloneOutputMethod
-
-/**
- * Enum for terminal output failure reasons
- */
-export enum TerminalOutputFailureReason {
-	TIMEOUT = "timeout",
-	NO_SHELL_INTEGRATION = "no_shell_integration",
-	CLIPBOARD_FAILED = "clipboard_failed",
-}
-
-/**
- * Enum for terminal user intervention actions
- */
-export enum TerminalUserInterventionAction {
-	PROCESS_WHILE_RUNNING = "process_while_running",
-	MANUAL_PASTE = "manual_paste",
-	CANCELLED = "cancelled",
-}
-
-/**
- * Enum for terminal hang stages
- */
-export enum TerminalHangStage {
-	WAITING_FOR_COMPLETION = "waiting_for_completion",
-	BUFFER_STUCK = "buffer_stuck",
-	STREAM_TIMEOUT = "stream_timeout",
-}
-
-export type TelemetryMetadata = {
-	/**
-	 * The extension or dirac-core version. JetBrains and CLI have different
-	 * versioning than the VSCode Extension, but on those platforms this will be the _dirac-core version_
-	 * which uses the same as the versioning as the VSCode extension.
-	 */
-	extension_version: string
-	/**
-	 * The type of dirac distribution, e.g VSCode Extension, JetBrains Plugin or CLI. This
-	 * is different than the `platform` because there are many variants of VSCode and JetBrains but they
-	 * all use the same extension or plugin.
-	 */
-	dirac_type: string
-	/** The name of the host IDE or environment e.g. VSCode, Cursor, IntelliJ Professional Edition, etc. */
-	platform: string
-	/** The version of the host environment */
-	platform_version: string
-	/** The operating system type, e.g. darwin, win32. This is the value returned by os.platform() */
-	os_type: string
-	/** The operating system version e.g. 'Windows 10 Pro', 'Darwin Kernel Version 21.6.0...'
-	 * This is the value returned by os.version() */
-	os_version: string
-	/** Whether the extension is running in development mode */
-	is_dev: string | undefined
-}
-
-/**
- * Token usage data shared across telemetry capture methods.
- * Used by both `captureTokenUsage` and `captureConversationTurnEvent`.
- */
-export interface TokenUsage {
-	tokensIn?: number
-	tokensOut?: number
-	cacheWriteTokens?: number
-	cacheReadTokens?: number
-	totalCost?: number
-}
+// Type-only imports for use within this module's method signatures. The enums
+// above are referenced solely as types here, so importing them as types avoids
+// a duplicate runtime import of the same module.
+import type {
+	StandaloneOutputMethod,
+	TelemetryMetadata,
+	TerminalHangStage,
+	TerminalOutputFailureReason,
+	TerminalOutputMethod,
+	TerminalType,
+	TerminalUserInterventionAction,
+	TokenUsage,
+	VscodeOutputMethod,
+} from "./telemetry-types"
 
 /**
  * Maximum length for error messages to prevent excessive data
@@ -109,7 +46,7 @@ export interface TokenUsage {
 const MAX_ERROR_MESSAGE_LENGTH = 500
 
 /**
- * TelemetryService handles telemetry event tracking for the Dirac extension
+ * TelemetryService handles telemetry event tracking for the Isaac extension
  * Uses an abstracted telemetry provider to support multiple analytics backends
  * Respects user privacy settings and VSCode's global telemetry configuration
  */
@@ -134,207 +71,11 @@ export class TelemetryService {
 	private taskTurnCounts = new Map<string, number>()
 	private taskToolCallCounts = new Map<string, number>()
 	private taskErrorCounts = new Map<string, number>()
-	public static readonly METRICS = {
-		TASK: {
-			TURNS_TOTAL: "dirac.turns.total",
-			TURNS_PER_TASK: "dirac.turns.per_task",
-			TOKENS_INPUT_TOTAL: "dirac.tokens.input.total",
-			TOKENS_INPUT_PER_RESPONSE: "dirac.tokens.input.per_response",
-			TOKENS_OUTPUT_TOTAL: "dirac.tokens.output.total",
-			TOKENS_OUTPUT_PER_RESPONSE: "dirac.tokens.output.per_response",
-			COST_TOTAL: "dirac.cost.total",
-			COST_PER_EVENT: "dirac.cost.per_event",
-		},
-		CACHE: {
-			WRITE_TOTAL: "dirac.cache.write.tokens.total",
-			WRITE_PER_EVENT: "dirac.cache.write.tokens.per_event",
-			READ_TOTAL: "dirac.cache.read.tokens.total",
-			READ_PER_EVENT: "dirac.cache.read.tokens.per_event",
-			HITS_TOTAL: "dirac.cache.hits.total",
-		},
-		TOOLS: {
-			CALLS_TOTAL: "dirac.tool.calls.total",
-			CALLS_PER_TASK: "dirac.tool.calls.per_task",
-		},
-		ERRORS: {
-			TOTAL: "dirac.errors.total",
-			PER_TASK: "dirac.errors.per_task",
-		},
-		API: {
-			TTFT_SECONDS: "dirac.api.ttft.seconds",
-			DURATION_SECONDS: "dirac.api.duration.seconds",
-			THROUGHPUT_TOKENS_PER_SECOND: "dirac.api.throughput.tokens_per_second",
-		},
-		HOOKS: {
-			EXECUTIONS_TOTAL: "dirac.hooks.executions.total",
-			DURATION_SECONDS: "dirac.hooks.duration.seconds",
-			FAILURES_TOTAL: "dirac.hooks.failures.total",
-			CANCELLATIONS_TOTAL: "dirac.hooks.cancellations.total",
-			CONTEXT_MODIFICATIONS_TOTAL: "dirac.hooks.context_modifications.total",
-			CACHE_ACCESSES_TOTAL: "dirac.hooks.cache.accesses.total",
-		},
-		AI_OUTPUT: {
-			ACCEPTED_LINES_ADDED: "dirac.ai_output.accepted.lines_added.total",
-			ACCEPTED_LINES_DELETED: "dirac.ai_output.accepted.lines_deleted.total",
-			ACCEPTED_LINES_CHANGED: "dirac.ai_output.accepted.lines_changed.total",
-			ACCEPTED_FILES_CREATED: "dirac.ai_output.accepted.files_created.total",
-			ACCEPTED_FILES_DELETED: "dirac.ai_output.accepted.files_deleted.total",
-			ACCEPTED_FILES_MOVED: "dirac.ai_output.accepted.files_moved.total",
-			REJECTED_LINES_ADDED: "dirac.ai_output.rejected.lines_added.total",
-			REJECTED_LINES_DELETED: "dirac.ai_output.rejected.lines_deleted.total",
-			REJECTED_LINES_CHANGED: "dirac.ai_output.rejected.lines_changed.total",
-			REJECTED_FILES_CREATED: "dirac.ai_output.rejected.files_created.total",
-			REJECTED_FILES_DELETED: "dirac.ai_output.rejected.files_deleted.total",
-			REJECTED_FILES_MOVED: "dirac.ai_output.rejected.files_moved.total",
-		},
-		GRPC: {
-			RESPONSE_SIZE_BYTES: "dirac.grpc.response.size_bytes",
-		},
-	}
-	// Event constants for tracking user interactions and system events
-	private static readonly EVENTS = {
-		// Task-related events for tracking conversation and execution flow
-
-		USER: {
-			OPT_OUT: "user.opt_out",
-			OPT_IN: "user.opt_in",
-			TELEMETRY_ENABLED: "user.telemetry_enabled",
-			EXTENSION_ACTIVATED: "user.extension_activated",
-			EXTENSION_STORAGE_ERROR: "user.extension_storage_error",
-			AUTH_STARTED: "user.auth_started",
-			AUTH_SUCCEEDED: "user.auth_succeeded",
-			AUTH_FAILED: "user.auth_failed",
-			AUTH_LOGGED_OUT: "user.auth_logged_out",
-			ONBOARDING_PROGRESS: "user.onboarding_progress",
-		},
-		// Workspace-related events for multi-root support
-		WORKSPACE: {
-			// Track workspace initialization
-			INITIALIZED: "workspace.initialized",
-			// Track initialization errors
-			INIT_ERROR: "workspace.init_error",
-			// Track VCS detection
-			VCS_DETECTED: "workspace.vcs_detected",
-			// Track multi-root checkpoint operations
-			MULTI_ROOT_CHECKPOINT: "workspace.multi_root_checkpoint",
-			// Track workspace resolution
-			PATH_RESOLVED: "workspace.path_resolved",
-		},
-		TASK: {
-			// Tracks when a new task/conversation is started
-			CREATED: "task.created",
-			// Tracks when a task is reopened
-			RESTARTED: "task.restarted",
-			// Tracks when a task is finished, with acceptance or rejection status
-			COMPLETED: "task.completed",
-			// Tracks user feedback on completed tasks
-			FEEDBACK: "task.feedback",
-			// Tracks when a message is sent in a conversation
-			CONVERSATION_TURN: "task.conversation_turn",
-			// Tracks token consumption for cost and usage analysis
-			TOKEN_USAGE: "task.tokens",
-			// Tracks switches between plan and act modes
-			MODE_SWITCH: "task.mode",
-			// Tracks when users select an option from AI-generated followup questions
-			OPTION_SELECTED: "task.option_selected",
-			// Tracks when users type a custom response instead of selecting an option from AI-generated followup questions
-			OPTIONS_IGNORED: "task.options_ignored",
-			// Tracks usage of the git-based checkpoint system (shadow_git_initialized, commit_created, branch_created, branch_deleted_active, branch_deleted_inactive, restored)
-			CHECKPOINT_USED: "task.checkpoint_used",
-			// Tracks when tools (like file operations, commands) are used
-			TOOL_USED: "task.tool_used",
-			// Tracks when a historical task is loaded from storage
-			HISTORICAL_LOADED: "task.historical_loaded",
-			// Tracks when the retry button is clicked for failed operations
-			RETRY_CLICKED: "task.retry_clicked",
-			// Tracks when a diff edit (replace_in_file) operation fails
-
-			// Tracks when the browser tool is started
-			BROWSER_TOOL_START: "task.browser_tool_start",
-			// Tracks when the browser tool is completed
-			BROWSER_TOOL_END: "task.browser_tool_end",
-			// Tracks when browser errors occur
-			BROWSER_ERROR: "task.browser_error",
-			// Tracks Gemini API specific performance metrics
-			GEMINI_API_PERFORMANCE: "task.gemini_api_performance",
-			// Tracks when API providers return errors
-			PROVIDER_API_ERROR: "task.provider_api_error",
-			// Tracks when the context window is auto-condensed with the summarize_task tool call
-			AUTO_COMPACT: "task.summarize_task",
-			// Tracks when slash commands or workflows are activated
-			SLASH_COMMAND_USED: "task.slash_command_used",
-			// Tracks when a feature is toggled on/off
-			FEATURE_TOGGLED: "task.feature_toggled",
-			// Tracks when individual Dirac rules are toggled on/off
-			RULE_TOGGLED: "task.rule_toggled",
-			// Tracks when auto condense setting is toggled on/off
-			AUTO_CONDENSE_TOGGLED: "task.auto_condense_toggled",
-			// Tracks when yolo mode setting is toggled on/off
-			YOLO_MODE_TOGGLED: "task.yolo_mode_toggled",
-			// Tracks when Dirac web tools setting is toggled on/off
-			CLINE_WEB_TOOLS_TOGGLED: "task.dirac_web_tools_toggled",
-			// Tracks task initialization timing
-			INITIALIZATION: "task.initialization",
-			// Terminal execution telemetry events
-			TERMINAL_EXECUTION: "task.terminal_execution",
-			TERMINAL_OUTPUT_FAILURE: "task.terminal_output_failure",
-			TERMINAL_USER_INTERVENTION: "task.terminal_user_intervention",
-			TERMINAL_HANG: "task.terminal_hang",
-			// Mention telemetry events
-			MENTION_USED: "task.mention_used",
-			MENTION_FAILED: "task.mention_failed",
-			MENTION_SEARCH_RESULTS: "task.mention_search_results",
-			// Multi-workspace search pattern tracking
-			WORKSPACE_SEARCH_PATTERN: "task.workspace_search_pattern",
-			// CLI Subagents telemetry events
-			SUBAGENT_ENABLED: "task.subagent_enabled",
-			SUBAGENT_DISABLED: "task.subagent_disabled",
-			SUBAGENT_STARTED: "task.subagent_started",
-			SUBAGENT_COMPLETED: "task.subagent_completed",
-			// Skills telemetry events
-			SKILL_USED: "task.skill_used",
-			// Tracks when a tool name parsed from the model is rejected
-			// (hallucinated or forbidden shape, e.g. `digikey:search`)
-			INVALID_TOOL_NAME: "task.invalid_tool_name",
-		},
-		// UI interaction events for tracking user engagement
-		UI: {
-			// Tracks when a different model is selected
-			MODEL_SELECTED: "ui.model_selected",
-			// Tracks when users use the "favorite" button in the model picker
-			MODEL_FAVORITE_TOGGLED: "ui.model_favorite_toggled",
-			// Tracks when a button is clicked
-			BUTTON_CLICKED: "ui.button_clicked",
-			// Tracks when the rules menu button is clicked
-			RULES_MENU_OPENED: "ui.rules_menu_opened",
-		},
-		// Hooks-related events for tracking hook execution
-		HOOKS: {
-			// Tracks when hooks feature is enabled
-			ENABLED: "hooks.enabled",
-			// Tracks when hooks feature is disabled
-			DISABLED: "hooks.disabled",
-			// Tracks when a hook requests task cancellation
-			CANCEL_REQUESTED: "hooks.cancel_requested",
-			// Tracks when a hook modifies context
-			CONTEXT_MODIFIED: "hooks.context_modified",
-			// Tracks when hook discovery completes
-			DISCOVERY_COMPLETED: "hooks.discovery_completed",
-		},
-		// Worktree-related events for tracking worktree feature usage
-		WORKTREE: {
-			// Tracks when user opens worktrees view from home page
-			VIEW_OPENED: "worktree.view_opened",
-			// Tracks when a worktree is created
-			CREATED: "worktree.created",
-			// Tracks when a worktree merge is attempted
-			MERGE_ATTEMPTED: "worktree.merge_attempted",
-		},
-		HOST: {
-			// Tracks events detected from the host environment
-			DETECTED: "host.detected",
-		},
-	}
+	// Metric name constants (see ./telemetry-constants). Kept as a public static
+	// member because consumers/tests reference `TelemetryService.METRICS.*`.
+	public static readonly METRICS = TELEMETRY_METRICS
+	// Event name constants (see ./telemetry-constants). Internal use only.
+	private static readonly EVENTS = TELEMETRY_EVENTS
 
 	public static async create(): Promise<TelemetryService> {
 		const providers = await TelemetryProviderFactory.createProviders()
@@ -343,7 +84,7 @@ export class TelemetryService {
 			extension_version: extensionVersion,
 			platform: hostVersion.platform || "unknown",
 			platform_version: hostVersion.version || "unknown",
-			dirac_type: hostVersion.diracType || "unknown",
+			isaac_type: hostVersion.isaacType || "unknown",
 			os_type: os.platform(),
 			os_version: os.version(),
 			is_dev: process.env.IS_DEV,
@@ -382,13 +123,13 @@ export class TelemetryService {
 		// We only enable telemetry if global host telemetry is enabled
 		const hostSetting = await HostProvider.env.getTelemetrySettings({})
 		if (hostSetting.isEnabled === Setting.DISABLED) {
-			// Only show warning if user has opted in to Dirac telemetry but host telemetry is disabled
+			// Only show warning if user has opted in to Isaac telemetry but host telemetry is disabled
 			if (didUserOptIn) {
 				void HostProvider.window
 					.showMessage({
 						type: ShowMessageType.WARNING,
 						message:
-							"Anonymous Dirac error and usage reporting is enabled, but IDE telemetry is disabled. To enable error and usage reporting for this extension, enable telemetry in IDE settings.",
+							"Anonymous Isaac error and usage reporting is enabled, but IDE telemetry is disabled. To enable error and usage reporting for this extension, enable telemetry in IDE settings.",
 						options: {
 							items: ["Open Settings"],
 						},
@@ -421,7 +162,7 @@ export class TelemetryService {
 		this.capture({ event: TelemetryService.EVENTS.USER.OPT_IN })
 	}
 
-		/**
+	/**
 	 * Captures a telemetry event if telemetry is enabled
 	 * @param event The event to capture with its properties
 	 */
@@ -430,7 +171,7 @@ export class TelemetryService {
 		this.captureToProviders(event.event, propertiesWithMetadata, false)
 	}
 
-		/**
+	/**
 	 * Captures a required telemetry event that bypasses user opt-out settings
 	 * @param event The event name to capture
 	 * @param properties Optional properties to attach to the event
@@ -610,7 +351,7 @@ export class TelemetryService {
 		})
 	}
 
-		/**
+	/**
 	 * Identifies the user and their organization for telemetry tracking.
 	 * This should be called after successful authentication.
 	 * @param userInfo User information including ID and organization details
@@ -667,7 +408,7 @@ export class TelemetryService {
 	}
 
 	/**
-	 * Records when dirac calls the task completion_result tool signifying that dirac is done with the task
+	 * Records when isaac calls the task completion_result tool signifying that isaac is done with the task
 	 * @param ulid Unique identifier for the task
 	 */
 	public captureTaskCompleted(
@@ -809,7 +550,7 @@ export class TelemetryService {
 	 * @param ulid Unique identifier for the task
 	 * @param tokensIn Number of input tokens consumed
 	 * @param tokensOut Number of output tokens generated
-	 * @param provider The API provider identifier (e.g. "anthropic", "openai", "dirac")
+	 * @param provider The API provider identifier (e.g. "anthropic", "openai", "isaac")
 	 * @param model The model used for token calculation
 	 */
 	public captureTokenUsage(
@@ -1409,13 +1150,13 @@ export class TelemetryService {
 	}
 
 	/**
-	 * Records when individual Dirac rules are toggled on/off
+	 * Records when individual Isaac rules are toggled on/off
 	 * @param ulid Unique identifier for the task (to track rule changes within task context)
 	 * @param ruleFileName The filename of the rule (sanitized to exclude full path)
 	 * @param enabled Whether the rule is being enabled (true) or disabled (false)
 	 * @param isGlobal Whether this is a global rule or workspace-specific rule
 	 */
-	public captureDiracRuleToggled(ulid: string, ruleFileName: string, enabled: boolean, isGlobal: boolean) {
+	public captureIsaacRuleToggled(ulid: string, ruleFileName: string, enabled: boolean, isGlobal: boolean) {
 		// Sanitize filename to remove any path information for privacy
 		const sanitizedFileName = ruleFileName.split("/").pop() || ruleFileName.split("\\").pop() || ruleFileName
 
@@ -1463,11 +1204,11 @@ export class TelemetryService {
 	}
 
 	/**
-	 * Records when Dirac web tools are enabled/disabled by the user
+	 * Records when Isaac web tools are enabled/disabled by the user
 	 * @param ulid Unique identifier for the task
-	 * @param enabled Whether Dirac web tools are enabled (true) or disabled (false)
+	 * @param enabled Whether Isaac web tools are enabled (true) or disabled (false)
 	 */
-	public captureDiracWebToolsToggle(ulid: string, enabled: boolean) {
+	public captureIsaacWebToolsToggle(ulid: string, enabled: boolean) {
 		this.capture({
 			event: TelemetryService.EVENTS.TASK.CLINE_WEB_TOOLS_TOGGLED,
 			properties: {
@@ -1623,11 +1364,11 @@ export class TelemetryService {
 		})
 
 		const isMultiRoot = rootCount > 1
-		this.recordGauge("dirac.workspace.active_roots", rootCount, {
+		this.recordGauge("isaac.workspace.active_roots", rootCount, {
 			is_multi_root: isMultiRoot,
 		})
 		// Retire the previous series to avoid leaking gauge entries when the flag flips.
-		this.recordGauge("dirac.workspace.active_roots", null, {
+		this.recordGauge("isaac.workspace.active_roots", null, {
 			is_multi_root: !isMultiRoot,
 		})
 	}

@@ -1,4 +1,4 @@
-import { DiracWebviewProvider } from "@/core/webview"
+import { IsaacWebviewProvider } from "@/core/webview"
 import { CommentReviewController } from "@/integrations/editor/CommentReviewController"
 import { DiffViewProvider } from "@/integrations/editor/DiffViewProvider"
 import { ITerminalManager } from "@/integrations/terminal/types"
@@ -6,7 +6,7 @@ import { HostBridgeClientProvider } from "./host-provider-types"
 /**
  * Singleton class that manages host-specific providers for dependency injection.
  *
- * This system runs on two different platforms (VSCode extension and dirac-core),
+ * This system runs on two different platforms (VSCode extension and isaac-core),
  * so all the host-specific classes and properties are contained in here. The
  * rest of the codebase can use the host provider interface to access platform-specific
  * implementations in a platform-agnostic way.
@@ -19,8 +19,8 @@ import { HostBridgeClientProvider } from "./host-provider-types"
 export class HostProvider {
 	private static instance: HostProvider | null = null
 
-	diracType: "cli" | "extension"
-	createDiracWebviewProvider: DiracWebviewProviderCreator
+	isaacType: "cli" | "extension"
+	createIsaacWebviewProvider: IsaacWebviewProviderCreator
 	createDiffViewProvider: DiffViewProviderCreator
 	createCommentReviewController: CommentReviewControllerCreator
 	createTerminalManager: TerminalManagerCreator
@@ -29,7 +29,7 @@ export class HostProvider {
 	// Logs to a user-visible output channel.
 	logToChannel: LogToChannel
 
-	// Returns a callback URL that will redirect to Dirac.
+	// Returns a callback URL that will redirect to Isaac.
 	// The path parameter specifies the route for the callback (e.g., "/auth", "/openrouter").
 	// The optional preferredPort parameter hints that the provider should try to bind
 	// this specific port first (used to preserve OAuth client registrations across sessions).
@@ -51,8 +51,8 @@ export class HostProvider {
 
 	// Private constructor to enforce singleton pattern
 	private constructor(
-		diracType: "cli" | "extension",
-		createDiracWebviewProvider: DiracWebviewProviderCreator,
+		isaacType: "cli" | "extension",
+		createIsaacWebviewProvider: IsaacWebviewProviderCreator,
 		createDiffViewProvider: DiffViewProviderCreator,
 		createCommentReviewController: CommentReviewControllerCreator,
 		createTerminalManager: TerminalManagerCreator,
@@ -64,8 +64,8 @@ export class HostProvider {
 		globalStorageFsPath: string,
 		getEnvironmentVariables: GetEnvironmentVariables,
 	) {
-		this.diracType = diracType
-		this.createDiracWebviewProvider = createDiracWebviewProvider
+		this.isaacType = isaacType
+		this.createIsaacWebviewProvider = createIsaacWebviewProvider
 		this.createDiffViewProvider = createDiffViewProvider
 		this.createCommentReviewController = createCommentReviewController
 		this.createTerminalManager = createTerminalManager
@@ -79,8 +79,8 @@ export class HostProvider {
 	}
 
 	public static initialize(
-		diracType: "cli" | "extension",
-		webviewProviderCreator: DiracWebviewProviderCreator,
+		isaacType: "cli" | "extension",
+		webviewProviderCreator: IsaacWebviewProviderCreator,
 		diffViewProviderCreator: DiffViewProviderCreator,
 		commentReviewControllerCreator: CommentReviewControllerCreator,
 		terminalManagerCreator: TerminalManagerCreator,
@@ -96,7 +96,7 @@ export class HostProvider {
 			throw new Error("Host provider has already been initialized.")
 		}
 		HostProvider.instance = new HostProvider(
-			diracType,
+			isaacType,
 			webviewProviderCreator,
 			diffViewProviderCreator,
 			commentReviewControllerCreator,
@@ -152,9 +152,9 @@ export class HostProvider {
 }
 
 /**
- * A function that creates DiracWebviewProvider instances
+ * A function that creates IsaacWebviewProvider instances
  */
-export type DiracWebviewProviderCreator = () => DiracWebviewProvider
+export type IsaacWebviewProviderCreator = () => IsaacWebviewProvider
 
 /**
  * A function that creates DiffViewProvider instances

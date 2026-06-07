@@ -1,9 +1,10 @@
-import { DiracDefaultTool } from "@/shared/tools"
-import type { DiracToolSpec } from "../spec"
+import { IsaacDefaultTool } from "@/shared/tools"
+import type { IsaacToolSpec } from "../spec"
+import type { ParamNames } from "../tool-unit"
 
-const id = DiracDefaultTool.DIAGNOSTICS_SCAN
+const id = IsaacDefaultTool.DIAGNOSTICS_SCAN
 
-export const diagnostics_scan: DiracToolSpec = {
+export const diagnostics_scan = {
 	id,
 	name: "diagnostics_scan",
 	description:
@@ -18,4 +19,11 @@ export const diagnostics_scan: DiracToolSpec = {
 			usage: '["src/utils/math.ts", "src/utils/string.ts"]',
 		},
 	],
-}
+} as const satisfies IsaacToolSpec
+
+/**
+ * Lot E: typed param-name union derived from the spec literal above.
+ * A rename/removal of a spec parameter changes this union and breaks any
+ * handler that reads params through the typed contract (kills drift).
+ */
+export type DiagnosticsScanParam = ParamNames<typeof diagnostics_scan>

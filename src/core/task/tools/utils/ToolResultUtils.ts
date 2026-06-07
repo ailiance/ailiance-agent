@@ -2,9 +2,9 @@ import { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
 import { ToolResponse } from "@core/task"
 import { processFilesIntoText } from "@/integrations/misc/extract-text"
-import { DiracAsk, MultiCommandState } from "@/shared/ExtensionMessage"
-import { DiracAskResponse } from "@/shared/WebviewMessage"
+import { IsaacAsk, MultiCommandState } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
+import { IsaacAskResponse } from "@/shared/WebviewMessage"
 import type { ToolExecutorCoordinator } from "../ToolExecutorCoordinator"
 import { TaskConfig } from "../types/TaskConfig"
 
@@ -34,8 +34,8 @@ export class ToolResultUtils {
 					})()
 				: toolDescription(block)
 
-			// Get tool_use_id from map using call_id, or use "dirac" as fallback for backward compatibility
-			const toolUseId = toolUseIdMap?.get(block.call_id || "") || "dirac"
+			// Get tool_use_id from map using call_id, or use "isaac" as fallback for backward compatibility
+			const toolUseId = toolUseIdMap?.get(block.call_id || "") || "isaac"
 
 			// If we have already added a tool result for this tool use, skip adding another one
 			if (
@@ -52,11 +52,11 @@ export class ToolResultUtils {
 		} else {
 			// For complex content (arrays with text/image blocks), pass it through directly
 			// The content array should already be properly formatted with type, text, source, etc.
-			const toolUseId = toolUseIdMap?.get(block.call_id || "") || "dirac"
+			const toolUseId = toolUseIdMap?.get(block.call_id || "") || "isaac"
 
-			// If using backward-compatible "dirac" ID and content is an array, spread it directly
+			// If using backward-compatible "isaac" ID and content is an array, spread it directly
 			// instead of wrapping it (which would cause JSON.stringify in createToolResultBlock)
-			if ((toolUseId === "dirac" || !toolUseId) && Array.isArray(content)) {
+			if ((toolUseId === "isaac" || !toolUseId) && Array.isArray(content)) {
 				userMessageContent.push(...content)
 			} else {
 				userMessageContent.push(ToolResultUtils.createToolResultBlock(content, toolUseId, block.call_id))
@@ -65,9 +65,9 @@ export class ToolResultUtils {
 	}
 
 	private static createToolResultBlock(content: ToolResponse, id?: string, call_id?: string) {
-		// If id is "dirac", we treat it as a plain text result for backward compatibility
+		// If id is "isaac", we treat it as a plain text result for backward compatibility
 		// as we cannot find any existing tool call that matches this id.
-		if (id === "dirac" || !id) {
+		if (id === "isaac" || !id) {
 			return {
 				type: "text",
 				text: typeof content === "string" ? content : JSON.stringify(content, null, 2),
@@ -124,14 +124,14 @@ export class ToolResultUtils {
 	 * Handles tool approval flow and processes any user feedback
 	 */
 	static async askApprovalAndPushFeedback(
-		type: DiracAsk,
+		type: IsaacAsk,
 		completeMessage: string | undefined,
 		config: TaskConfig,
-		partial: boolean = false,
+		partial = false,
 		multiCommandState?: MultiCommandState,
 	) {
 		if (config.isSubagentExecution) {
-			return { didApprove: true, response: "yesButtonClicked" as DiracAskResponse, askTs: undefined as number | undefined }
+			return { didApprove: true, response: "yesButtonClicked" as IsaacAskResponse, askTs: undefined as number | undefined }
 		}
 
 		const result = await config.callbacks.ask(type, completeMessage, partial, multiCommandState)

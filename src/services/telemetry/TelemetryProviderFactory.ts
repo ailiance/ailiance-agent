@@ -1,31 +1,31 @@
-import { DiracEndpoint } from "@/config"
+import { IsaacEndpoint } from "@/config"
+import { isaacTelemetryConfig, isIsaacTelemetryConfigValid } from "@/shared/services/config/isaac-telemetry-config"
 import {
 	getValidOpenTelemetryConfig,
 	getValidRuntimeOpenTelemetryConfig,
 	OpenTelemetryClientValidConfig,
 } from "@/shared/services/config/otel-config"
-import { isDiracTelemetryConfigValid, diracTelemetryConfig } from "@/shared/services/config/dirac-telemetry-config"
 import { Logger } from "@/shared/services/Logger"
+import { IsaacTelemetryProvider } from "./providers/IsaacTelemetryProvider"
 import type { ITelemetryProvider, TelemetryProperties, TelemetrySettings } from "./providers/ITelemetryProvider"
 import { OpenTelemetryClientProvider } from "./providers/opentelemetry/OpenTelemetryClientProvider"
 import { OpenTelemetryTelemetryProvider } from "./providers/opentelemetry/OpenTelemetryTelemetryProvider"
-import { DiracTelemetryProvider } from "./providers/DiracTelemetryProvider"
 
 /**
  * Supported telemetry provider types
  */
-export type TelemetryProviderType = "dirac" | "no-op" | "opentelemetry"
+export type TelemetryProviderType = "isaac" | "no-op" | "opentelemetry"
 
 /**
  * Configuration for telemetry providers
  */
 export type TelemetryProviderConfig =
-	| { type: "dirac"; apiKey?: string; host?: string }
+	| { type: "isaac"; apiKey?: string; host?: string }
 	/** OpenTelemetry collector
 	 * @param config - Config for this specific collector
-	 * @param bypassUserSettings - When true, telemetry is sent regardless of the user's Dirac telemetry opt-in/opt-out settings.
+	 * @param bypassUserSettings - When true, telemetry is sent regardless of the user's Isaac telemetry opt-in/opt-out settings.
 	 * This is used for:
-	 * 	- User-controlled collectors configured via environment variables (e.g., DIRAC_OTEL_TELEMETRY_ENABLED).
+	 * 	- User-controlled collectors configured via environment variables (e.g., ISAAC_OTEL_TELEMETRY_ENABLED).
 	 * 	- Organization-controlled collectors configured via remote config.
 	 */
 	| { type: "opentelemetry"; config: OpenTelemetryClientValidConfig; bypassUserSettings: boolean }
@@ -69,8 +69,8 @@ export class TelemetryProviderFactory {
 	 */
 	private static async createProvider(config: TelemetryProviderConfig): Promise<ITelemetryProvider> {
 		switch (config.type) {
-			case "dirac": {
-				return await new DiracTelemetryProvider().initialize()
+			case "isaac": {
+				return await new IsaacTelemetryProvider().initialize()
 			}
 			case "opentelemetry": {
 				const otelConfig = config.config
@@ -101,15 +101,15 @@ export class TelemetryProviderFactory {
 	public static getDefaultConfigs(): TelemetryProviderConfig[] {
 		const configs: TelemetryProviderConfig[] = []
 
-		// Skip Dirac in selfHosted mode - enterprise customers should not send telemetry to Dirac
-		if (!DiracEndpoint.isSelfHosted() && isDiracTelemetryConfigValid(diracTelemetryConfig)) {
-			configs.push({ type: "dirac", ...diracTelemetryConfig })
+		// Skip Isaac in selfHosted mode - enterprise customers should not send telemetry to Isaac
+		if (!IsaacEndpoint.isSelfHosted() && isIsaacTelemetryConfigValid(isaacTelemetryConfig)) {
+			configs.push({ type: "isaac", ...isaacTelemetryConfig })
 		}
 
-		// Skip build-time OTEL in selfHosted mode - enterprise customers should not send telemetry to Dirac's collector
+		// Skip build-time OTEL in selfHosted mode - enterprise customers should not send telemetry to Isaac's collector
 		// Note: Runtime env OTEL and remote config OTEL are still allowed (user/org explicitly configured them)
 		const otelConfig = getValidOpenTelemetryConfig()
-		if (!DiracEndpoint.isSelfHosted() && otelConfig) {
+		if (!IsaacEndpoint.isSelfHosted() && otelConfig) {
 			configs.push({
 				type: "opentelemetry",
 				config: otelConfig,
@@ -122,8 +122,8 @@ export class TelemetryProviderFactory {
 			configs.push({
 				type: "opentelemetry",
 				config: runtimeOtelConfig,
-				// If the user has `DIRAC_OTEL_TELEMETRY_ENABLED` in his environment, enable
-				// OTEL regardless of his Dirac telemetry settings
+				// If the user has `ISAAC_OTEL_TELEMETRY_ENABLED` in his environment, enable
+				// OTEL regardless of his Isaac telemetry settings
 				bypassUserSettings: true,
 			})
 		}

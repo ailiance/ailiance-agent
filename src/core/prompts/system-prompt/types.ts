@@ -5,7 +5,7 @@
 import { ApiProviderInfo } from "@/core/api"
 import type { BrowserSettings } from "@/shared/BrowserSettings"
 import type { SkillMetadata } from "@/shared/skills"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import { ShellType } from "@/utils/shell-detection"
 import { SystemPromptSection } from "./templates/placeholders"
 
@@ -22,16 +22,16 @@ export interface SystemPromptContext {
 	}
 	readonly supportsBrowserUse?: boolean
 	readonly skills?: SkillMetadata[]
-	readonly globalDiracRulesFileInstructions?: string
-	readonly localDiracRulesFileInstructions?: string
+	readonly globalIsaacRulesFileInstructions?: string
+	readonly localIsaacRulesFileInstructions?: string
 	readonly localCursorRulesFileInstructions?: string
 	readonly localCursorRulesDirInstructions?: string
 	readonly localWindsurfRulesFileInstructions?: string
 	readonly localAgentsRulesFileInstructions?: string
-	readonly diracIgnoreInstructions?: string
+	readonly isaacIgnoreInstructions?: string
 	readonly preferredLanguageInstructions?: string
 	readonly userInstructions?: string
-	readonly diracRules?: string
+	readonly isaacRules?: string
 	readonly browserSettings?: BrowserSettings
 	readonly isTesting?: boolean
 	readonly runtimePlaceholders?: Readonly<Record<string, unknown>>
@@ -40,7 +40,7 @@ export interface SystemPromptContext {
 	/** Active MCP tool qualified names for adaptive retrieval. When set, only
 	 * these MCP tools are emitted; undefined means "no gating" (legacy: all). */
 	readonly activeMcpTools?: ReadonlySet<string>
-	readonly diracWebToolsEnabled?: boolean
+	readonly isaacWebToolsEnabled?: boolean
 	readonly isMultiRootEnabled?: boolean
 	readonly workspaceRoots?: Array<{ path: string; name: string; vcs?: string }>
 	readonly isSubagentsEnabledAndCliInstalled?: boolean
@@ -70,6 +70,6 @@ export function isValidSystemPromptSection(section: string): section is SystemPr
 	return Object.values(SystemPromptSection).includes(section as SystemPromptSection)
 }
 
-export function isValidDiracDefaultTool(tool: string): tool is DiracDefaultTool {
-	return Object.values(DiracDefaultTool).includes(tool as DiracDefaultTool)
+export function isValidIsaacDefaultTool(tool: string): tool is IsaacDefaultTool {
+	return Object.values(IsaacDefaultTool).includes(tool as IsaacDefaultTool)
 }

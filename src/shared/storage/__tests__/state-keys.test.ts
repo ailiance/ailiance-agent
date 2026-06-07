@@ -39,31 +39,31 @@ import { expect } from "chai"
 import { describe, it } from "mocha"
 
 import {
-    applyTransform,
-    GLOBAL_STATE_DEFAULTS,
-    type GlobalState,
-    GlobalStateAndSettingKeys,
-    type GlobalStateAndSettings,
-    type GlobalStateAndSettingsKey,
-    type GlobalStateKey,
-    getDefaultValue,
-    hasTransform,
-    isAsyncProperty,
-    isComputedProperty,
-    isGlobalStateKey,
-    isLocalStateKey,
-    isSecretKey,
-    isSettingsKey,
-    type LocalState,
-    type LocalStateKey,
-    LocalStateKeys,
-    SETTINGS_DEFAULTS,
-    SETTINGS_TRANSFORMS,
-    type SecretKey,
-    SecretKeys,
-    type Settings,
-    type SettingsKey,
-    SettingsKeys,
+	applyTransform,
+	GLOBAL_STATE_DEFAULTS,
+	type GlobalState,
+	GlobalStateAndSettingKeys,
+	type GlobalStateAndSettings,
+	type GlobalStateAndSettingsKey,
+	type GlobalStateKey,
+	getDefaultValue,
+	hasTransform,
+	isAsyncProperty,
+	isComputedProperty,
+	isGlobalStateKey,
+	isLocalStateKey,
+	isSecretKey,
+	isSettingsKey,
+	type LocalState,
+	type LocalStateKey,
+	LocalStateKeys,
+	SETTINGS_DEFAULTS,
+	SETTINGS_TRANSFORMS,
+	type SecretKey,
+	SecretKeys,
+	type Settings,
+	type SettingsKey,
+	SettingsKeys,
 } from "../state-keys"
 
 // ============================================================================
@@ -248,7 +248,7 @@ describe("State Keys Type Safety", () => {
 
 		it("should correctly identify Secret keys", () => {
 			// Sample known secret keys
-			const knownSecretKeys = ["apiKey", "openRouterApiKey", "awsAccessKey", "diracApiKey"]
+			const knownSecretKeys = ["apiKey", "openRouterApiKey", "awsAccessKey", "isaacApiKey"]
 
 			for (const key of knownSecretKeys) {
 				expect(isSecretKey(key), `${key} should be a SecretKey`).to.be.true
@@ -411,8 +411,8 @@ describe("State Keys Type Safety", () => {
 			// These assignments verify the key types are correctly narrowed
 			const globalKey: GlobalStateKey = "isNewUser"
 			const settingsKey: SettingsKey = "preferredLanguage"
-			const secretKey: SecretKey = "diracApiKey"
-			const localKey: LocalStateKey = "localDiracRulesToggles"
+			const secretKey: SecretKey = "isaacApiKey"
+			const localKey: LocalStateKey = "localIsaacRulesToggles"
 
 			expect(globalKey).to.be.a("string")
 			expect(settingsKey).to.be.a("string")
@@ -431,12 +431,12 @@ describe("State Keys Type Safety", () => {
 			expect(combined.preferredLanguage).to.equal("English")
 		})
 
-		it("should have LocalState keys map to DiracRulesToggles", () => {
+		it("should have LocalState keys map to IsaacRulesToggles", () => {
 			const localState: Partial<LocalState> = {
-				localDiracRulesToggles: {},
+				localIsaacRulesToggles: {},
 				localCursorRulesToggles: { "some-rule": true },
 			}
-			expect(localState.localDiracRulesToggles).to.deep.equal({})
+			expect(localState.localIsaacRulesToggles).to.deep.equal({})
 		})
 	})
 
@@ -453,9 +453,9 @@ describe("State Keys Type Safety", () => {
 		})
 
 		it("should handle keys with special characters", () => {
-			// The dirac:diracAccountId key has a colon
-			expect(SecretKeys).to.include("dirac:diracAccountId")
-			expect(isSecretKey("dirac:diracAccountId")).to.be.true
+			// The isaac:isaacAccountId key has a colon
+			expect(SecretKeys).to.include("isaac:isaacAccountId")
+			expect(isSecretKey("isaac:isaacAccountId")).to.be.true
 		})
 
 		it("should not have keys that could cause prototype pollution", () => {

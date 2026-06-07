@@ -4,7 +4,7 @@ import * as diff from "diff"
 import * as path from "path"
 import type { FileInfo } from "../../services/glob/list-files"
 import { Mode } from "../../shared/storage/types"
-import { DiracIgnoreController, LOCK_TEXT_SYMBOL } from "../ignore/DiracIgnoreController"
+import { IsaacIgnoreController, LOCK_TEXT_SYMBOL } from "../ignore/IsaacIgnoreController"
 
 const CONTEXT_WINDOW_WARNING_THRESHOLD_PERCENT = 50
 
@@ -29,8 +29,8 @@ export const formatResponse = {
 
 	toolError: (error?: string) => `The tool execution failed with the following error:\n<error>\n${error}\n</error>`,
 
-	diracIgnoreError: (path: string) =>
-		`Access to ${path} is blocked by the .diracignore file settings. You must try to continue in the task without using this file, or ask the user to update the .diracignore file.`,
+	isaacIgnoreError: (path: string) =>
+		`Access to ${path} is blocked by the .isaacignore file settings. You must try to continue in the task without using this file, or ask the user to update the .isaacignore file.`,
 
 	pathConflictError: (path: string) =>
 		`Cannot write to '${path}' because one of the parent components is a file, not a directory.`,
@@ -41,7 +41,7 @@ export const formatResponse = {
 	readOnlyError: (path: string) => `Cannot write to '${path}': Read-only file system.`,
 
 	permissionDeniedError: (reason: string) =>
-		`Command execution blocked by DIRAC_COMMAND_PERMISSIONS: ${reason}. You must try a different approach or ask the user to update the permission settings.`,
+		`Command execution blocked by ISAAC_COMMAND_PERMISSIONS: ${reason}. You must try a different approach or ask the user to update the permission settings.`,
 
 	noToolsUsed: (usingNativeToolCalls: boolean) =>
 		`[ERROR] You did not use a tool in your previous response! Please retry with a tool use.
@@ -146,7 +146,7 @@ Otherwise, if you have not completed the task and do not need additional informa
 		absolutePath: string,
 		files: FileInfo[],
 		didHitLimit: boolean,
-		diracIgnoreController?: DiracIgnoreController,
+		isaacIgnoreController?: IsaacIgnoreController,
 	): string => {
 		const pathMap = new Map<string, FileInfo>(files.map((f) => [f.path, f]))
 
@@ -177,7 +177,7 @@ Otherwise, if you have not completed the task and do not need additional informa
 			return aParts.length - bParts.length
 		})
 
-		const filtered = diracIgnoreController ? sorted.filter((file) => diracIgnoreController.validateAccess(file.path)) : sorted
+		const filtered = isaacIgnoreController ? sorted.filter((file) => isaacIgnoreController.validateAccess(file.path)) : sorted
 
 		const formatted = filtered.map((file) => {
 			let relativePath = path.relative(absolutePath, file.path).toPosix()
@@ -283,17 +283,17 @@ Otherwise, if you have not completed the task and do not need additional informa
 		`<file_content path="${relPath.toPosix()}">\n${hashLines(originalContent || "", absolutePath, ulid)}\n</file_content>\n\n` +
 		`Now that you have the latest state of the file, try the operation again with fewer, more precise SEARCH blocks. (If you run into this error 3 times in a row, you may use the write_to_file tool as a fallback.)`,
 
-	diracIgnoreInstructions: (content: string) =>
-		`# .diracignore\n\n(The following is provided by a root-level .diracignore file where the user has specified files and directories that should not be accessed. When using list_files, you'll notice a ${LOCK_TEXT_SYMBOL} next to files that are blocked. Attempting to access the file's contents e.g. through read_file will result in an error.)\n\n${content}\n.diracignore`,
+	isaacIgnoreInstructions: (content: string) =>
+		`# .isaacignore\n\n(The following is provided by a root-level .isaacignore file where the user has specified files and directories that should not be accessed. When using list_files, you'll notice a ${LOCK_TEXT_SYMBOL} next to files that are blocked. Attempting to access the file's contents e.g. through read_file will result in an error.)\n\n${content}\n.isaacignore`,
 
-	diracRulesGlobalDirectoryInstructions: (globalDiracRulesFilePath: string, content: string) =>
-		`# .diracrules/\n\nThe following is provided by a global .diracrules/ directory, located at ${globalDiracRulesFilePath.toPosix()}, where the user has specified instructions for all working directories:\n\n${content}`,
+	isaacRulesGlobalDirectoryInstructions: (globalIsaacRulesFilePath: string, content: string) =>
+		`# .isaacrules/\n\nThe following is provided by a global .isaacrules/ directory, located at ${globalIsaacRulesFilePath.toPosix()}, where the user has specified instructions for all working directories:\n\n${content}`,
 
-	diracRulesLocalDirectoryInstructions: (cwd: string, content: string) =>
-		`# .diracrules/\n\nThe following is provided by a root-level .diracrules/ directory where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${content}`,
+	isaacRulesLocalDirectoryInstructions: (cwd: string, content: string) =>
+		`# .isaacrules/\n\nThe following is provided by a root-level .isaacrules/ directory where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${content}`,
 
-	diracRulesLocalFileInstructions: (cwd: string, content: string) =>
-		`# .diracrules\n\nThe following is provided by a root-level .diracrules file where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${content}`,
+	isaacRulesLocalFileInstructions: (cwd: string, content: string) =>
+		`# .isaacrules\n\nThe following is provided by a root-level .isaacrules file where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${content}`,
 
 	windsurfRulesLocalFileInstructions: (cwd: string, content: string) =>
 		`# .windsurfrules\n\nThe following is provided by a root-level .windsurfrules file where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${content}`,

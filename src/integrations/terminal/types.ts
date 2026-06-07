@@ -4,7 +4,7 @@
  * the StandaloneTerminalManager used in CLI/JetBrains environments.
  */
 
-import type { DiracToolResponseContent } from "@shared/messages"
+import type { IsaacToolResponseContent } from "@shared/messages"
 import type { EventEmitter } from "events"
 
 // =============================================================================
@@ -333,12 +333,12 @@ export interface CommandExecutorCallbacks {
 	/** Update the background command running state in the controller */
 	updateBackgroundCommandState: (running: boolean) => void
 	/**
-	 * Update a dirac message by index
+	 * Update a isaac message by index
 	 * Supports updating commandCompleted status and/or text content
 	 */
-	updateDiracMessage: (index: number, updates: { commandCompleted?: boolean; text?: string }) => Promise<void>
-	/** Get dirac messages array */
-	getDiracMessages: () => Array<{ ask?: string; say?: string; text?: string }>
+	updateIsaacMessage: (index: number, updates: { commandCompleted?: boolean; text?: string }) => Promise<void>
+	/** Get isaac messages array */
+	getIsaacMessages: () => Array<{ ask?: string; say?: string; text?: string }>
 	/** Add content to user message for next API request */
 	addToUserMessageContent: (content: { type: string; text: string }) => void
 	/** Get environment variables for the specified directory */
@@ -442,7 +442,7 @@ export interface OrchestrationResult {
 	/** Whether the user rejected/cancelled the command */
 	userRejected: boolean
 	/** The result content to return */
-	result: DiracToolResponseContent
+	result: IsaacToolResponseContent
 	/** Whether the command completed */
 	completed: boolean
 	/** All output lines captured */

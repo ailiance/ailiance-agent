@@ -1,10 +1,10 @@
 import { exit } from "node:process"
-import type { CliContext, TaskOptions } from "../types"
 import { initializeCli } from "../init"
-import { disposeCliContext, createInkCleanup } from "../utils/cleanup"
-import { applyTaskOptions } from "../utils/options"
-import { shouldUsePlainTextMode } from "../utils/mode"
+import type { CliContext, TaskOptions } from "../types"
+import { createInkCleanup, disposeCliContext } from "../utils/cleanup"
 import { runInkApp } from "../utils/ink"
+import { shouldUsePlainTextMode } from "../utils/mode"
+import { applyTaskOptions } from "../utils/options"
 import { findTaskInHistory } from "./history"
 import { runTaskInPlainTextMode } from "./task"
 
@@ -30,7 +30,7 @@ export async function resumeTask(
 	const historyItem = await findTaskInHistory(taskId)
 	if (!historyItem) {
 		printWarning(`Task not found: ${taskId}`)
-		// ailiance-agent fork: rebrand 'dirac history' -> 'isaac history'
+		// ailiance-agent fork: rebrand 'isaac history' -> 'isaac history'
 		printInfo("Use 'isaac history' to see available tasks.")
 		await disposeCliContext(ctx)
 		exit(1)
@@ -83,14 +83,11 @@ export async function continueTask(options: TaskOptions) {
 	const { printWarning, printInfo } = await import("../utils/display")
 
 	const ctx = await initializeCli({ ...options, enableAuth: true })
-	const historyItem = findMostRecentTaskForWorkspace(
-		StateManager.get().getGlobalStateKey("taskHistory"),
-		ctx.workspacePath,
-	)
+	const historyItem = findMostRecentTaskForWorkspace(StateManager.get().getGlobalStateKey("taskHistory"), ctx.workspacePath)
 
 	if (!historyItem) {
 		printWarning(`No previous task found for ${ctx.workspacePath}`)
-		// ailiance-agent fork: rebrand 'dirac history' -> 'isaac history'
+		// ailiance-agent fork: rebrand 'isaac history' -> 'isaac history'
 		printInfo("Start a new task or use 'isaac history' to browse previous tasks.")
 		await disposeCliContext(ctx)
 		exit(1)

@@ -53,7 +53,7 @@ function getTaskStartTemplate(): string {
 # 
 # Executes when a new task begins.
 # 
-# Input: { taskId, taskStart: { task: string }, diracVersion, timestamp, ... }
+# Input: { taskId, taskStart: { task: string }, isaacVersion, timestamp, ... }
 # Output: { cancel: boolean, contextModification?: string, errorMessage?: string }
 # 
 # Use cases:
@@ -97,7 +97,7 @@ function getTaskResumeTemplate(): string {
 # 
 # Executes when a task is resumed after being interrupted.
 # 
-# Input: { taskId, taskResume: { task: string }, diracVersion, timestamp, ... }
+# Input: { taskId, taskResume: { task: string }, isaacVersion, timestamp, ... }
 # Output: { cancel: boolean, contextModification?: string, errorMessage?: string }
 # 
 # Use cases:
@@ -129,7 +129,7 @@ function getTaskCancelTemplate(): string {
 # 
 # Executes when a task is cancelled by the user.
 # 
-# Input: { taskId, taskCancel: { task: string }, diracVersion, timestamp, ... }
+# Input: { taskId, taskCancel: { task: string }, isaacVersion, timestamp, ... }
 # Output: { cancel: boolean, contextModification?: string, errorMessage?: string }
 # 
 # Use cases:
@@ -161,7 +161,7 @@ function getTaskCompleteTemplate(): string {
 # 
 # Executes when a task completes successfully.
 # 
-# Input: { taskId, taskComplete: { task: string }, diracVersion, timestamp, ... }
+# Input: { taskId, taskComplete: { task: string }, isaacVersion, timestamp, ... }
 # Output: { cancel: boolean, contextModification?: string, errorMessage?: string }
 # 
 # Use cases:
@@ -284,9 +284,9 @@ function getUserPromptSubmitTemplate(): string {
 #
 # UserPromptSubmit Hook
 # 
-# Executes when the user submits a prompt to Dirac.
+# Executes when the user submits a prompt to Isaac.
 # 
-# Input: { taskId, userPromptSubmit: { prompt: string }, diracVersion, timestamp, ... }
+# Input: { taskId, userPromptSubmit: { prompt: string }, isaacVersion, timestamp, ... }
 # Output: { cancel: boolean, contextModification?: string, errorMessage?: string }
 # 
 # Use cases:
@@ -318,7 +318,7 @@ function getNotificationTemplate(): string {
 #
 # Notification Hook
 #
-# Executes when Dirac reaches a user-attention boundary or emits lifecycle notifications.
+# Executes when Isaac reaches a user-attention boundary or emits lifecycle notifications.
 #
 # Input: {
 #   taskId,
@@ -328,7 +328,7 @@ function getNotificationTemplate(): string {
 #     message: string,
 #     waitingForUserInput: boolean
 #   },
-#   diracVersion,
+#   isaacVersion,
 #   timestamp,
 #   ...
 # }

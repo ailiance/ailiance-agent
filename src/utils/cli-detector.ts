@@ -4,20 +4,20 @@ import { promisify } from "util"
 const execAsync = promisify(exec)
 
 /**
- * Check if the Dirac CLI tool is installed on the system
+ * Check if the Isaac CLI tool is installed on the system
  * @returns true if CLI is installed, false otherwise
  */
-export async function isDiracCliInstalled(): Promise<boolean> {
+export async function isIsaacCliInstalled(): Promise<boolean> {
 	try {
-		// Try to get the version of the dirac CLI tool
+		// Try to get the version of the isaac CLI tool
 		// This will fail if the tool is not installed
-		const { stdout } = await execAsync("dirac version", {
+		const { stdout } = await execAsync("isaac version", {
 			timeout: 5000, // 5 second timeout
 		})
 
 		// If we get here, the CLI is installed
 		// We could also validate the version if needed
-		return stdout.includes("Dirac CLI Version") || stdout.includes("Dirac Core Version")
+		return stdout.includes("Isaac CLI Version") || stdout.includes("Isaac Core Version")
 	} catch (error) {
 		// Command failed, which likely means CLI is not installed
 		// or not in PATH

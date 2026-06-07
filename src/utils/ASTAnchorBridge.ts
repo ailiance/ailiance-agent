@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import * as path from "path"
-import { DiracIgnoreController } from "../core/ignore/DiracIgnoreController"
+import { IsaacIgnoreController } from "../core/ignore/IsaacIgnoreController"
 import { SymbolContextResolver } from "../core/task/tools/utils/SymbolContextResolver"
 import { parseFile } from "../services/tree-sitter"
 import { loadRequiredLanguageParsers } from "../services/tree-sitter/languageParser"
@@ -25,12 +25,12 @@ export class ASTAnchorBridge {
 	 */
 	public static async getFileSkeleton(
 		absolutePath: string,
-		diracIgnoreController?: DiracIgnoreController,
+		isaacIgnoreController?: IsaacIgnoreController,
 		taskId?: string,
 		options?: { showCallGraph?: boolean },
 	): Promise<string | null> {
 		const languageParsers = await loadRequiredLanguageParsers([absolutePath])
-		const definitions = await parseFile(absolutePath, languageParsers, diracIgnoreController, options)
+		const definitions = await parseFile(absolutePath, languageParsers, isaacIgnoreController, options)
 		if (!definitions) {
 			return null
 		}
@@ -77,10 +77,10 @@ export class ASTAnchorBridge {
 		absolutePath: string,
 		relPath: string,
 		functionNames: string[],
-		diracIgnoreController?: DiracIgnoreController,
+		isaacIgnoreController?: IsaacIgnoreController,
 		taskId?: string,
 	): Promise<GetFunctionsResult | null> {
-		if (diracIgnoreController && !diracIgnoreController.validateAccess(absolutePath)) {
+		if (isaacIgnoreController && !isaacIgnoreController.validateAccess(absolutePath)) {
 			return null
 		}
 
@@ -143,10 +143,7 @@ export class ASTAnchorBridge {
 					if (parentMatch && !seenMatches.has(parentMatch)) {
 						const parentNameCap = parentMatch.captures.find((c: any) => c.name.startsWith("name."))
 						if (parentNameCap) {
-							const parentNameText = fileContent.slice(
-								parentNameCap.node.startIndex,
-								parentNameCap.node.endIndex,
-							)
+							const parentNameText = fileContent.slice(parentNameCap.node.startIndex, parentNameCap.node.endIndex)
 							fullName = `${parentNameText}.${fullName}`
 							seenMatches.add(parentMatch)
 						}
@@ -165,7 +162,7 @@ export class ASTAnchorBridge {
 					matchedReqNames.forEach((reqName) => foundNamesInFile.add(reqName))
 
 					const { startIndex, endIndex, startLine } = ASTAnchorBridge.getExtendedRange(defCapture.node, fileContent)
-					
+
 					const rangeKey = `${startIndex}-${endIndex}`
 					if (seenRanges.has(rangeKey)) continue
 					seenRanges.add(rangeKey)
@@ -186,7 +183,9 @@ export class ASTAnchorBridge {
 
 					const formatted = defLines.map((line, i) => formatLineWithHash(line, defAnchors[i])).join("\n")
 					const funcHash = contentHash(defText)
-					fileResults.push(`${relPath}::${fullName}\n[Function Hash: ${funcHash}]\nAll Hash Anchors provided below are stable and can be used with edit_file directly.\n${context}${formatted}`)
+					fileResults.push(
+						`${relPath}::${fullName}\n[Function Hash: ${funcHash}]\nAll Hash Anchors provided below are stable and can be used with edit_file directly.\n${context}${formatted}`,
+					)
 				}
 			}
 		}
@@ -211,10 +210,10 @@ export class ASTAnchorBridge {
 		absolutePath: string,
 		symbol: string,
 		type?: string,
-		diracIgnoreController?: DiracIgnoreController,
+		isaacIgnoreController?: IsaacIgnoreController,
 		taskId?: string,
 	): Promise<SymbolRange | null> {
-		if (diracIgnoreController && !diracIgnoreController.validateAccess(absolutePath)) {
+		if (isaacIgnoreController && !isaacIgnoreController.validateAccess(absolutePath)) {
 			return null
 		}
 

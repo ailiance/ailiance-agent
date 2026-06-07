@@ -8,9 +8,8 @@
 import { Text } from "ink"
 import { render } from "ink-testing-library"
 import React from "react"
-import { version as CLI_VERSION } from "../../package.json"
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { version as CLI_VERSION } from "../../package.json"
 import { ChatView } from "./ChatView"
 
 // Helper to wait for async state updates
@@ -49,7 +48,7 @@ vi.mock("../vscode-shim", () => ({
 // Mock TaskContext
 vi.mock("../context/TaskContext", () => ({
 	useTaskState: vi.fn(() => ({
-		diracMessages: [],
+		isaacMessages: [],
 		mode: "act",
 	})),
 	useTaskContext: vi.fn(() => ({

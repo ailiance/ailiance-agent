@@ -12,7 +12,7 @@ tmp
 
 pnpm-lock.yaml
 
-.diracignore
+.isaacignore
 .venv
 .actrc
 CLAUDE.local.md
@@ -67,8 +67,8 @@ __pycache__/
 test_out/
 tmp_*.txt
 *scratch*
-.dirac-symbol-index*
-.dirac/*
+.isaac-symbol-index*
+.isaac/*
 .ailiance-agent/
 # Serena MCP memory store — local notes, may hold infra credentials. Never commit.
 .serena/

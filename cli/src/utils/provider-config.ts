@@ -8,9 +8,7 @@ import { getProviderModelIdKey, ProviderToApiKeyMap, ProviderToBaseUrlKeyMap } f
 import { buildApiHandler } from "@/core/api"
 import type { Controller } from "@/core/controller"
 import { refreshOpenRouterModels } from "@/core/controller/models/refreshOpenRouterModels"
-import { refreshVercelAiGatewayModels } from "@/core/controller/models/refreshVercelAiGatewayModels"
 import { StateManager } from "@/core/storage/StateManager"
-import type { BedrockConfig } from "../components/BedrockSetup"
 import { getDefaultModelId, getModelList } from "../components/ModelPicker"
 
 export interface ApplyProviderConfigOptions {
@@ -54,18 +52,10 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 
 	const finalActModelId =
 		modelId ||
-		(isCompatible(existingActModel)
-			? existingActModel
-			: isCompatible(existingPlanModel)
-				? existingPlanModel
-				: defaultModel)
+		(isCompatible(existingActModel) ? existingActModel : isCompatible(existingPlanModel) ? existingPlanModel : defaultModel)
 	const finalPlanModelId =
 		modelId ||
-		(isCompatible(existingPlanModel)
-			? existingPlanModel
-			: isCompatible(existingActModel)
-				? existingActModel
-				: defaultModel)
+		(isCompatible(existingPlanModel) ? existingPlanModel : isCompatible(existingActModel) ? existingActModel : defaultModel)
 
 	if (finalActModelId) {
 		if (actModelKey) config[actModelKey] = finalActModelId
@@ -77,7 +67,7 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 	if (finalActModelId || finalPlanModelId) {
 		// Fetch model info from the provider API (not just disk cache) so headless
 		// CLI auth gets correct maxTokens, thinkingConfig, etc.
-		if ((providerId === "dirac" || providerId === "openrouter") && controller) {
+		if ((providerId === "isaac" || providerId === "openrouter") && controller) {
 			const openRouterModels = await refreshOpenRouterModels(controller)
 			if (finalActModelId) {
 				const modelInfo = openRouterModels?.[finalActModelId]
@@ -89,20 +79,6 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 				const modelInfo = openRouterModels?.[finalPlanModelId]
 				if (modelInfo) {
 					stateManager.setGlobalState("planModeOpenRouterModelInfo", modelInfo)
-				}
-			}
-		} else if (providerId === "vercel-ai-gateway" && controller) {
-			const vercelModels = await refreshVercelAiGatewayModels(controller)
-			if (finalActModelId) {
-				const modelInfo = vercelModels?.[finalActModelId]
-				if (modelInfo) {
-					stateManager.setGlobalState("actModeVercelAiGatewayModelInfo", modelInfo)
-				}
-			}
-			if (finalPlanModelId) {
-				const modelInfo = vercelModels?.[finalPlanModelId]
-				if (modelInfo) {
-					stateManager.setGlobalState("planModeVercelAiGatewayModelInfo", modelInfo)
 				}
 			}
 		}
@@ -151,103 +127,6 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 		const apiConfig = stateManager.getApiConfiguration()
 		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
 
-	await controller?.postStateToWebview()
-
+		await controller?.postStateToWebview()
 	}
-}
-
-export interface ApplyBedrockConfigOptions {
-	bedrockConfig: BedrockConfig
-	modelId?: string
-	customModelBaseId?: string // Base model ID for custom ARN/Inference Profile (for capability detection)
-	controller?: Controller
-}
-
-/**
- * Apply Bedrock provider configuration to state
- * Handles AWS-specific fields (authentication, region, credentials)
- * When customModelBaseId is provided, sets the custom model flags so the system
- * knows to use the ARN as the model ID and the base model for capability detection.
- */
-export async function applyBedrockConfig(options: ApplyBedrockConfigOptions): Promise<void> {
-	const { bedrockConfig, modelId, customModelBaseId, controller } = options
-	const stateManager = StateManager.get()
-
-	const config: Record<string, unknown> = {
-		actModeApiProvider: "bedrock",
-		planModeApiProvider: "bedrock",
-		awsAuthentication: bedrockConfig.awsAuthentication,
-		awsRegion: bedrockConfig.awsRegion,
-		awsUseCrossRegionInference: bedrockConfig.awsUseCrossRegionInference,
-	}
-
-	// Add model ID (use provided, existing from state, or fall back to default)
-	const actModelKey = getProviderModelIdKey("bedrock" as ApiProvider, "act")
-	const planModelKey = getProviderModelIdKey("bedrock" as ApiProvider, "plan")
-
-	const existingActModel = stateManager.getGlobalSettingsKey(actModelKey) as string
-	const existingPlanModel = stateManager.getGlobalSettingsKey(planModelKey) as string
-
-	const validModels = getModelList("bedrock")
-	const isCompatible = (model: string) => {
-		if (!model) return false
-		// For Bedrock, we also consider it compatible if it's an ARN (starts with 'arn:')
-		return validModels.includes(model) || model.startsWith("arn:")
-	}
-
-	const defaultModel = getDefaultModelId("bedrock")
-
-	const finalActModelId =
-		modelId ||
-		(isCompatible(existingActModel)
-			? existingActModel
-			: isCompatible(existingPlanModel)
-				? existingPlanModel
-				: defaultModel)
-	const finalPlanModelId =
-		modelId ||
-		(isCompatible(existingPlanModel)
-			? existingPlanModel
-			: isCompatible(existingActModel)
-				? existingActModel
-				: defaultModel)
-
-	if (finalActModelId) {
-		if (actModelKey) config[actModelKey] = finalActModelId
-	}
-	if (finalPlanModelId) {
-		if (planModelKey) config[planModelKey] = finalPlanModelId
-	}
-
-	// Handle custom model (Application Inference Profile ARN)
-	if (customModelBaseId) {
-		config.actModeAwsBedrockCustomSelected = true
-		config.planModeAwsBedrockCustomSelected = true
-		config.actModeAwsBedrockCustomModelBaseId = customModelBaseId
-		config.planModeAwsBedrockCustomModelBaseId = customModelBaseId
-	} else {
-		// Ensure custom flags are cleared when using a standard model
-		config.actModeAwsBedrockCustomSelected = false
-		config.planModeAwsBedrockCustomSelected = false
-	}
-
-	// Add optional AWS credentials
-	if (bedrockConfig.awsProfile !== undefined) config.awsProfile = bedrockConfig.awsProfile
-	if (bedrockConfig.awsAccessKey) config.awsAccessKey = bedrockConfig.awsAccessKey
-	if (bedrockConfig.awsSecretKey) config.awsSecretKey = bedrockConfig.awsSecretKey
-	if (bedrockConfig.awsSessionToken) config.awsSessionToken = bedrockConfig.awsSessionToken
-
-	// Save via StateManager
-	stateManager.setApiConfiguration(config as Record<string, string>)
-	await stateManager.flushPendingState()
-
-	// Rebuild API handler on active task if one exists
-	if (controller?.task) {
-		const currentMode = stateManager.getGlobalSettingsKey("mode")
-		const apiConfig = stateManager.getApiConfiguration()
-		controller.task.api = buildApiHandler({ ...apiConfig, ulid: controller.task.ulid }, currentMode)
-	}
-
-	await controller?.postStateToWebview()
-
 }

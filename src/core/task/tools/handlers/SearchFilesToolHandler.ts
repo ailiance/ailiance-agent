@@ -1,17 +1,19 @@
 // tool call test comment
 import type { ToolUse } from "@core/assistant-message"
 import { regexSearchFiles } from "@services/ripgrep"
-import { DiracSayTool } from "@shared/ExtensionMessage"
+import { IsaacSayTool } from "@shared/ExtensionMessage"
 import { stripHashes } from "@utils/line-hashing"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import * as path from "path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool, readParam } from "@/core/prompts/system-prompt/tool-unit"
+import { search_files } from "@/core/prompts/system-prompt/tools/search_files"
 import { parseWorkspaceInlinePath } from "@/core/workspace/utils/parseWorkspaceInlinePath"
 import { WorkspacePathAdapter } from "@/core/workspace/WorkspacePathAdapter"
 import { resolveWorkspacePath } from "@/core/workspace/WorkspaceResolver"
 import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import { notifyAsyncTool } from "../../AsyncToolNotifier"
 import type { ToolResponse } from "../../index"
 import type { TaskMessenger } from "../../TaskMessenger"
@@ -20,8 +22,8 @@ import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
-import { ToolResultUtils } from "../utils/ToolResultUtils"
 import { coerceFirstStringArray } from "../utils/coerceArray"
+import { ToolResultUtils } from "../utils/ToolResultUtils"
 
 // Sprint 2 — task D: async-by-default search_files. Mirrors S2-C
 // (ExecuteCommandToolHandler): if ripgrep finishes within ASYNC_FAST_PATH_MS
@@ -32,7 +34,7 @@ import { coerceFirstStringArray } from "../utils/coerceArray"
 const ASYNC_FAST_PATH_MS = 500
 
 export class SearchFilesToolHandler implements IFullyManagedTool {
-	readonly name = DiracDefaultTool.SEARCH
+	readonly name = IsaacDefaultTool.SEARCH
 
 	constructor(private validator: ToolValidator) {}
 	private getRelPaths(params: any): string[] {
@@ -110,7 +112,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 				absolutePath,
 				regex,
 				filePattern,
-				config.services.diracIgnoreController,
+				config.services.isaacIgnoreController,
 				config.ulid,
 				contextLines,
 				excludeFilePatterns,
@@ -220,7 +222,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 			filePattern: uiHelpers.removeClosingTag(block, "file_pattern", filePattern),
 			contextLines: Number.parseInt(uiHelpers.removeClosingTag(block, "context_lines", contextLines) || "0", 10),
 			operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(Boolean),
-		} satisfies DiracSayTool
+		} satisfies IsaacSayTool
 
 		const partialMessage = JSON.stringify(sharedMessageProps)
 
@@ -240,9 +242,11 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const relPaths = this.getRelPaths(block.params)
-		const regex: string | undefined = block.params.regex
-		const filePattern: string | undefined = block.params.file_pattern
-		const contextLines = Number.parseInt(block.params.context_lines || "0", 10)
+		// Lot E: read scalar params through the typed contract derived from the
+		// spec. Renaming any of these in the spec breaks this handler's compile.
+		const regex: string | undefined = readParam(search_files_unit, block.params, "regex")
+		const filePattern: string | undefined = readParam(search_files_unit, block.params, "file_pattern")
+		const contextLines = Number.parseInt(readParam(search_files_unit, block.params, "context_lines") || "0", 10)
 
 		// Extract provider information for telemetry
 		const apiConfig = config.services.stateManager.getApiConfiguration()
@@ -446,7 +450,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 				filePattern: filePattern,
 				contextLines: contextLines,
 				operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(Boolean),
-			} satisfies DiracSayTool
+			} satisfies IsaacSayTool
 			const placeholderMessage = JSON.stringify(placeholderMessageProps)
 
 			const shouldAutoApproveAsync =
@@ -470,7 +474,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 					block.isNativeToolCall,
 				)
 			} else {
-				const notificationMessage = `Dirac wants to search files for ${regex}`
+				const notificationMessage = `Isaac wants to search files for ${regex}`
 				showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 				await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 				const { didApprove } = await ToolResultUtils.askApprovalAndPushFeedback("tool", placeholderMessage, config)
@@ -578,7 +582,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 			filePattern: filePattern,
 			contextLines: contextLines,
 			operationIsLocatedInWorkspace: (await Promise.all(relPaths.map((p) => isLocatedInWorkspace(p)))).every(Boolean),
-		} satisfies DiracSayTool
+		} satisfies IsaacSayTool
 
 		const completeMessage = JSON.stringify(sharedMessageProps)
 
@@ -605,7 +609,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 			)
 		} else {
 			// Manual approval flow
-			const notificationMessage = `Dirac wants to search files for ${regex}`
+			const notificationMessage = `Isaac wants to search files for ${regex}`
 
 			// Show notification
 			showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
@@ -653,3 +657,16 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 		return results
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `search_files`. Co-locates the prompt spec with
+ * the handler factory and the read-only flag, exposing the drift-detecting typed
+ * link between spec params and the handler. Coexists with the legacy
+ * registration paths (no cutover yet).
+ */
+export const search_files_unit = defineTool({
+	id: IsaacDefaultTool.SEARCH,
+	spec: search_files,
+	readonly: true,
+	createHandler: (validator: unknown) => new SearchFilesToolHandler(validator as ToolValidator),
+})

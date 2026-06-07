@@ -24,7 +24,7 @@ describe("Skills Utility Functions", () => {
 
 	// Use path.join for OS-independent paths
 	const TEST_CWD = path.join("/test", "project")
-	const GLOBAL_SKILLS_DIR = path.join("/home", "user", ".dirac", "skills")
+	const GLOBAL_SKILLS_DIR = path.join("/home", "user", ".isaac", "skills")
 
 	beforeEach(() => {
 		sandbox = sinon.createSandbox()
@@ -39,8 +39,8 @@ describe("Skills Utility Functions", () => {
 		statStub = sandbox.stub(fs.promises, "stat")
 		readFileStub = sandbox.stub(fs.promises, "readFile")
 		sandbox.stub(disk, "getSkillsDirectoriesForScan").returns([
-			{ path: path.join(TEST_CWD, ".diracrules", "skills"), source: "project" },
-			{ path: path.join(TEST_CWD, ".dirac", "skills"), source: "project" },
+			{ path: path.join(TEST_CWD, ".isaacrules", "skills"), source: "project" },
+			{ path: path.join(TEST_CWD, ".isaac", "skills"), source: "project" },
 			{ path: path.join(TEST_CWD, ".claude", "skills"), source: "project" },
 			{ path: path.join(TEST_CWD, ".agents", "skills"), source: "project" },
 			{ path: GLOBAL_SKILLS_DIR, source: "global" },
@@ -80,8 +80,8 @@ Instructions here`)
 			expect(skills[0].source).to.equal("global")
 		})
 
-		it("should discover skills from project .diracrules/skills directory", async () => {
-			const projectSkillsDir = path.join(TEST_CWD, ".diracrules", "skills")
+		it("should discover skills from project .isaacrules/skills directory", async () => {
+			const projectSkillsDir = path.join(TEST_CWD, ".isaacrules", "skills")
 			const skillDir = path.join(projectSkillsDir, "explaining-code")
 			const skillMdPath = path.join(skillDir, "SKILL.md")
 
@@ -103,15 +103,15 @@ Use analogies and ASCII diagrams when explaining code.`)
 			expect(skills[0].source).to.equal("project")
 		})
 
-		it("should discover skills from project .dirac/skills directory", async () => {
-			const diracSkillsDir = path.join(TEST_CWD, ".dirac", "skills")
-			const skillDir = path.join(diracSkillsDir, "debugging")
+		it("should discover skills from project .isaac/skills directory", async () => {
+			const isaacSkillsDir = path.join(TEST_CWD, ".isaac", "skills")
+			const skillDir = path.join(isaacSkillsDir, "debugging")
 			const skillMdPath = path.join(skillDir, "SKILL.md")
 
-			fileExistsStub.withArgs(diracSkillsDir).resolves(true)
+			fileExistsStub.withArgs(isaacSkillsDir).resolves(true)
 			fileExistsStub.withArgs(skillMdPath).resolves(true)
-			isDirectoryStub.withArgs(diracSkillsDir).resolves(true)
-			readdirStub.withArgs(diracSkillsDir).resolves(["debugging"])
+			isDirectoryStub.withArgs(isaacSkillsDir).resolves(true)
+			readdirStub.withArgs(isaacSkillsDir).resolves(["debugging"])
 			statStub.withArgs(skillDir).resolves({ isDirectory: () => true })
 			readFileStub.withArgs(skillMdPath, "utf-8").resolves(`---
 name: debugging
@@ -239,7 +239,7 @@ description: Global coding skill
 Global instructions`)
 
 			// Setup project skill with same name (lower priority)
-			const projectSkillsDir = path.join(TEST_CWD, ".diracrules", "skills")
+			const projectSkillsDir = path.join(TEST_CWD, ".isaacrules", "skills")
 			const projectSkillDir = path.join(projectSkillsDir, "coding")
 			const projectSkillMdPath = path.join(projectSkillDir, "SKILL.md")
 
@@ -279,7 +279,7 @@ description: A global skill
 Content`)
 
 			// Setup project skill with different name
-			const projectSkillsDir = path.join(TEST_CWD, ".diracrules", "skills")
+			const projectSkillsDir = path.join(TEST_CWD, ".isaacrules", "skills")
 			const projectSkillDir = path.join(projectSkillsDir, "project-skill")
 			const projectSkillMdPath = path.join(projectSkillDir, "SKILL.md")
 

@@ -1,4 +1,4 @@
-import { UpdateSettingsRequest } from "@shared/proto/dirac/state"
+import { UpdateSettingsRequest } from "@shared/proto/isaac/state"
 import { memo, type ReactNode, useCallback } from "react"
 import { useSettingsStore } from "@/features/settings/store/settingsStore"
 import { Switch } from "@/shared/ui/switch"
@@ -34,7 +34,7 @@ const agentFeatures: FeatureToggle[] = [
 	{
 		id: "subagents",
 		label: "Subagents",
-		description: "Let Dirac run focused subagents in parallel to explore the codebase for you.",
+		description: "Let Isaac run focused subagents in parallel to explore the codebase for you.",
 		stateKey: "subagentsEnabled",
 		settingKey: "subagentsEnabled",
 	},
@@ -77,16 +77,16 @@ const editorFeatures: FeatureToggle[] = [
 		settingKey: "enableCheckpointsSetting",
 	},
 	{
-		id: "dirac-web-tools",
-		label: "Dirac Web Tools",
+		id: "isaac-web-tools",
+		label: "Isaac Web Tools",
 		description: "Access web browsing and search capabilities",
-		stateKey: "diracWebToolsEnabled",
-		settingKey: "diracWebToolsEnabled",
+		stateKey: "isaacWebToolsEnabled",
+		settingKey: "isaacWebToolsEnabled",
 	},
 	{
 		id: "worktrees",
 		label: "Worktrees",
-		description: "Enables git worktree management for running parallel Dirac tasks.",
+		description: "Enables git worktree management for running parallel Isaac tasks.",
 		stateKey: "worktreesEnabled",
 		settingKey: "worktreesEnabled",
 	},
@@ -186,7 +186,7 @@ const FeatureSettingsSection = ({ renderSectionHeader }: FeatureSettingsSectionP
 		yoloModeToggled,
 		useAutoCondense,
 		subagentsEnabled,
-		diracWebToolsEnabled,
+		isaacWebToolsEnabled,
 		worktreesEnabled,
 		remoteConfigSettings,
 		enableParallelToolCalling,
@@ -203,7 +203,7 @@ const FeatureSettingsSection = ({ renderSectionHeader }: FeatureSettingsSectionP
 		hooksEnabled,
 		useAutoCondense,
 		subagentsEnabled,
-		diracWebToolsEnabled: diracWebToolsEnabled?.user,
+		isaacWebToolsEnabled: isaacWebToolsEnabled?.user,
 		worktreesEnabled: worktreesEnabled?.user,
 		enableParallelToolCalling,
 		backgroundEditEnabled,
@@ -213,23 +213,20 @@ const FeatureSettingsSection = ({ renderSectionHeader }: FeatureSettingsSectionP
 
 	// Visibility lookup for features with feature flags
 	const featureVisibility: Record<string, boolean | undefined> = {
-		diracWebToolsEnabled: diracWebToolsEnabled?.featureFlag,
+		isaacWebToolsEnabled: isaacWebToolsEnabled?.featureFlag,
 		worktreesEnabled: worktreesEnabled?.featureFlag,
 	}
 
 	// Handler for feature toggle changes, supports nested settings like focusChainSettings
-	const handleFeatureChange = useCallback(
-		(feature: FeatureToggle, checked: boolean) => {
-			if (feature.nestedKey) {
-				// For nested settings, spread the existing value and set the nested key
-				let currentValue = {}
-				updateSetting(feature.settingKey, { ...currentValue, [feature.nestedKey]: checked })
-			} else {
-				updateSetting(feature.settingKey, checked)
-			}
-		},
-		[],
-	)
+	const handleFeatureChange = useCallback((feature: FeatureToggle, checked: boolean) => {
+		if (feature.nestedKey) {
+			// For nested settings, spread the existing value and set the nested key
+			const currentValue = {}
+			updateSetting(feature.settingKey, { ...currentValue, [feature.nestedKey]: checked })
+		} else {
+			updateSetting(feature.settingKey, checked)
+		}
+	}, [])
 
 	return (
 		<div className="mb-2">

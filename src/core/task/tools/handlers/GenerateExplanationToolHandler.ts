@@ -1,38 +1,39 @@
 import type { ToolUse } from "@core/assistant-message"
 import {
-    buildDiffContent,
-    type ChangedFile,
-    detectBinaryFile,
-    openDiffView,
-    setupCommentController,
-    streamAIExplanationComments,
-    stringifyConversationHistory,
+	buildDiffContent,
+	type ChangedFile,
+	detectBinaryFile,
+	openDiffView,
+	setupCommentController,
+	streamAIExplanationComments,
+	stringifyConversationHistory,
 } from "@core/controller/task/explainChangesShared"
 import { formatResponse } from "@core/prompts/responses"
-import { telemetryService } from "@/services/telemetry"
-
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { generate_explanation } from "@core/prompts/system-prompt/tools/generate_explanation"
 import fs from "fs/promises"
 import path from "path"
 import simpleGit from "simple-git"
-import type { DiracSayGenerateExplanation } from "@/shared/ExtensionMessage"
+import { telemetryService } from "@/services/telemetry"
+import type { IsaacSayGenerateExplanation } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import type { IPartialBlockHandler, IToolHandler } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 
 /**
- * Helper to create a stringified DiracSayGenerateExplanation message
+ * Helper to create a stringified IsaacSayGenerateExplanation message
  */
 function createExplanationMessage(
 	title: string,
 	fromRef: string,
 	toRef: string,
-	status: DiracSayGenerateExplanation["status"],
+	status: IsaacSayGenerateExplanation["status"],
 	error?: string,
 ): string {
-	const message: DiracSayGenerateExplanation = { title, fromRef, toRef, status }
+	const message: IsaacSayGenerateExplanation = { title, fromRef, toRef, status }
 	if (error) {
 		message.error = error
 	}
@@ -40,7 +41,7 @@ function createExplanationMessage(
 }
 
 export class GenerateExplanationToolHandler implements IToolHandler, IPartialBlockHandler {
-	readonly name = DiracDefaultTool.GENERATE_EXPLANATION
+	readonly name = IsaacDefaultTool.GENERATE_EXPLANATION
 
 	getDescription(block: ToolUse): string {
 		const title = block.params.title || "code changes"
@@ -58,9 +59,12 @@ export class GenerateExplanationToolHandler implements IToolHandler, IPartialBlo
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const title: string | undefined = block.params.title
-		const fromRef: string | undefined = block.params.from_ref
-		const toRef: string | undefined = block.params.to_ref // Optional - if not provided, compare to working directory
+		// Lot E: read scalar params through the typed contract derived from the
+		// spec. Renaming `title`/`from_ref`/`to_ref` in the spec breaks this
+		// handler's compile.
+		const title: string | undefined = readParam(generate_explanation_unit, block.params, "title")
+		const fromRef: string | undefined = readParam(generate_explanation_unit, block.params, "from_ref")
+		const toRef: string | undefined = readParam(generate_explanation_unit, block.params, "to_ref") // Optional - if not provided, compare to working directory
 
 		// Validate required parameters
 		if (!title) {
@@ -294,7 +298,6 @@ export class GenerateExplanationToolHandler implements IToolHandler, IPartialBlo
 				block.isNativeToolCall,
 			)
 
-
 			return formatResponse.toolResult(
 				`Successfully generated ${commentCount} explanation comment${commentCount === 1 ? "" : "s"} for ${changedFiles.length} changed file${changedFiles.length === 1 ? "" : "s"} between ${refDescription}. The diff view is now open with inline explanations.`,
 			)
@@ -328,8 +331,20 @@ export class GenerateExplanationToolHandler implements IToolHandler, IPartialBlo
 				block.isNativeToolCall,
 			)
 
-
 			return formatResponse.toolError(`Failed to generate explanations: ${errorMessage}`)
 		}
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `generate_explanation`. Co-locates the prompt
+ * spec with the handler factory and the read-only flag, exposing the drift-
+ * detecting typed link between spec params and the handler. This handler takes no
+ * validator. Coexists with the legacy registration paths (no cutover yet).
+ */
+export const generate_explanation_unit = defineTool({
+	id: IsaacDefaultTool.GENERATE_EXPLANATION,
+	spec: generate_explanation,
+	readonly: true,
+	createHandler: (_validator: unknown) => new GenerateExplanationToolHandler(),
+})

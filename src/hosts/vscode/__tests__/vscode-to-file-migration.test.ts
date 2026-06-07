@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, it } from "mocha"
 import "should"
-import { DiracFileStorage } from "@shared/storage/DiracFileStorage"
+import { IsaacFileStorage } from "@shared/storage/IsaacFileStorage"
 import { createStorageContext, type StorageContext } from "@shared/storage/storage-context"
 import fs from "fs"
 import os from "os"
 import path from "path"
 import sinon from "sinon"
-import { exportVSCodeStorageToSharedFiles, CURRENT_MIGRATION_VERSION, MIGRATION_VERSION_KEY } from "../vscode-to-file-migration"
+import { CURRENT_MIGRATION_VERSION, exportVSCodeStorageToSharedFiles, MIGRATION_VERSION_KEY } from "../vscode-to-file-migration"
 
 /**
  * Create a minimal mock of VSCode's ExtensionContext for migration testing.
@@ -81,7 +81,7 @@ describe("vscode-to-file-migration", () => {
 		fs.mkdirSync(tempDir, { recursive: true })
 
 		storageContext = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: tempDir,
 		})
 	})
@@ -117,7 +117,7 @@ describe("vscode-to-file-migration", () => {
 
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "plan")
-			mockCtx._workspaceStateStore.set("localDiracRulesToggles", {
+			mockCtx._workspaceStateStore.set("localIsaacRulesToggles", {
 				"rule-1": true,
 			})
 
@@ -163,7 +163,7 @@ describe("vscode-to-file-migration", () => {
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "plan") // should be skipped
 			mockCtx._secretsStore.set("apiKey", "sk-test") // should be skipped
-			mockCtx._workspaceStateStore.set("localDiracRulesToggles", {
+			mockCtx._workspaceStateStore.set("localIsaacRulesToggles", {
 				"rule-1": true,
 			})
 
@@ -175,7 +175,7 @@ describe("vscode-to-file-migration", () => {
 			result.secretsCount.should.equal(0)
 			// Workspace state SHOULD have been migrated
 			result.workspaceStateCount.should.equal(1)
-			const stored = storageContext.workspaceState.get("localDiracRulesToggles") as any
+			const stored = storageContext.workspaceState.get("localIsaacRulesToggles") as any
 			stored.should.deepEqual({ "rule-1": true })
 			// Workspace sentinel should now be set
 			storageContext.workspaceState.get(MIGRATION_VERSION_KEY)!.should.equal(CURRENT_MIGRATION_VERSION)
@@ -188,7 +188,7 @@ describe("vscode-to-file-migration", () => {
 
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._globalStateStore.set("mode", "plan")
-			mockCtx._workspaceStateStore.set("localDiracRulesToggles", {
+			mockCtx._workspaceStateStore.set("localIsaacRulesToggles", {
 				"rule-1": true,
 			}) // should be skipped
 
@@ -320,29 +320,29 @@ describe("vscode-to-file-migration", () => {
 		it("should migrate workspace state keys", async () => {
 			const toggles = { "rule-1": true, "rule-2": false }
 			const mockCtx = createMockVSCodeContext()
-			mockCtx._workspaceStateStore.set("localDiracRulesToggles", toggles)
+			mockCtx._workspaceStateStore.set("localIsaacRulesToggles", toggles)
 
 			const result = await exportVSCodeStorageToSharedFiles(mockCtx as any, storageContext)
 
 			result.migrated.should.be.true()
 			result.workspaceStateCount.should.equal(1)
-			const stored = storageContext.workspaceState.get("localDiracRulesToggles") as any
+			const stored = storageContext.workspaceState.get("localIsaacRulesToggles") as any
 			stored.should.deepEqual(toggles)
 		})
 
 		it("should NOT overwrite existing workspace state", async () => {
 			const existingToggles = { "rule-existing": true }
-			storageContext.workspaceState.set("localDiracRulesToggles", existingToggles)
+			storageContext.workspaceState.set("localIsaacRulesToggles", existingToggles)
 
 			const mockCtx = createMockVSCodeContext()
-			mockCtx._workspaceStateStore.set("localDiracRulesToggles", {
+			mockCtx._workspaceStateStore.set("localIsaacRulesToggles", {
 				"rule-vscode": true,
 			})
 
 			const result = await exportVSCodeStorageToSharedFiles(mockCtx as any, storageContext)
 
 			result.migrated.should.be.true()
-			const stored = storageContext.workspaceState.get("localDiracRulesToggles") as any
+			const stored = storageContext.workspaceState.get("localIsaacRulesToggles") as any
 			stored.should.deepEqual(existingToggles)
 		})
 	})
@@ -412,18 +412,18 @@ describe("createStorageContext", () => {
 
 	it("should create all three stores", () => {
 		const ctx = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/fake/workspace",
 		})
 
-		ctx.globalState.should.be.instanceOf(DiracFileStorage)
-		ctx.secrets.should.be.instanceOf(DiracFileStorage)
-		ctx.workspaceState.should.be.instanceOf(DiracFileStorage)
+		ctx.globalState.should.be.instanceOf(IsaacFileStorage)
+		ctx.secrets.should.be.instanceOf(IsaacFileStorage)
+		ctx.workspaceState.should.be.instanceOf(IsaacFileStorage)
 	})
 
 	it("should create directories", () => {
 		const ctx = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/fake/workspace",
 		})
 
@@ -433,11 +433,11 @@ describe("createStorageContext", () => {
 
 	it("should produce deterministic workspace hashes", () => {
 		const ctx1 = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/some/project",
 		})
 		const ctx2 = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/some/project",
 		})
 
@@ -446,11 +446,11 @@ describe("createStorageContext", () => {
 
 	it("should produce different hashes for different workspaces", () => {
 		const ctx1 = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/project-a",
 		})
 		const ctx2 = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/project-b",
 		})
 
@@ -460,7 +460,7 @@ describe("createStorageContext", () => {
 	it("should use explicit workspaceStorageDir when provided", () => {
 		const explicitDir = path.join(tempDir, "explicit-ws")
 		const ctx = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/ignored",
 			workspaceStorageDir: explicitDir,
 		})
@@ -470,7 +470,7 @@ describe("createStorageContext", () => {
 
 	it("should store and retrieve values correctly", () => {
 		const ctx = createStorageContext({
-			diracDir: tempDir,
+			isaacDir: tempDir,
 			workspacePath: "/test",
 		})
 

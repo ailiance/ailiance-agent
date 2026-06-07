@@ -1,8 +1,8 @@
 /**
- * Terminal display utilities for rendering Dirac messages in the CLI
+ * Terminal display utilities for rendering Isaac messages in the CLI
  */
 
-import type { DiracAsk, DiracMessage, DiracSay, ExtensionState } from "@shared/ExtensionMessage"
+import type { ExtensionState, IsaacAsk, IsaacMessage, IsaacSay } from "@shared/ExtensionMessage"
 import { originalConsoleError, originalConsoleLog } from "./console"
 
 // ANSI color codes for terminal output
@@ -53,7 +53,6 @@ export function centerText(text: string, terminalWidth?: number): string {
 	return " ".repeat(padding) + text
 }
 
-
 export function colorize(text: string, ...colorCodes: string[]): string {
 	return colorCodes.join("") + text + colors.reset
 }
@@ -98,7 +97,7 @@ export function formatTimestamp(ts: number): string {
 /**
  * Get a prefix icon for different message types
  */
-function getMessageIcon(message: DiracMessage): string {
+function getMessageIcon(message: IsaacMessage): string {
 	if (message.type === "ask") {
 		switch (message.ask) {
 			case "followup":
@@ -160,9 +159,9 @@ function getMessageIcon(message: DiracMessage): string {
 }
 
 /**
- * Format a DiracMessage for terminal display
+ * Format a IsaacMessage for terminal display
  */
-export function formatMessage(message: DiracMessage, verbose = false): string {
+export function formatMessage(message: IsaacMessage, verbose = false): string {
 	const timestamp = formatTimestamp(message.ts)
 	const lines: string[] = []
 
@@ -196,8 +195,8 @@ export function formatMessage(message: DiracMessage, verbose = false): string {
 	return lines.filter(Boolean).join("\n")
 }
 
-function formatAskMessage(message: DiracMessage, prefix: string, verbose: boolean): string {
-	const ask = message.ask as DiracAsk
+function formatAskMessage(message: IsaacMessage, prefix: string, verbose: boolean): string {
+	const ask = message.ask as IsaacAsk
 
 	switch (ask) {
 		case "followup": {
@@ -222,8 +221,8 @@ function formatAskMessage(message: DiracMessage, prefix: string, verbose: boolea
 	}
 }
 
-function formatSayMessage(message: DiracMessage, prefix: string, verbose: boolean): string {
-	const say = message.say as DiracSay
+function formatSayMessage(message: IsaacMessage, prefix: string, verbose: boolean): string {
+	const say = message.say as IsaacSay
 
 	switch (say) {
 		case "task":
@@ -265,19 +264,12 @@ function formatSayMessage(message: DiracMessage, prefix: string, verbose: boolea
 /**
  * Identify if a message is a tool call and return its type/name
  */
-function getToolType(message: DiracMessage): string | null {
+function getToolType(message: IsaacMessage): string | null {
 	if (message.type === "say" && message.say === "tool") {
 		return "tool"
 	}
 	if (message.type === "ask") {
-		const toolAsks = [
-			"tool",
-			"command",
-			"browser_action_launch",
-			"plan_mode_respond",
-			"act_mode_respond",
-			"use_subagents",
-		]
+		const toolAsks = ["tool", "command", "browser_action_launch", "plan_mode_respond", "act_mode_respond", "use_subagents"]
 		if (message.ask && toolAsks.includes(message.ask)) {
 			return message.ask
 		}
@@ -288,7 +280,7 @@ function getToolType(message: DiracMessage): string | null {
 /**
  * Handle formatting of API request messages
  */
-function formatApiReqMessage(message: DiracMessage, prefix: string, verbose: boolean): string {
+function formatApiReqMessage(message: IsaacMessage, prefix: string, verbose: boolean): string {
 	if (message.say === "api_req_started") {
 		return verbose ? `${prefix} ${style.api("API request started")}` : ""
 	}
@@ -349,10 +341,10 @@ export function formatState(state: ExtensionState, verbose = false): string {
 	}
 
 	// Show messages
-	if (state.diracMessages && state.diracMessages.length > 0) {
+	if (state.isaacMessages && state.isaacMessages.length > 0) {
 		const messagesToShow = verbose
-			? state.diracMessages
-			: state.diracMessages.filter((m) => {
+			? state.isaacMessages
+			: state.isaacMessages.filter((m) => {
 					// Filter out noisy messages in non-verbose mode
 					// if (m.say === "api_req_started" || m.say === "api_req_finished") return false
 					return true
@@ -502,7 +494,6 @@ export function createContextBar(used: number, total: number, width = 8): { fill
 	const emptyCount = width - filledCount
 	return { filled: "█".repeat(filledCount), empty: "█".repeat(emptyCount) }
 }
-
 
 /**
  * Set the terminal session title using OSC escape sequence.

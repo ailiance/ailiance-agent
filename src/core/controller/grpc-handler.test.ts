@@ -16,7 +16,7 @@ describe("grpc-handler", () => {
 	let mockStreamingHandler: sinon.SinonStub
 	let mockStreamingFailingHandler: sinon.SinonStub
 
-	const serviceName = "dirac.TestService"
+	const serviceName = "isaac.TestService"
 	const mockResponse = { result: "result-1234" }
 
 	beforeEach(() => {
@@ -133,7 +133,7 @@ describe("grpc-handler", () => {
 				expect(mockPostMessageToWebview.calledOnce).to.be.true
 				const sentMessage = mockPostMessageToWebview.firstCall.args[0]
 				expect(sentMessage.type).to.equal("grpc_response")
-				expect(sentMessage.grpc_response?.error).to.include("Unknown rpc: dirac.TestService.unknownMethod")
+				expect(sentMessage.grpc_response?.error).to.include("Unknown rpc: isaac.TestService.unknownMethod")
 				expect(sentMessage.grpc_response?.request_id).to.equal("test-999")
 			})
 		})

@@ -14,7 +14,7 @@ import {
 } from "./fs"
 
 describe("Filesystem Utilities", () => {
-	const tmpDir = path.join(os.tmpdir(), "dirac-test-" + Math.random().toString(36).slice(2))
+	const tmpDir = path.join(os.tmpdir(), "isaac-test-" + Math.random().toString(36).slice(2))
 
 	// Clean up after tests
 	after(async () => {
@@ -206,30 +206,30 @@ describe("Filesystem Utilities", () => {
 		files.sort().should.deepEqual(expectedFiles.sort())
 	})
 
-	it("should exclude .diracrules/workflows directory specifically", async () => {
+	it("should exclude .isaacrules/workflows directory specifically", async () => {
 		// Create a test directory structure
-		const diracrulesDirTest = path.join(tmpDir, "diracrules-test")
-		const diracrulesDirPath = path.join(diracrulesDirTest, ".diracrules")
+		const isaacrulesDirTest = path.join(tmpDir, "isaacrules-test")
+		const isaacrulesDirPath = path.join(isaacrulesDirTest, ".isaacrules")
 
-		// Create .diracrules directory and root files
-		await fs.mkdir(diracrulesDirPath, { recursive: true })
-		await fs.writeFile(path.join(diracrulesDirPath, "config.json"), "{}")
-		await fs.writeFile(path.join(diracrulesDirPath, "settings.js"), "// settings")
+		// Create .isaacrules directory and root files
+		await fs.mkdir(isaacrulesDirPath, { recursive: true })
+		await fs.writeFile(path.join(isaacrulesDirPath, "config.json"), "{}")
+		await fs.writeFile(path.join(isaacrulesDirPath, "settings.js"), "// settings")
 
-		// Create .diracrules/other directory and files
-		const otherDirPath = path.join(diracrulesDirPath, "other")
+		// Create .isaacrules/other directory and files
+		const otherDirPath = path.join(isaacrulesDirPath, "other")
 		await fs.mkdir(otherDirPath, { recursive: true })
 		await fs.writeFile(path.join(otherDirPath, "helper.js"), "// helper code")
 		await fs.writeFile(path.join(otherDirPath, "util.js"), "// util functions")
 
-		// Create .diracrules/workflows directory and files
-		const workflowsDirPath = path.join(diracrulesDirPath, "workflows")
+		// Create .isaacrules/workflows directory and files
+		const workflowsDirPath = path.join(isaacrulesDirPath, "workflows")
 		await fs.mkdir(workflowsDirPath, { recursive: true })
 		await fs.writeFile(path.join(workflowsDirPath, "workflow1.js"), "// workflow1")
 		await fs.writeFile(path.join(workflowsDirPath, "workflow2.js"), "// workflow2")
 
 		// Get all files WITHOUT exclusion
-		const allFiles = await readDirectory(diracrulesDirPath)
+		const allFiles = await readDirectory(isaacrulesDirPath)
 
 		// Verify all files are included
 		allFiles.length.should.equal(6) // 2 in root + 2 in other + 2 in workflows
@@ -237,14 +237,14 @@ describe("Filesystem Utilities", () => {
 		allFiles.some((file) => file.includes("workflow2.js")).should.be.true()
 
 		// Get files WITH workflows directory excluded
-		const filteredFiles = await readDirectory(diracrulesDirPath, [[".diracrules", "workflows"]])
+		const filteredFiles = await readDirectory(isaacrulesDirPath, [[".isaacrules", "workflows"]])
 
 		// Verify workflows files are excluded but others remain
 		filteredFiles.length.should.equal(4) // 2 in root + 2 in other
 
 		const expectedFiles = [
-			path.resolve(diracrulesDirPath, "config.json"),
-			path.resolve(diracrulesDirPath, "settings.js"),
+			path.resolve(isaacrulesDirPath, "config.json"),
+			path.resolve(isaacrulesDirPath, "settings.js"),
 			path.resolve(otherDirPath, "helper.js"),
 			path.resolve(otherDirPath, "util.js"),
 		]
@@ -252,42 +252,42 @@ describe("Filesystem Utilities", () => {
 		filteredFiles.sort().should.deepEqual(expectedFiles.sort())
 
 		// Test with multiple exclusions
-		const multiExcludeFiles = await readDirectory(diracrulesDirPath, [
-			[".diracrules", "workflows"],
-			[".diracrules", "other"],
+		const multiExcludeFiles = await readDirectory(isaacrulesDirPath, [
+			[".isaacrules", "workflows"],
+			[".isaacrules", "other"],
 		])
 
 		// Verify both workflows and other directories are excluded
 		multiExcludeFiles.length.should.equal(2) // only the 2 files in root
 
-		const rootOnlyFiles = [path.resolve(diracrulesDirPath, "config.json"), path.resolve(diracrulesDirPath, "settings.js")]
+		const rootOnlyFiles = [path.resolve(isaacrulesDirPath, "config.json"), path.resolve(isaacrulesDirPath, "settings.js")]
 
 		multiExcludeFiles.sort().should.deepEqual(rootOnlyFiles.sort())
 	})
 
-	it("should exclude .diracrules/hooks directory specifically", async () => {
+	it("should exclude .isaacrules/hooks directory specifically", async () => {
 		// Create a test directory structure
-		const diracrulesDirTest = path.join(tmpDir, "diracrules-hooks-test")
-		const diracrulesDirPath = path.join(diracrulesDirTest, ".diracrules")
+		const isaacrulesDirTest = path.join(tmpDir, "isaacrules-hooks-test")
+		const isaacrulesDirPath = path.join(isaacrulesDirTest, ".isaacrules")
 
-		// Create .diracrules directory and root files
-		await fs.mkdir(diracrulesDirPath, { recursive: true })
-		await fs.writeFile(path.join(diracrulesDirPath, "config.json"), "{}")
-		await fs.writeFile(path.join(diracrulesDirPath, "settings.js"), "// settings")
+		// Create .isaacrules directory and root files
+		await fs.mkdir(isaacrulesDirPath, { recursive: true })
+		await fs.writeFile(path.join(isaacrulesDirPath, "config.json"), "{}")
+		await fs.writeFile(path.join(isaacrulesDirPath, "settings.js"), "// settings")
 
-		// Create .diracrules/workflows directory and files
-		const workflowsDirPath = path.join(diracrulesDirPath, "workflows")
+		// Create .isaacrules/workflows directory and files
+		const workflowsDirPath = path.join(isaacrulesDirPath, "workflows")
 		await fs.mkdir(workflowsDirPath, { recursive: true })
 		await fs.writeFile(path.join(workflowsDirPath, "workflow1.js"), "// workflow1")
 
-		// Create .diracrules/hooks directory and files
-		const hooksDirPath = path.join(diracrulesDirPath, "hooks")
+		// Create .isaacrules/hooks directory and files
+		const hooksDirPath = path.join(isaacrulesDirPath, "hooks")
 		await fs.mkdir(hooksDirPath, { recursive: true })
 		await fs.writeFile(path.join(hooksDirPath, "PreToolUse"), "#!/usr/bin/env bash")
 		await fs.writeFile(path.join(hooksDirPath, "PostToolUse"), "#!/usr/bin/env bash")
 
 		// Get all files WITHOUT exclusion
-		const allFiles = await readDirectory(diracrulesDirPath)
+		const allFiles = await readDirectory(isaacrulesDirPath)
 
 		// Verify all files are included
 		allFiles.length.should.equal(5) // 2 in root + 1 in workflows + 2 in hooks
@@ -295,29 +295,29 @@ describe("Filesystem Utilities", () => {
 		allFiles.some((file) => file.includes("PostToolUse")).should.be.true()
 
 		// Get files WITH hooks directory excluded
-		const filteredFiles = await readDirectory(diracrulesDirPath, [[".diracrules", "hooks"]])
+		const filteredFiles = await readDirectory(isaacrulesDirPath, [[".isaacrules", "hooks"]])
 
 		// Verify hooks files are excluded but others remain
 		filteredFiles.length.should.equal(3) // 2 in root + 1 in workflows
 
 		const expectedFiles = [
-			path.resolve(diracrulesDirPath, "config.json"),
-			path.resolve(diracrulesDirPath, "settings.js"),
+			path.resolve(isaacrulesDirPath, "config.json"),
+			path.resolve(isaacrulesDirPath, "settings.js"),
 			path.resolve(workflowsDirPath, "workflow1.js"),
 		]
 
 		filteredFiles.sort().should.deepEqual(expectedFiles.sort())
 
 		// Test with multiple exclusions (both workflows and hooks)
-		const multiExcludeFiles = await readDirectory(diracrulesDirPath, [
-			[".diracrules", "workflows"],
-			[".diracrules", "hooks"],
+		const multiExcludeFiles = await readDirectory(isaacrulesDirPath, [
+			[".isaacrules", "workflows"],
+			[".isaacrules", "hooks"],
 		])
 
 		// Verify both workflows and hooks directories are excluded
 		multiExcludeFiles.length.should.equal(2) // only the 2 files in root
 
-		const rootOnlyFiles = [path.resolve(diracrulesDirPath, "config.json"), path.resolve(diracrulesDirPath, "settings.js")]
+		const rootOnlyFiles = [path.resolve(isaacrulesDirPath, "config.json"), path.resolve(isaacrulesDirPath, "settings.js")]
 
 		multiExcludeFiles.sort().should.deepEqual(rootOnlyFiles.sort())
 	})

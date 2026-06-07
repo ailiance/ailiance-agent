@@ -1,17 +1,15 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { ApiHandler } from "@core/api"
-import { DiracApiReqInfo, DiracMessage } from "@shared/ExtensionMessage"
+import { IsaacApiReqInfo, IsaacMessage } from "@shared/ExtensionMessage"
 import cloneDeep from "clone-deep"
 import { Logger } from "@/shared/services/Logger"
 import { getContextWindowInfo } from "./context-window-utils"
-
 
 export class ContextManager {
 	// mapping from the apiMessages outer index to the inner message index to a list of actual changes, ordered by timestamp
 	// timestamp is required in order to support full checkpointing, where the changes we apply need to be able to be undone when
 	// moving to an earlier conversation history checkpoint - this ordering intuitively allows for binary search on truncation
 	// there is also a number stored for each (EditType) which defines which message type it is, for custom handling
-
 
 	constructor() {}
 
@@ -53,21 +51,20 @@ export class ContextManager {
 		return false
 	}
 
-
 	/**
 	 * Determine whether we should compact context window, based on token counts
 	 */
 	shouldCompactContextWindow(
-		diracMessages: DiracMessage[],
+		isaacMessages: IsaacMessage[],
 		api: ApiHandler,
 		previousApiReqIndex: number,
 		thresholdPercentage?: number,
 	): boolean {
 		if (previousApiReqIndex >= 0) {
-			const previousRequestText = diracMessages[previousApiReqIndex]?.text
+			const previousRequestText = isaacMessages[previousApiReqIndex]?.text
 			if (previousRequestText) {
 				try {
-					const { tokensIn, tokensOut, cacheWrites, cacheReads }: DiracApiReqInfo = JSON.parse(previousRequestText)
+					const { tokensIn, tokensOut, cacheWrites, cacheReads }: IsaacApiReqInfo = JSON.parse(previousRequestText)
 					const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
 
 					const { contextWindow, maxAllowedSize } = getContextWindowInfo(api)
@@ -89,7 +86,7 @@ export class ContextManager {
 	 * Returns the token counts and context window info that drove summarization
 	 */
 	getContextTelemetryData(
-		diracMessages: DiracMessage[],
+		isaacMessages: IsaacMessage[],
 		api: ApiHandler,
 		triggerIndex?: number,
 	): {
@@ -102,7 +99,7 @@ export class ContextManager {
 			targetIndex = triggerIndex
 		} else {
 			// Find all API request indices
-			const apiReqIndices = diracMessages
+			const apiReqIndices = isaacMessages
 				.map((msg, index) => (msg.say === "api_req_started" ? index : -1))
 				.filter((index) => index !== -1)
 
@@ -111,10 +108,10 @@ export class ContextManager {
 		}
 
 		if (targetIndex >= 0) {
-			const targetRequestText = diracMessages[targetIndex]?.text
+			const targetRequestText = isaacMessages[targetIndex]?.text
 			if (targetRequestText) {
 				try {
-					const { tokensIn, tokensOut, cacheWrites, cacheReads }: DiracApiReqInfo = JSON.parse(targetRequestText)
+					const { tokensIn, tokensOut, cacheWrites, cacheReads }: IsaacApiReqInfo = JSON.parse(targetRequestText)
 					const tokensUsed = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
 
 					const { contextWindow } = getContextWindowInfo(api)
@@ -136,7 +133,7 @@ export class ContextManager {
 	 */
 	async getNewContextMessagesAndMetadata(
 		apiConversationHistory: Anthropic.Messages.MessageParam[],
-		diracMessages: DiracMessage[],
+		isaacMessages: IsaacMessage[],
 		api: ApiHandler,
 		conversationHistoryDeletedRange: [number, number] | undefined,
 		previousApiReqIndex: number,
@@ -148,9 +145,9 @@ export class ContextManager {
 		if (!useAutoCondense) {
 			// If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
 			if (previousApiReqIndex >= 0) {
-				const previousRequestText = diracMessages[previousApiReqIndex]?.text
+				const previousRequestText = isaacMessages[previousApiReqIndex]?.text
 				if (previousRequestText) {
-					const { tokensIn, tokensOut, cacheWrites, cacheReads }: DiracApiReqInfo = JSON.parse(previousRequestText)
+					const { tokensIn, tokensOut, cacheWrites, cacheReads }: IsaacApiReqInfo = JSON.parse(previousRequestText)
 					const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
 					const { maxAllowedSize } = getContextWindowInfo(api)
 
@@ -221,7 +218,7 @@ export class ContextManager {
 		let rangeEndIndex = startOfRest + messagesToRemove - 1 // inclusive ending index
 
 		// Make sure that the last message being removed is a assistant message, so the next message after the initial user-assistant pair is an assistant message. This preserves the user-assistant-user-assistant structure.
-		// NOTE: anthropic format messages are always user-assistant-user-assistant, while openai format messages can have multiple user messages in a row (we use anthropic format throughout dirac)
+		// NOTE: anthropic format messages are always user-assistant-user-assistant, while openai format messages can have multiple user messages in a row (we use anthropic format throughout isaac)
 		if (apiMessages[rangeEndIndex] && apiMessages[rangeEndIndex].role !== "assistant") {
 			rangeEndIndex -= 1
 		}

@@ -4,41 +4,40 @@
  */
 
 import {
-    GlobalStateAndSettings,
-    GlobalStateAndSettingsKey,
-    LocalState,
-    LocalStateKey,
-    SETTINGS_DEFAULTS,
+	GlobalStateAndSettings,
+	GlobalStateAndSettingsKey,
+	LocalState,
+	LocalStateKey,
+	SETTINGS_DEFAULTS,
 } from "@shared/storage/state-keys"
 import { Box, Text, useApp, useInput } from "ink"
 import React, { useMemo, useState } from "react"
 import { useStdinContext } from "../context/StdinContext"
+import { getObjectAtPath, setObjectValueAtPath } from "../utils/config"
 import { fuzzyFilter } from "../utils/fuzzy-search"
 import {
-    BooleanSelect,
-    buildConfigEntries,
-    buildToggleEntries,
-    ConfigRow,
-    HookInfo,
-    HookRow,
-    MAX_VISIBLE,
-    ObjectEditorPanel,
-    ObjectEditorState,
-    parseValue,
-    SEPARATOR,
-    SectionHeader,
-    SkillInfo,
-    SkillRow,
-    TABS,
-    TabBar,
-    TabView,
-    TextInput,
-    ToggleEntry,
-    ToggleRow,
-    WorkspaceHooks,
+	BooleanSelect,
+	buildConfigEntries,
+	buildToggleEntries,
+	ConfigRow,
+	HookInfo,
+	HookRow,
+	MAX_VISIBLE,
+	ObjectEditorPanel,
+	ObjectEditorState,
+	parseValue,
+	SEPARATOR,
+	SectionHeader,
+	SkillInfo,
+	SkillRow,
+	TABS,
+	TabBar,
+	TabView,
+	TextInput,
+	ToggleEntry,
+	ToggleRow,
+	WorkspaceHooks,
 } from "./ConfigViewComponents"
-import { getObjectAtPath, setObjectValueAtPath } from "../utils/config"
-
 
 const SETTING_HELP_TEXT: Record<string, string> = {
 	openAiBaseUrl: "The base URL of the OpenAI-compatible API. Note: Do not include /chat/completions at the end.",
@@ -59,8 +58,8 @@ interface ConfigViewProps {
 	onUpdateGlobal?: (key: GlobalStateAndSettingsKey, value: GlobalStateAndSettings[GlobalStateAndSettingsKey]) => void
 	onUpdateWorkspace?: (key: LocalStateKey, value: LocalState[LocalStateKey]) => void
 	// Rules toggles
-	globalDiracRulesToggles?: Record<string, boolean>
-	localDiracRulesToggles?: Record<string, boolean>
+	globalIsaacRulesToggles?: Record<string, boolean>
+	localIsaacRulesToggles?: Record<string, boolean>
 	localCursorRulesToggles?: Record<string, boolean>
 	localWindsurfRulesToggles?: Record<string, boolean>
 	localAgentsRulesToggles?: Record<string, boolean>
@@ -93,8 +92,8 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 	workspaceState,
 	onUpdateGlobal,
 	onUpdateWorkspace,
-	globalDiracRulesToggles,
-	localDiracRulesToggles,
+	globalIsaacRulesToggles,
+	localIsaacRulesToggles,
 	localCursorRulesToggles,
 	localWindsurfRulesToggles,
 	localAgentsRulesToggles,
@@ -137,15 +136,15 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 	// Build entries for rules tab
 	const ruleEntries = useMemo(() => {
 		const entries: ToggleEntry[] = []
-		entries.push(...buildToggleEntries(globalDiracRulesToggles, "global", "dirac"))
-		entries.push(...buildToggleEntries(localDiracRulesToggles, "workspace", "dirac"))
+		entries.push(...buildToggleEntries(globalIsaacRulesToggles, "global", "isaac"))
+		entries.push(...buildToggleEntries(localIsaacRulesToggles, "workspace", "isaac"))
 		entries.push(...buildToggleEntries(localCursorRulesToggles, "workspace", "cursor"))
 		entries.push(...buildToggleEntries(localWindsurfRulesToggles, "workspace", "windsurf"))
 		entries.push(...buildToggleEntries(localAgentsRulesToggles, "workspace", "agents"))
 		return entries
 	}, [
-		globalDiracRulesToggles,
-		localDiracRulesToggles,
+		globalIsaacRulesToggles,
+		localIsaacRulesToggles,
 		localCursorRulesToggles,
 		localWindsurfRulesToggles,
 		localAgentsRulesToggles,
@@ -240,7 +239,6 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 		setIsEditing(false)
 	}
 
-
 	const persistObjectEditor = (nextObject: Record<string, unknown>, source: "global" | "workspace", key: string) => {
 		if (source === "global" && onUpdateGlobal) {
 			onUpdateGlobal(key as GlobalStateAndSettingsKey, nextObject as never)
@@ -263,7 +261,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 	const handleToggle = () => {
 		if (currentTab === "rules" && ruleEntries[selectedIndex] && onToggleRule) {
 			const entry = ruleEntries[selectedIndex]
-			onToggleRule(entry.source === "global", entry.path, !entry.enabled, entry.ruleType || "dirac")
+			onToggleRule(entry.source === "global", entry.path, !entry.enabled, entry.ruleType || "isaac")
 		} else if (currentTab === "workflows" && workflowEntries[selectedIndex] && onToggleWorkflow) {
 			const entry = workflowEntries[selectedIndex]
 			onToggleWorkflow(entry.source === "global", entry.path, !entry.enabled)
@@ -468,7 +466,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 					return (
 						<Box>
 							<Text color="gray">
-								No rules configured. Add .diracrules files to your workspace or global config.
+								No rules configured. Add .isaacrules files to your workspace or global config.
 							</Text>
 						</Box>
 					)
@@ -607,7 +605,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
 	return (
 		<Box flexDirection="column">
 			<Text bold color="white">
-				{/* ISAAC fork: rebrand "Dirac" → "ISAAC" in config header */}
+				{/* ISAAC fork: rebrand "Isaac" → "ISAAC" in config header */}
 				⚙️ ISAAC Configuration
 			</Text>
 			<Text color="gray">{SEPARATOR}</Text>

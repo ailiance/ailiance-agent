@@ -1,13 +1,13 @@
-import { DiracEndpoint } from "@/config"
-import { isDiracTelemetryConfigValid, diracTelemetryConfig } from "@/shared/services/config/dirac-telemetry-config"
+import { IsaacEndpoint } from "@/config"
+import { isaacTelemetryConfig, isIsaacTelemetryConfigValid } from "@/shared/services/config/isaac-telemetry-config"
 import { Logger } from "@/shared/services/Logger"
 import type { FeatureFlagsAndPayloads, IFeatureFlagsProvider } from "./providers/IFeatureFlagsProvider"
-import { DiracFeatureFlagsProvider } from "./providers/DiracFeatureFlagsProvider"
+import { IsaacFeatureFlagsProvider } from "./providers/IsaacFeatureFlagsProvider"
 
 /**
  * Supported feature flags provider types
  */
-export type FeatureFlagsProviderType = "dirac" | "no-op"
+export type FeatureFlagsProviderType = "isaac" | "no-op"
 
 /**
  * Configuration for feature flags providers
@@ -28,8 +28,8 @@ export class FeatureFlagsProviderFactory {
 	 */
 	public static createProvider(config: FeatureFlagsProviderConfig): IFeatureFlagsProvider {
 		switch (config.type) {
-			case "dirac": {
-				return new DiracFeatureFlagsProvider()
+			case "isaac": {
+				return new IsaacFeatureFlagsProvider()
 			}
 			default:
 				return new NoOpFeatureFlagsProvider()
@@ -38,16 +38,16 @@ export class FeatureFlagsProviderFactory {
 
 	/**
 	 * Gets the default feature flags provider configuration
-	 * @returns Default configuration using Dirac, or no-op for self-hosted mode
+	 * @returns Default configuration using Isaac, or no-op for self-hosted mode
 	 */
 	public static getDefaultConfig(): FeatureFlagsProviderConfig {
 		// Use no-op provider in self-hosted mode to avoid external network calls
-		if (DiracEndpoint.isSelfHosted()) {
+		if (IsaacEndpoint.isSelfHosted()) {
 			return { type: "no-op" }
 		}
-		const hasValidConfig = isDiracTelemetryConfigValid(diracTelemetryConfig)
+		const hasValidConfig = isIsaacTelemetryConfigValid(isaacTelemetryConfig)
 		return {
-			type: hasValidConfig ? "dirac" : "no-op",
+			type: hasValidConfig ? "isaac" : "no-op",
 		}
 	}
 }

@@ -6,10 +6,10 @@ import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { getLocalRouter } from "@/services/local-router/instance"
 import type { LocalRouter } from "@/services/local-router/LocalRouter"
 import type { WorkerEndpoint } from "@/services/local-router/types"
-import { DiracStorageMessage } from "@/shared/messages/content"
+import { IsaacStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
-import { DiracTool } from "@/shared/tools"
+import { IsaacTool } from "@/shared/tools"
 import { isAnthropicModelId } from "@/utils/model-utils"
 import { ApiHandler, CommonApiHandlerOptions } from ".."
 import { withRetry } from "../retry"
@@ -240,7 +240,7 @@ export class LiteLlmHandler implements ApiHandler {
 	}
 
 	@withRetry()
-	async *createMessage(systemPrompt: string, messages: DiracStorageMessage[], tools?: DiracTool[]): ApiStream {
+	async *createMessage(systemPrompt: string, messages: IsaacStorageMessage[], tools?: IsaacTool[]): ApiStream {
 		// Try LocalRouter first (streaming, text-only path).
 		// Skip when tools are present — LocalRouter does not propagate tool_calls.
 		if (this.localRouter && (!tools || tools.length === 0)) {
@@ -386,7 +386,7 @@ export class LiteLlmHandler implements ApiHandler {
 			drop_params: true,
 			...(!isCodexModel && { stream_options: { include_usage: true } }), // Codex models are only on the responses api, which doesn't take the stream_options parameter. we will need to migrate to the responses api for this to work
 			...(thinkingConfig && { thinking: thinkingConfig }), // Add thinking configuration when applicable
-			...(this.options.ulid && { litellm_session_id: `dirac-${this.options.ulid}` }), // Add session ID for LiteLLM tracking
+			...(this.options.ulid && { litellm_session_id: `isaac-${this.options.ulid}` }), // Add session ID for LiteLLM tracking
 			...toolParams,
 		} as LiteLlmChatCompletionCreateParams)
 

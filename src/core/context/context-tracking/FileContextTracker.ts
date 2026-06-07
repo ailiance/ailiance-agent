@@ -1,5 +1,5 @@
 import { getTaskMetadata, readTaskHistoryFromState, saveTaskMetadata } from "@core/storage/disk"
-import type { DiracMessage } from "@shared/ExtensionMessage"
+import type { IsaacMessage } from "@shared/ExtensionMessage"
 import chokidar, { FSWatcher } from "chokidar"
 import * as path from "path"
 import { Controller } from "@/core/controller"
@@ -9,17 +9,17 @@ import { getCwd } from "@/utils/path"
 import type { FileMetadataEntry } from "./ContextTrackerTypes"
 
 // This class is responsible for tracking file operations that may result in stale context.
-// If a user modifies a file outside of Dirac, the context may become stale and need to be updated.
-// We do not want Dirac to reload the context every time a file is modified, so we use this class merely
-// to inform Dirac that the change has occurred, and tell Dirac to reload the file before making
-// any changes to it. This fixes an issue with diff editing, where Dirac was unable to complete a diff edit.
-// a diff edit because the file was modified since Dirac last read it.
+// If a user modifies a file outside of Isaac, the context may become stale and need to be updated.
+// We do not want Isaac to reload the context every time a file is modified, so we use this class merely
+// to inform Isaac that the change has occurred, and tell Isaac to reload the file before making
+// any changes to it. This fixes an issue with diff editing, where Isaac was unable to complete a diff edit.
+// a diff edit because the file was modified since Isaac last read it.
 
 // FileContextTracker
 /**
 This class is responsible for tracking file operations.
-If the full contents of a file are passed to Dirac via a tool, mention, or edit, the file is marked as active.
-If a file is modified outside of Dirac, we detect and track this change to prevent stale context.
+If the full contents of a file are passed to Isaac via a tool, mention, or edit, the file is marked as active.
+If a file is modified outside of Isaac, we detect and track this change to prevent stale context.
 This is used when restoring a task (non-git "checkpoint" restore), and mid-task.
 */
 export class FileContextTracker {
@@ -29,7 +29,7 @@ export class FileContextTracker {
 	// File tracking and watching
 	private fileWatchers = new Map<string, FSWatcher>()
 	private recentlyModifiedFiles = new Set<string>()
-	private recentlyEditedByDirac = new Set<string>()
+	private recentlyEditedByIsaac = new Set<string>()
 
 	constructor(controller: Controller, taskId: string) {
 		this.controller = controller
@@ -66,10 +66,10 @@ export class FileContextTracker {
 
 		// Track file changes
 		watcher.on("change", () => {
-			if (this.recentlyEditedByDirac.has(filePath)) {
-				this.recentlyEditedByDirac.delete(filePath) // This was an edit by Dirac, no need to inform Dirac
+			if (this.recentlyEditedByIsaac.has(filePath)) {
+				this.recentlyEditedByIsaac.delete(filePath) // This was an edit by Isaac, no need to inform Isaac
 			} else {
-				this.recentlyModifiedFiles.add(filePath) // This was a user edit, we will inform Dirac
+				this.recentlyModifiedFiles.add(filePath) // This was a user edit, we will inform Isaac
 				this.trackFileContext(filePath, "user_edited") // Update the task metadata with file tracking
 			}
 		})
@@ -80,9 +80,9 @@ export class FileContextTracker {
 
 	/**
 	 * Tracks a file operation in metadata and sets up a watcher for the file
-	 * This is the main entry point for FileContextTracker and is called when a file is passed to Dirac via a tool, mention, or edit.
+	 * This is the main entry point for FileContextTracker and is called when a file is passed to Isaac via a tool, mention, or edit.
 	 */
-	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "dirac_edited" | "file_mentioned") {
+	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "isaac_edited" | "file_mentioned") {
 		try {
 			const cwd = await getCwd()
 			if (!cwd) {
@@ -130,8 +130,8 @@ export class FileContextTracker {
 				path: filePath,
 				record_state: "active",
 				record_source: source,
-				dirac_read_date: getLatestDateForField(filePath, "dirac_read_date"),
-				dirac_edit_date: getLatestDateForField(filePath, "dirac_edit_date"),
+				isaac_read_date: getLatestDateForField(filePath, "isaac_read_date"),
+				isaac_edit_date: getLatestDateForField(filePath, "isaac_edit_date"),
 				user_edit_date: getLatestDateForField(filePath, "user_edit_date"),
 			}
 
@@ -142,16 +142,16 @@ export class FileContextTracker {
 					this.recentlyModifiedFiles.add(filePath)
 					break
 
-				// dirac_edited: Dirac has edited the file
-				case "dirac_edited":
-					newEntry.dirac_read_date = now
-					newEntry.dirac_edit_date = now
+				// isaac_edited: Isaac has edited the file
+				case "isaac_edited":
+					newEntry.isaac_read_date = now
+					newEntry.isaac_edit_date = now
 					break
 
-				// read_tool/file_mentioned: Dirac has read the file via a tool or file mention
+				// read_tool/file_mentioned: Isaac has read the file via a tool or file mention
 				case "read_tool":
 				case "file_mentioned":
-					newEntry.dirac_read_date = now
+					newEntry.isaac_read_date = now
 					break
 			}
 
@@ -172,10 +172,10 @@ export class FileContextTracker {
 	}
 
 	/**
-	 * Marks a file as edited by Dirac to prevent false positives in file watchers
+	 * Marks a file as edited by Isaac to prevent false positives in file watchers
 	 */
-	markFileAsEditedByDirac(filePath: string): void {
-		this.recentlyEditedByDirac.add(filePath)
+	markFileAsEditedByIsaac(filePath: string): void {
+		this.recentlyEditedByIsaac.add(filePath)
 	}
 
 	/**
@@ -188,22 +188,22 @@ export class FileContextTracker {
 	}
 
 	/**
-	 * Detects files that were edited by Dirac or users after a specific message timestamp
+	 * Detects files that were edited by Isaac or users after a specific message timestamp
 	 * This is used when restoring checkpoints to warn about potential file content mismatches
 	 */
-	async detectFilesEditedAfterMessage(messageTs: number, deletedMessages: DiracMessage[]): Promise<string[]> {
+	async detectFilesEditedAfterMessage(messageTs: number, deletedMessages: IsaacMessage[]): Promise<string[]> {
 		const editedFiles: string[] = []
 
 		try {
-			// Check task metadata for files that were edited by Dirac or users after the message timestamp
+			// Check task metadata for files that were edited by Isaac or users after the message timestamp
 			const taskMetadata = await getTaskMetadata(this.taskId)
 
 			if (taskMetadata?.files_in_context) {
 				for (const fileEntry of taskMetadata.files_in_context) {
-					const diracEditedAfter = fileEntry.dirac_edit_date && fileEntry.dirac_edit_date > messageTs
+					const isaacEditedAfter = fileEntry.isaac_edit_date && fileEntry.isaac_edit_date > messageTs
 					const userEditedAfter = fileEntry.user_edit_date && fileEntry.user_edit_date > messageTs
 
-					if (diracEditedAfter || userEditedAfter) {
+					if (isaacEditedAfter || userEditedAfter) {
 						editedFiles.push(fileEntry.path)
 					}
 				}

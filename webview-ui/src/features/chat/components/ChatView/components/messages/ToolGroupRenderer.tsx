@@ -1,22 +1,22 @@
-import { DiracApiReqInfo, DiracMessage, DiracSayTool } from "@shared/ExtensionMessage"
-import { StringRequest } from "@shared/proto/dirac/common"
+import { IsaacApiReqInfo, IsaacMessage, IsaacSayTool } from "@shared/ExtensionMessage"
+import { StringRequest } from "@shared/proto/isaac/common"
 import { memo, useCallback, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/shared/api/grpc-client"
-import { getToolsNotInCurrentActivities } from "../../utils/messageUtils"
-import { serializeToolToDisplayUnits } from "../../utils/toolSerialization"
-import { ToolRow } from "../../../ChatRow/ToolRow"
 import { getComponentForTool } from "../../../ChatRow/ToolRegistry"
+import { ToolRow } from "../../../ChatRow/ToolRow"
 import { DisplayUnit } from "../../../ChatRow/types"
 import { RequestStartRow } from "../../../RequestStartRow"
+import { getToolsNotInCurrentActivities } from "../../utils/messageUtils"
+import { serializeToolToDisplayUnits } from "../../utils/toolSerialization"
 
 interface ToolGroupRendererProps {
-	messages: DiracMessage[]
-	allMessages: DiracMessage[]
+	messages: IsaacMessage[]
+	allMessages: IsaacMessage[]
 	isLastGroup: boolean
 }
 
-const getCurrentActivities = (allMessages: DiracMessage[]): DiracMessage[] => {
+const getCurrentActivities = (allMessages: IsaacMessage[]): IsaacMessage[] => {
 	let currentApiReqIndex = -1
 	let lastFinishedApiReqIndex = -1
 	for (let i = allMessages.length - 1; i >= 0; i--) {
@@ -28,10 +28,9 @@ const getCurrentActivities = (allMessages: DiracMessage[]): DiracMessage[] => {
 				if (!hasCost) {
 					currentApiReqIndex = i
 					break
-				} else {
-					if (lastFinishedApiReqIndex === -1) {
-						lastFinishedApiReqIndex = i
-					}
+				}
+				if (lastFinishedApiReqIndex === -1) {
+					lastFinishedApiReqIndex = i
 				}
 			} catch {
 				// ignore
@@ -45,7 +44,7 @@ const getCurrentActivities = (allMessages: DiracMessage[]): DiracMessage[] => {
 		return []
 	}
 
-	const activities: DiracMessage[] = []
+	const activities: IsaacMessage[] = []
 	for (let i = startIndex + 1; i < allMessages.length; i++) {
 		const msg = allMessages[i]
 		if (msg.say !== "tool" && msg.ask !== "tool") {
@@ -68,7 +67,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 	const apiReqInfo = useMemo(() => {
 		if (!apiReqMessage?.text) return undefined
 		try {
-			return JSON.parse(apiReqMessage.text) as DiracApiReqInfo
+			return JSON.parse(apiReqMessage.text) as IsaacApiReqInfo
 		} catch {
 			return undefined
 		}
@@ -82,7 +81,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 	}, [allMessages, isLastGroup])
 
 	const displayUnits = useMemo(() => {
-		const units: (DisplayUnit & { tool: DiracSayTool; message: DiracMessage })[] = []
+		const units: (DisplayUnit & { tool: IsaacSayTool; message: IsaacMessage })[] = []
 
 		// Add completed tools
 		filteredMessages.forEach((msg) => {
@@ -97,7 +96,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 						hasComponent: !!getComponentForTool(u.type),
 						tool: parsedTool,
 						message: msg,
-					}))
+					})),
 				)
 			} catch (e) {
 				console.error("Failed to parse tool message", e)
@@ -117,7 +116,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 						hasComponent: !!getComponentForTool(u.type),
 						tool: parsedTool,
 						message: msg,
-					}))
+					})),
 				)
 			} catch (e) {
 				console.error("Failed to parse active tool message", e)
@@ -129,7 +128,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 
 	const handleOpenFile = useCallback((filePath: string) => {
 		FileServiceClient.openFileRelativePath(StringRequest.create({ value: filePath })).catch((err) =>
-			console.error("Failed to open file:", err)
+			console.error("Failed to open file:", err),
 		)
 	}, [])
 
@@ -148,8 +147,8 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 					<div className="mb-1 -ml-1">
 						<RequestStartRow
 							cost={apiReqInfo?.cost}
-							diracMessagesCount={allMessages.length}
 							handleToggle={() => {}}
+							isaacMessagesCount={allMessages.length}
 							isExpanded={false}
 							message={apiReqMessage}
 							responseStarted={true}
@@ -160,21 +159,21 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 					const Component = getComponentForTool(unit.type)
 					const isExpanded = expandedItems[unit.id]
 					return (
-						<div key={unit.id} className="flex flex-col gap-1">
+						<div className="flex flex-col gap-1" key={unit.id}>
 							<ToolRow
-								unit={unit}
 								isExpanded={isExpanded}
-								onToggleExpand={handleToggleExpand}
 								onPathClick={handleOpenFile}
+								onToggleExpand={handleToggleExpand}
+								unit={unit}
 							/>
 							{Component && isExpanded && (
 								<div className="ml-4 mt-1 border-l-2 border-editor-group-border pl-2">
 									<Component
-										unit={unit}
-										tool={unit.tool}
-										message={unit.message}
 										isExpanded={true}
+										message={unit.message}
 										onToggleExpand={() => handleToggleExpand(unit.id)}
+										tool={unit.tool}
+										unit={unit}
 									/>
 								</div>
 							)}

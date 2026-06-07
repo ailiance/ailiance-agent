@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { DiracDefaultTool } from "@shared/tools"
+import { IsaacDefaultTool } from "@shared/tools"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import { ANCHOR_DELIMITER } from "@utils/line-hashing"
 import { afterEach, beforeEach, describe, it } from "mocha"
@@ -44,7 +44,6 @@ function createConfig() {
 		hideReview: sinon.stub().resolves(),
 		undoUserEdits: sinon.stub().resolves(),
 	}
-
 
 	const callbacks = {
 		say: sinon.stub().resolves(undefined),
@@ -112,12 +111,12 @@ function createConfig() {
 			},
 			fileContextTracker: {
 				trackFileContext: sinon.stub().resolves(),
-				markFileAsEditedByDirac: sinon.stub(),
+				markFileAsEditedByIsaac: sinon.stub(),
 			},
 			browserSession: {},
 			urlContentFetcher: {},
 			diffViewProvider,
-			diracIgnoreController: { validateAccess: () => true },
+			isaacIgnoreController: { validateAccess: () => true },
 			commandPermissionController: {},
 			contextManager: {},
 		},
@@ -135,13 +134,15 @@ describe("EditFileToolHandler.execute – validation", () => {
 
 	beforeEach(async () => {
 		sandbox = sinon.createSandbox()
-		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dirac-edit-val-test-"))
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "isaac-edit-val-test-"))
 
 		sandbox.stub(getDiagnosticsProvidersModule, "getDiagnosticsProviders").returns([
 			{
 				capturePreSaveState: sandbox.stub().resolves([]),
 				getDiagnosticsFeedback: sandbox.stub().resolves({ newProblemsMessage: "", fixedCount: 0 }),
-				getDiagnosticsFeedbackForFiles: sandbox.stub().callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
+				getDiagnosticsFeedbackForFiles: sandbox
+					.stub()
+					.callsFake(async (data) => data.map(() => ({ newProblemsMessage: "", fixedCount: 0 }))),
 			} as any,
 		])
 
@@ -179,7 +180,7 @@ describe("EditFileToolHandler.execute – validation", () => {
 		const edits = [{ edit_type: "replace", anchor: anchors[1], end_anchor: anchors[1], text: "new line 2" }]
 		const block = {
 			type: "tool_use" as const,
-			name: DiracDefaultTool.EDIT_FILE,
+			name: IsaacDefaultTool.EDIT_FILE,
 			params: {
 				files: [
 					{
@@ -211,7 +212,7 @@ describe("EditFileToolHandler.execute – validation", () => {
 
 		const block = {
 			type: "tool_use" as const,
-			name: DiracDefaultTool.EDIT_FILE,
+			name: IsaacDefaultTool.EDIT_FILE,
 			params: {
 				files: [
 					{
@@ -231,6 +232,10 @@ describe("EditFileToolHandler.execute – validation", () => {
 		// Verify tool response indicates error
 		assert.ok(typeof result === "string")
 		assert.ok(result.includes("The tool execution failed with the following error"))
-		assert.ok(result.includes("The 'edits' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON."))
+		assert.ok(
+			result.includes(
+				"The 'edits' parameter must be a valid JSON array of objects. If you provided a string, ensure it is valid JSON.",
+			),
+		)
 	})
 })

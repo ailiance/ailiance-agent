@@ -3,7 +3,7 @@ import "should"
 import * as sinon from "sinon"
 import { Controller } from "../core/controller"
 import { getAvailableSlashCommands } from "../core/controller/slash/getAvailableSlashCommands"
-import { EmptyRequest } from "../shared/proto/dirac/common"
+import { EmptyRequest } from "../shared/proto/isaac/common"
 import { BASE_SLASH_COMMANDS } from "../shared/slashCommands"
 
 /**
@@ -112,7 +112,7 @@ describe("getAvailableSlashCommands", () => {
 
 		it("should extract filename from full path", async () => {
 			mockStateManager.getWorkspaceStateKey.withArgs("workflowToggles").returns({
-				"/Users/test/project/.diracrules/workflows/deep-analysis.md": true,
+				"/Users/test/project/.isaacrules/workflows/deep-analysis.md": true,
 			})
 
 			const response = await getAvailableSlashCommands(mockController as Controller, EmptyRequest.create())
@@ -123,7 +123,7 @@ describe("getAvailableSlashCommands", () => {
 
 		it("should handle Windows-style paths", async () => {
 			mockStateManager.getWorkspaceStateKey.withArgs("workflowToggles").returns({
-				"C:\\Users\\test\\project\\.diracrules\\workflows\\windows-workflow.md": true,
+				"C:\\Users\\test\\project\\.isaacrules\\workflows\\windows-workflow.md": true,
 			})
 
 			const response = await getAvailableSlashCommands(mockController as Controller, EmptyRequest.create())

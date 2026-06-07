@@ -26,20 +26,20 @@ export const E2E_REGISTERED_MOCK_ENDPOINTS = {
 	},
 }
 
-const edit_file_response = `I successfully replaced "john" with "dirac" in the test.ts file. The change has been completed and the file now contains:
+const edit_file_response = `I successfully replaced "john" with "isaac" in the test.ts file. The change has been completed and the file now contains:
 
 \`\`\`typescript
-export const name = "dirac"
+export const name = "isaac"
 \`\`\`
 
 The specific task of updating the name in test.ts has been completed successfully.
 
 <attempt_completion>
 <result>
-I have successfully replaced the name "john" with "dirac" in the test.ts file. The file now exports:
+I have successfully replaced the name "john" with "isaac" in the test.ts file. The file now exports:
 
 \`\`\`typescript
-export const name = "dirac"
+export const name = "isaac"
 \`\`\`
 
 The change has been applied and saved to the file.
@@ -47,20 +47,20 @@ The change has been applied and saved to the file.
 </attempt_completion>`
 
 const edit_request = `<thinking>
-The user wants me to replace the name "john" with "dirac" in the test.ts file. I can see the file content provided:
+The user wants me to replace the name "john" with "isaac" in the test.ts file. I can see the file content provided:
 
 \`\`\`typescript
 export const name = "john"
 \`\`\`
 
-I need to change "john" to "dirac". This is a simple targeted edit, so I should use the edit_file tool rather than write_to_file since I'm only changing one small part of the file.
+I need to change "john" to "isaac". This is a simple targeted edit, so I should use the edit_file tool rather than write_to_file since I'm only changing one small part of the file.
 
 I need to:
-1. Use edit_file to change "john" to "dirac" in the test.ts file
+1. Use edit_file to change "john" to "isaac" in the test.ts file
 2. Use "Apple" as the anchor.
 </thinking>
 
-I'll replace "john" with "dirac" in the test.ts file.
+I'll replace "john" with "isaac" in the test.ts file.
 
 <edit_file>
 <path>test.ts</path>
@@ -69,14 +69,14 @@ I'll replace "john" with "dirac" in the test.ts file.
   {
     "anchor": "Apple",
     "end_anchor": "Apple",
-    "text": "export const name = "dirac""
+    "text": "export const name = "isaac""
   }
 ]
 </edits>
 </edit_file>`
 
 export const E2E_MOCK_API_RESPONSES = {
-	DEFAULT: "Hello! I'm a mock Dirac API response.",
+	DEFAULT: "Hello! I'm a mock Isaac API response.",
 	REPLACE_REQUEST: edit_file_response,
 	EDIT_REQUEST: edit_request,
 }

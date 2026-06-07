@@ -1,22 +1,22 @@
 import { name, publisher, version } from "../package.json"
 import { HostProvider } from "./hosts/host-provider"
 
-const prefix = name === "claude-dev" || name === "dirac" ? "dirac" : name
+const prefix = name === "claude-dev" || name === "isaac" ? "isaac" : name
 
 /**
  * List of commands with the name of the extension they are registered under.
  * These should match the command IDs defined in package.json.
  * For Nightly build, the publish script has updated all the commands to use the extension name as prefix.
- * In production, all commands are registered under "dirac" for consistency.
+ * In production, all commands are registered under "isaac" for consistency.
  */
-const DiracCommands = {
+const IsaacCommands = {
 	PlusButton: prefix + ".plusButtonClicked",
 	SettingsButton: prefix + ".settingsButtonClicked",
 	HistoryButton: prefix + ".historyButtonClicked",
 	WorktreesButton: prefix + ".worktreesButtonClicked",
 	TerminalOutput: prefix + ".addTerminalOutputToChat",
 	AddToChat: prefix + ".addToChat",
-	FixWithDirac: prefix + ".fixWithDirac",
+	FixWithIsaac: prefix + ".fixWithIsaac",
 	ExplainCode: prefix + ".explainCode",
 	ImproveCode: prefix + ".improveCode",
 	FocusChatInput: prefix + ".focusChatInput",
@@ -36,7 +36,7 @@ const DiracCommands = {
  * IDs for the views registered by the extension.
  * These should match the name + view IDs defined in package.json.
  */
-const DiracViewIds = {
+const IsaacViewIds = {
 	Sidebar: name + ".SidebarProvider",
 }
 
@@ -49,8 +49,8 @@ export const ExtensionRegistryInfo = {
 	name,
 	version,
 	publisher,
-	commands: DiracCommands,
-	views: DiracViewIds,
+	commands: IsaacCommands,
+	views: IsaacViewIds,
 }
 
 export interface HostInfo {
@@ -63,7 +63,7 @@ export interface HostInfo {
 	 */
 	os: string
 	/**
-	 * The type of the dirac host environment, e.g. 'VSCode Extension', 'Dirac for JetBrains', 'CLI'
+	 * The type of the isaac host environment, e.g. 'VSCode Extension', 'Isaac for JetBrains', 'CLI'
 	 * This is different from the platform because there are many JetBrains IDEs, but they all use the same
 	 * plugin.
 	 */
@@ -77,7 +77,7 @@ export interface HostInfo {
 	 */
 	hostVersion?: string
 	/**
-	 * The version of Dirac that the host client is running
+	 * The version of Isaac that the host client is running
 	 */
 	extensionVersion: string
 }
@@ -88,10 +88,10 @@ export const HostRegistryInfo = {
 	init: async (distinctId: string) => {
 		const host = await HostProvider.env.getHostVersion({})
 		const hostVersion = host.version
-		const extensionVersion = host.diracVersion || ExtensionRegistryInfo.version
+		const extensionVersion = host.isaacVersion || ExtensionRegistryInfo.version
 		const platform = host.platform || "unknown"
 		const os = process.platform || "unknown"
-		const ide = host.diracType || "unknown"
+		const ide = host.isaacType || "unknown"
 		hostInfo = { hostVersion, extensionVersion, platform, os, ide, distinctId }
 	},
 	get: () => hostInfo,

@@ -1,6 +1,6 @@
+import { getSecretsFromEnv } from "@shared/storage/env-config"
 import { StateManager } from "@/core/storage/StateManager"
 import { ProviderToApiKeyMap } from "@/shared/storage"
-import { getSecretsFromEnv } from "@shared/storage/env-config"
 
 /**
  * Check if the user has completed onboarding (has any provider configured).
@@ -45,16 +45,16 @@ export async function checkAnyProviderConfigured(): Promise<boolean> {
 	const stateManager = StateManager.get()
 	const config = stateManager.getApiConfiguration() as Record<string, unknown>
 
-	// Check Dirac account (stored as "dirac:diracAccountId" in secrets, loaded into config)
-	if (config["diracApiKey"] || config["dirac:diracAccountId"]) return true
+	// Check Isaac account (stored as "isaac:isaacAccountId" in secrets, loaded into config)
+	if (config["isaacApiKey"] || config["isaac:isaacAccountId"]) return true
 
 	// Check OpenAI Codex OAuth (stored in SECRETS_KEYS, loaded into config)
 	if (config["openai-codex-oauth-credentials"]) return true
 
 	// Check all BYO provider API keys (loaded into config from secrets)
 	for (const [provider, keyField] of Object.entries(ProviderToApiKeyMap)) {
-		// Skip dirac - already checked above with the correct key
-		if (provider === "dirac") continue
+		// Skip isaac - already checked above with the correct key
+		if (provider === "isaac") continue
 
 		const fields = Array.isArray(keyField) ? keyField : [keyField]
 		for (const field of fields) {

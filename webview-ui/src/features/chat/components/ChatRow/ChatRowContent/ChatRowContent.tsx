@@ -1,4 +1,4 @@
-import { DiracApiReqInfo, DiracSayTool, COMMAND_OUTPUT_STRING } from "@shared/ExtensionMessage"
+import { COMMAND_OUTPUT_STRING, IsaacApiReqInfo, IsaacSayTool } from "@shared/ExtensionMessage"
 import { memo, useEffect, useMemo, useRef, useState } from "react"
 import SubagentStatusRow from "@/features/chat/components/SubagentStatusRow"
 import { useChatStore } from "@/features/chat/store/chatStore"
@@ -38,7 +38,7 @@ export const ChatRowContent = memo(
 
 		const backgroundEditEnabled = useSettingsStore((state) => state.backgroundEditEnabled)
 		const vscodeTerminalExecutionMode = useSettingsStore((state) => state.vscodeTerminalExecutionMode)
-		const diracMessagesCount = useChatStore((state) => state.diracMessages.length)
+		const isaacMessagesCount = useChatStore((state) => state.isaacMessages.length)
 		const onRelinquishControl = useRelinquishControl()
 
 		const [seeNewChangesDisabled, setSeeNewChangesDisabled] = useState(false)
@@ -74,7 +74,7 @@ export const ChatRowContent = memo(
 		const [cost, apiReqCancelReason, apiReqStreamingFailedMessage] = useMemo(() => {
 			if (message.text != null && message.say === "api_req_started") {
 				try {
-					const info: DiracApiReqInfo = JSON.parse(message.text)
+					const info: IsaacApiReqInfo = JSON.parse(message.text)
 					return [info.cost, info.cancelReason, info.streamingFailedMessage]
 				} catch (e) {
 					console.error("Error parsing api_req_started message:", e)
@@ -132,7 +132,7 @@ export const ChatRowContent = memo(
 		const tool = useMemo(() => {
 			if (message.ask === "tool" || message.say === "tool") {
 				try {
-					return JSON.parse(message.text || "{}") as DiracSayTool
+					return JSON.parse(message.text || "{}") as IsaacSayTool
 				} catch (e) {
 					console.error("Error parsing tool message:", e)
 					return null
@@ -209,7 +209,6 @@ export const ChatRowContent = memo(
 			<MessageRenderer
 				apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
 				apiRequestFailedMessage={apiRequestFailedMessage}
-				diracMessagesCount={diracMessagesCount}
 				cost={cost}
 				dashboardReasoningContent={reasoningContent}
 				explainChangesDisabled={explainChangesDisabled}
@@ -217,12 +216,14 @@ export const ChatRowContent = memo(
 				handleQuoteClick={handleQuoteClick}
 				icon={icon}
 				inputValue={inputValue}
+				isaacMessagesCount={isaacMessagesCount}
 				isExpanded={isExpanded}
 				isLast={isLast}
 				isRequestInProgress={isRequestInProgress}
 				lastModifiedMessage={lastModifiedMessage}
 				message={message}
 				mode={mode}
+				onAskForUpdate={onAskForUpdate}
 				onSetQuote={onSetQuote}
 				onToggleExpand={onToggleExpand}
 				quoteButtonState={quoteButtonState}
@@ -233,7 +234,6 @@ export const ChatRowContent = memo(
 				setSeeNewChangesDisabled={setSeeNewChangesDisabled}
 				title={title}
 				vscodeTerminalExecutionMode={vscodeTerminalExecutionMode}
-				onAskForUpdate={onAskForUpdate}
 			/>
 		)
 	},

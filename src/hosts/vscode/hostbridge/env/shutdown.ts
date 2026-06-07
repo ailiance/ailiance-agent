@@ -1,9 +1,9 @@
-import { Empty, EmptyRequest } from "@shared/proto/dirac/common"
+import { Empty, EmptyRequest } from "@shared/proto/isaac/common"
 
 export async function shutdown(request: EmptyRequest): Promise<Empty> {
 	// VSCode extensions cannot shutdown the host process (VSCode itself)
 	// This is a no-op that just returns success
-	// The shutdown RPC is primarily used by standalone dirac-core instances
+	// The shutdown RPC is primarily used by standalone isaac-core instances
 	// to tell their paired host bridge processes to shut down
 	return Empty.create({})
 }

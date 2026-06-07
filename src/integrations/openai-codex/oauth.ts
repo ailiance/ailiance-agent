@@ -14,7 +14,7 @@ import { Logger } from "@/shared/services/Logger"
  * - Authorization endpoint: https://auth.openai.com/oauth/authorize
  * - Token endpoint: https://auth.openai.com/oauth/token
  * - Fixed callback port: 1455
- * - Codex-specific params: codex_cli_simplified_flow=true, originator=dirac
+ * - Codex-specific params: codex_cli_simplified_flow=true, originator=isaac
  */
 export const OPENAI_CODEX_OAUTH_CONFIG = {
 	authorizationEndpoint: "https://auth.openai.com/oauth/authorize",
@@ -310,7 +310,7 @@ export function buildAuthorizationUrl(codeChallenge: string, state: string): str
 		state,
 		// Codex-specific parameters
 		codex_cli_simplified_flow: "true",
-		originator: "dirac",
+		originator: "isaac",
 	})
 
 	return `${OPENAI_CODEX_OAUTH_CONFIG.authorizationEndpoint}?${params.toString()}`
@@ -568,7 +568,10 @@ export class OpenAiCodexOAuthManager {
 		if (!response.ok) {
 			const errorText = await response.text()
 			const { errorCode, errorMessage } = parseOAuthErrorDetails(errorText)
-			if (response.status === 404 || /unsupported|disabled|not[_ -]?enabled|device/i.test(`${errorCode ?? ""} ${errorMessage ?? ""}`)) {
+			if (
+				response.status === 404 ||
+				/unsupported|disabled|not[_ -]?enabled|device/i.test(`${errorCode ?? ""} ${errorMessage ?? ""}`)
+			) {
 				throw buildDeviceAuthUnavailableError()
 			}
 			const details = errorMessage ? errorMessage : errorText
@@ -595,7 +598,7 @@ export class OpenAiCodexOAuthManager {
 		userCode: string,
 		interval: number,
 		signal?: AbortSignal,
-		expiresInMs: number = 15 * 60 * 1000
+		expiresInMs: number = 15 * 60 * 1000,
 	): Promise<OpenAiCodexCredentials> {
 		let currentInterval = interval
 		const expiresAt = Date.now() + expiresInMs

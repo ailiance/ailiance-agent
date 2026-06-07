@@ -1,10 +1,10 @@
 import { buildApiHandler } from "@core/api"
-import { Empty } from "@shared/proto/dirac/common"
-import { PlanActMode, UpdateSettingsRequest } from "@shared/proto/dirac/state"
+import { Empty } from "@shared/proto/isaac/common"
+import { PlanActMode, UpdateSettingsRequest } from "@shared/proto/isaac/state"
 import { convertProtoToApiProvider } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { OpenaiReasoningEffort } from "@shared/storage/types"
 import { TelemetrySetting } from "@shared/TelemetrySetting"
-import { DiracEnv } from "@/config"
+import { IsaacEnv } from "@/config"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
 import { Logger } from "@/shared/services/Logger"
@@ -20,8 +20,8 @@ import { Controller } from ".."
  */
 export async function updateSettings(controller: Controller, request: UpdateSettingsRequest): Promise<Empty> {
 	try {
-		if (request.diracEnv !== undefined) {
-			DiracEnv.setEnvironment(request.diracEnv)
+		if (request.isaacEnv !== undefined) {
+			IsaacEnv.setEnvironment(request.isaacEnv)
 		}
 
 		if (request.apiConfiguration) {
@@ -125,12 +125,12 @@ export async function updateSettings(controller: Controller, request: UpdateSett
 			controller.stateManager.setGlobalState("yoloModeToggled", request.yoloModeToggled)
 		}
 
-		// Update dirac web tools setting
-		if (request.diracWebToolsEnabled !== undefined) {
+		// Update isaac web tools setting
+		if (request.isaacWebToolsEnabled !== undefined) {
 			if (controller.task) {
-				telemetryService.captureDiracWebToolsToggle(controller.task.ulid, request.diracWebToolsEnabled)
+				telemetryService.captureIsaacWebToolsToggle(controller.task.ulid, request.isaacWebToolsEnabled)
 			}
-			controller.stateManager.setGlobalState("diracWebToolsEnabled", request.diracWebToolsEnabled)
+			controller.stateManager.setGlobalState("isaacWebToolsEnabled", request.isaacWebToolsEnabled)
 		}
 
 		// Update worktrees setting

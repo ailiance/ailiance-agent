@@ -1,20 +1,11 @@
 import type { ModelInfo } from "@shared/api"
-import {
-    basetenDefaultModelId,
-    basetenModels,
-    groqDefaultModelId,
-    groqModels,
-    openRouterDefaultModelId,
-    openRouterDefaultModelInfo,
-    requestyDefaultModelId,
-    requestyDefaultModelInfo,
-} from "@shared/api"
-import type { OnboardingModelGroup } from "@shared/proto/dirac/state"
+import { openRouterDefaultModelId, openRouterDefaultModelInfo } from "@shared/api"
+import type { OnboardingModelGroup } from "@shared/proto/isaac/state"
 import { create } from "zustand"
 
 interface ModelsState {
 	onboardingModels?: OnboardingModelGroup
-	diracModels: Record<string, ModelInfo> | null
+	isaacModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
 	liteLlmModels: Record<string, ModelInfo>
@@ -26,7 +17,7 @@ interface ModelsState {
 
 	// Actions
 	setOnboardingModels: (models?: OnboardingModelGroup) => void
-	setDiracModels: (models: Record<string, ModelInfo> | null) => void
+	setIsaacModels: (models: Record<string, ModelInfo> | null) => void
 	setOpenRouterModels: (models: Record<string, ModelInfo>) => void
 	setVercelAiGatewayModels: (models: Record<string, ModelInfo>) => void
 	setLiteLlmModels: (models: Record<string, ModelInfo>) => void
@@ -39,27 +30,20 @@ interface ModelsState {
 
 export const useModelsStore = create<ModelsState>((set) => ({
 	onboardingModels: undefined,
-	diracModels: null,
+	isaacModels: null,
 	openRouterModels: {
 		[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 	},
 	vercelAiGatewayModels: {},
 	liteLlmModels: {},
 	openAiModels: [],
-	requestyModels: {
-		[requestyDefaultModelId]: requestyDefaultModelInfo,
-	},
-	groqModels: {
-		[groqDefaultModelId]: groqModels[groqDefaultModelId],
-	},
-	basetenModels: {
-		...basetenModels,
-		[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
-	},
+	requestyModels: {},
+	groqModels: {},
+	basetenModels: {},
 	huggingFaceModels: {},
 
 	setOnboardingModels: (models) => set({ onboardingModels: models }),
-	setDiracModels: (models) => set({ diracModels: models }),
+	setIsaacModels: (models) => set({ isaacModels: models }),
 	setOpenRouterModels: (models) => set({ openRouterModels: models }),
 	setVercelAiGatewayModels: (models) => set({ vercelAiGatewayModels: models }),
 	setLiteLlmModels: (models) => set({ liteLlmModels: models }),

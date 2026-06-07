@@ -1,31 +1,31 @@
 import type { ApiConfiguration, ModelInfo } from "@shared/api"
-import {
-    ApiHandlerSettingsKeys,
-    type GlobalState,
-    type GlobalStateAndSettings,
-    type GlobalStateAndSettingsKey,
-    isSecretKey,
-    isSettingsKey,
-    type LocalState,
-    type LocalStateKey,
-    type SecretKey,
-    SecretKeys,
-    type Secrets,
-    type Settings,
-    type SettingsKey,
-} from "@shared/storage/state-keys"
 import { getSecretsFromEnv, getSettingsFromEnv } from "@shared/storage/env-config"
+import {
+	ApiHandlerSettingsKeys,
+	type GlobalState,
+	type GlobalStateAndSettings,
+	type GlobalStateAndSettingsKey,
+	isSecretKey,
+	isSettingsKey,
+	type LocalState,
+	type LocalStateKey,
+	type SecretKey,
+	SecretKeys,
+	type Secrets,
+	type Settings,
+	type SettingsKey,
+} from "@shared/storage/state-keys"
 import type { StorageContext } from "@shared/storage/storage-context"
 import chokidar, { FSWatcher } from "chokidar"
 import { initializeDistinctId } from "@/services/logging/distinctId"
 import { Logger } from "@/shared/services/Logger"
 import { AgentConfigLoader } from "../task/tools/subagent/AgentConfigLoader"
 import {
-    getTaskHistoryStateFilePath,
-    readTaskHistoryFromState,
-    readTaskSettingsFromStorage,
-    writeTaskHistoryToState,
-    writeTaskSettingsToStorage,
+	getTaskHistoryStateFilePath,
+	readTaskHistoryFromState,
+	readTaskSettingsFromStorage,
+	writeTaskHistoryToState,
+	writeTaskSettingsToStorage,
 } from "./disk"
 import { STATE_MANAGER_NOT_INITIALIZED } from "./error-messages"
 import { readGlobalStateFromStorage, readSecretsFromStorage, readWorkspaceStateFromStorage } from "./utils/state-helpers"
@@ -76,7 +76,7 @@ export class StateManager {
 	// In-memory model info cache (not persisted to disk)
 	// These are for dynamic providers that fetch models from APIs
 	private modelInfoCache: {
-		diracModels: { data: Record<string, ModelInfo>; timestamp: number } | null
+		isaacModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		openRouterModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		groqModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		basetenModels: { data: Record<string, ModelInfo>; timestamp: number } | null
@@ -88,7 +88,7 @@ export class StateManager {
 		vercelModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		githubCopilotModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 	} = {
-		diracModels: null,
+		isaacModels: null,
 		openRouterModels: null,
 		groqModels: null,
 		basetenModels: null,
@@ -148,7 +148,6 @@ export class StateManager {
 			await StateManager.instance.setupTaskHistoryWatcher()
 
 			StateManager.instance.isInitialized = true
-
 
 			await AgentConfigLoader.getInstance().ready()
 		} catch (error) {
@@ -395,7 +394,7 @@ export class StateManager {
 	 */
 	setModelsCache(
 		provider:
-			| "dirac"
+			| "isaac"
 			| "openRouter"
 			| "groq"
 			| "baseten"
@@ -414,7 +413,7 @@ export class StateManager {
 
 	getModelsCache(
 		provider:
-			| "dirac"
+			| "isaac"
 			| "openRouter"
 			| "groq"
 			| "baseten"
@@ -446,15 +445,7 @@ export class StateManager {
 	 * Get model info by provider and model ID (from in-memory cache)
 	 */
 	getModelInfo(
-		provider:
-			| "openRouter"
-			| "groq"
-			| "baseten"
-			| "huggingFace"
-			| "requesty"
-			| "huaweiCloudMaas"
-			| "aihubmix"
-			| "liteLlm",
+		provider: "openRouter" | "groq" | "baseten" | "huggingFace" | "requesty" | "huaweiCloudMaas" | "aihubmix" | "liteLlm",
 		modelId: string,
 	): ModelInfo | undefined {
 		const cacheKey = `${provider}Models` as keyof typeof this.modelInfoCache
@@ -847,11 +838,10 @@ export class StateManager {
 		// Merge environment variables as fallback for settings (only fills undefined values)
 		const envSettings = getSettingsFromEnv()
 		for (const [key, value] of Object.entries(envSettings)) {
-			if (value && (key in settings) && settings[key as keyof typeof settings] === undefined) {
+			if (value && key in settings && settings[key as keyof typeof settings] === undefined) {
 				settings[key as keyof typeof settings] = value as any
 			}
 		}
-
 
 		return {
 			...secrets,

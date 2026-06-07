@@ -1,6 +1,4 @@
 import type { ToolUse } from "@core/assistant-message"
-import { telemetryService } from "@/services/telemetry"
-
 import { formatResponse } from "@core/prompts/responses"
 import { processFilesIntoText } from "@integrations/misc/extract-text"
 import { showSystemNotification } from "@integrations/notifications"
@@ -8,15 +6,16 @@ import { createAndOpenGitHubIssue } from "@utils/github-url-utils"
 import * as os from "os"
 import { HostProvider } from "@/hosts/host-provider"
 import { ExtensionRegistryInfo } from "@/registry"
+import { telemetryService } from "@/services/telemetry"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import type { IPartialBlockHandler, IToolHandler } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 
 export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
-	readonly name = DiracDefaultTool.REPORT_BUG
+	readonly name = IsaacDefaultTool.REPORT_BUG
 
 	constructor() {}
 
@@ -80,15 +79,15 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 		// Show notification if enabled
 		if (config.autoApprovalSettings.enableNotifications) {
 			showSystemNotification({
-				subtitle: "Dirac wants to create a github issue...",
-				message: `Dirac is suggesting to create a github issue with the title: ${title}`,
+				subtitle: "Isaac wants to create a github issue...",
+				message: `Isaac is suggesting to create a github issue with the title: ${title}`,
 			})
 		}
 
 		// Derive system information values algorithmically
 		const operatingSystem = os.platform() + " " + os.release()
 		const currentMode = config.mode
-		const diracVersion = ExtensionRegistryInfo.version
+		const isaacVersion = ExtensionRegistryInfo.version
 		const host = await HostProvider.env.getHostVersion({})
 		const systemInfo = `${host.platform}: ${host.version}, Node.js: ${process.version}, Architecture: ${os.arch()}`
 		const apiConfig = config.services.stateManager.getApiConfiguration()
@@ -106,7 +105,7 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 			provider_and_model: providerAndModel,
 			operating_system: operatingSystem,
 			system_info: systemInfo,
-			dirac_version: diracVersion,
+			isaac_version: isaacVersion,
 		})
 
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", this.name as any)
@@ -131,7 +130,6 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 				block.isNativeToolCall,
 			)
 
-
 			return formatResponse.toolResult(
 				`The user did not submit the bug, and provided feedback on the Github issue generated instead:\n<feedback>\n${text}\n</feedback>`,
 				images,
@@ -144,7 +142,7 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 			const params = new Map<string, string>()
 			params.set("title", title)
 			params.set("operating-system", operatingSystem)
-			params.set("dirac-version", diracVersion)
+			params.set("isaac-version", isaacVersion)
 			params.set("system-info", systemInfo)
 			params.set("additional-context", additional_context)
 			params.set("what-happened", what_happened)
@@ -154,7 +152,7 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 
 			// Use our utility function to create and open the GitHub issue URL
 			// This bypasses VS Code's URI handling issues with special characters
-			await createAndOpenGitHubIssue("dirac", "dirac", "bug_report.yml", params)
+			await createAndOpenGitHubIssue("isaac", "isaac", "bug_report.yml", params)
 		} catch (error) {
 			Logger.error(`An error occurred while attempting to report the bug: ${error}`)
 		}
@@ -169,7 +167,6 @@ export class ReportBugHandler implements IToolHandler, IPartialBlockHandler {
 			undefined,
 			block.isNativeToolCall,
 		)
-
 
 		return formatResponse.toolResult(`The user accepted the creation of the Github issue.`)
 	}

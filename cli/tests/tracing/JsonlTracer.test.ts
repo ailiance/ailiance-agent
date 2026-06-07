@@ -3,8 +3,8 @@
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { JsonlTracer, scrubSecrets, TRACING_DIR_NAME, TRACING_SCHEMA_VERSION } from "@core/tracing"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 let tmpDir: string
 
@@ -75,10 +75,7 @@ describe("scrubSecrets", () => {
 	})
 
 	it("redacts object value when key is aws_secret_access_key", () => {
-		const out = scrubSecrets({ aws_secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" }) as Record<
-			string,
-			unknown
-		>
+		const out = scrubSecrets({ aws_secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" }) as Record<string, unknown>
 		expect(out.aws_secret_access_key).toBe("[REDACTED]")
 	})
 
@@ -110,6 +107,98 @@ describe("scrubSecrets", () => {
 		const out = scrubSecrets({ env: "certificate=PEMfakeBody other" }) as { env: string }
 		expect(out.env).not.toContain("PEMfakeBody")
 		expect(out.env).toContain("[REDACTED]")
+	})
+
+	// ailiance-agent fork: gateway (gateway.ailiance.fr) credential coverage.
+	it("redacts gateway Authorization bearer header", () => {
+		const out = scrubSecrets({
+			headers: { Authorization: "Bearer ail-gw-abcdef1234567890" },
+		}) as { headers: { Authorization: string } }
+		// key-based redaction wins for the object key.
+		expect(out.headers.Authorization).toBe("[REDACTED]")
+	})
+
+	it("redacts inline Authorization: Bearer <gateway token>", () => {
+		const out = scrubSecrets({
+			log: "POST /chat/completions Authorization: Bearer ail-gw-abcdef1234567890 done",
+		}) as { log: string }
+		expect(out.log).not.toContain("ail-gw-abcdef1234567890")
+		expect(out.log).toContain("[REDACTED]")
+	})
+
+	it("redacts AILIANCE_DEFAULT_API_KEY-style env key", () => {
+		const out = scrubSecrets({ AILIANCE_DEFAULT_API_KEY: "gw-token-xyz", region: "eu" }) as Record<string, unknown>
+		expect(out.AILIANCE_DEFAULT_API_KEY).toBe("[REDACTED]")
+		expect(out.region).toBe("eu")
+	})
+
+	it("redacts x-api-key header key", () => {
+		const out = scrubSecrets({ "x-api-key": "gw-secret-123" }) as Record<string, unknown>
+		expect(out["x-api-key"]).toBe("[REDACTED]")
+	})
+
+	it("redacts access_token / refresh_token / client_secret keys", () => {
+		const out = scrubSecrets({
+			access_token: "a",
+			refresh_token: "b",
+			client_secret: "c",
+			ok: 1,
+		}) as Record<string, unknown>
+		expect(out.access_token).toBe("[REDACTED]")
+		expect(out.refresh_token).toBe("[REDACTED]")
+		expect(out.client_secret).toBe("[REDACTED]")
+		expect(out.ok).toBe(1)
+	})
+
+	it("redacts inline bearer=value form", () => {
+		const out = scrubSecrets({ env: "bearer=ail-gw-tok-9999 trailing" }) as { env: string }
+		expect(out.env).not.toContain("ail-gw-tok-9999")
+		expect(out.env).toContain("[REDACTED]")
+	})
+
+	it("keeps diagnostic X-Ailiance-* headers intact (not secrets)", () => {
+		const out = scrubSecrets({
+			"x-ailiance-worker-port": "9311",
+			"x-ailiance-domain": "code",
+			"x-ailiance-chain": "mixture",
+			"x-ailiance-backend": "fp_abc",
+			"x-ailiance-upstream-model": "devstral-python",
+		}) as Record<string, string>
+		expect(out["x-ailiance-worker-port"]).toBe("9311")
+		expect(out["x-ailiance-domain"]).toBe("code")
+		expect(out["x-ailiance-chain"]).toBe("mixture")
+		expect(out["x-ailiance-backend"]).toBe("fp_abc")
+		expect(out["x-ailiance-upstream-model"]).toBe("devstral-python")
+	})
+
+	it("redacts GitHub personal access tokens (ghp_)", () => {
+		const ghp = "ghp_0123456789abcdefghijklmnopqrstuvwx"
+		const out = scrubSecrets({ msg: `cloned with ${ghp} token` }) as { msg: string }
+		expect(out.msg).not.toContain(ghp)
+		expect(out.msg).toContain("[REDACTED]")
+	})
+
+	it("redacts Slack tokens (xoxb-/xoxp-)", () => {
+		const xox = "xoxb-1234567890-ABCDEFGHIJKL"
+		const out = scrubSecrets({ msg: `slack ${xox} here` }) as { msg: string }
+		expect(out.msg).not.toContain(xox)
+		expect(out.msg).toContain("[REDACTED]")
+	})
+
+	it("redacts JWT-shaped tokens (eyJ...)", () => {
+		const jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+		const out = scrubSecrets({ auth: `Bearer ${jwt}` }) as { auth: string }
+		expect(out.auth).not.toContain(jwt)
+		expect(out.auth).toContain("[REDACTED]")
+	})
+
+	it("returns a deep copy and does not mutate the input", () => {
+		const input = { api_key: "secret", nested: { token: "t" } }
+		const out = scrubSecrets(input) as typeof input
+		expect(input.api_key).toBe("secret")
+		expect(input.nested.token).toBe("t")
+		expect(out).not.toBe(input)
+		expect(out.nested).not.toBe(input.nested)
 	})
 })
 
@@ -174,6 +263,41 @@ describe("JsonlTracer", () => {
 		expect(first.errors).toEqual([])
 	})
 
+	it("emits newline-delimited JSON where every raw line is independently valid", () => {
+		const tracer = new JsonlTracer("task-jsonl", tmpDir)
+		tracer.writeMeta({
+			task: "task-jsonl",
+			mode: "act",
+			approval_mode: "yolo",
+			ailiance_agent_version: "0.1.0",
+			gateway_url: "http://studio:9300",
+		})
+		for (let i = 0; i < 3; i++) {
+			tracer.appendTurn({
+				phase: "execute",
+				tool_execution: {
+					tool_name: "read_file",
+					tool_args: { path: `/tmp/${i}` },
+					tool_result: "ok",
+					latency_ms: 1,
+					success: true,
+				},
+			})
+		}
+		const tracePath = path.join(tmpDir, TRACING_DIR_NAME, "task-jsonl", "trace.jsonl")
+		const raw = fs.readFileSync(tracePath, "utf8")
+		// File must terminate with a newline (append-only, one record per line).
+		expect(raw.endsWith("\n")).toBe(true)
+		// Splitting on \n and dropping the trailing empty token yields only valid JSON.
+		const lines = raw.split("\n").filter((l) => l.length > 0)
+		expect(lines).toHaveLength(3)
+		for (const line of lines) {
+			expect(() => JSON.parse(line)).not.toThrow()
+			// No record may span multiple physical lines.
+			expect(line.includes("\n")).toBe(false)
+		}
+	})
+
 	it("scrubs secrets from tool args before they hit disk", () => {
 		const tracer = new JsonlTracer("task-secrets", tmpDir)
 		tracer.writeMeta({
@@ -210,9 +334,7 @@ describe("JsonlTracer", () => {
 			gateway_url: "http://studio:9300",
 		})
 		tracer.close("attempt_completion", 0, { turns: 3 })
-		const meta = JSON.parse(
-			fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-close", "meta.json"), "utf8"),
-		)
+		const meta = JSON.parse(fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-close", "meta.json"), "utf8"))
 		expect(meta.ended_at).toMatch(/T/)
 		expect(meta.exit_reason).toBe("attempt_completion")
 		expect(meta.exit_code).toBe(0)
@@ -249,9 +371,7 @@ describe("JsonlTracer", () => {
 			gateway_url: "http://studio:9300",
 		})
 		tracer.close("aborted", 130)
-		const meta = JSON.parse(
-			fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-abort", "meta.json"), "utf8"),
-		)
+		const meta = JSON.parse(fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-abort", "meta.json"), "utf8"))
 		expect(meta.ended_at).toMatch(/T/)
 		expect(meta.exit_reason).toBe("aborted")
 		expect(meta.exit_code).toBe(130)
@@ -369,7 +489,10 @@ describe("JsonlTracer", () => {
 		})
 		tracer.recordPlannerTurn("nope", 3, ["auth failed for token=supersecretvalue"])
 		const line = JSON.parse(
-			fs.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-errscrub", "trace.jsonl"), "utf8").trim().split("\n")[0],
+			fs
+				.readFileSync(path.join(tmpDir, TRACING_DIR_NAME, "task-errscrub", "trace.jsonl"), "utf8")
+				.trim()
+				.split("\n")[0],
 		)
 		expect(JSON.stringify(line.errors)).not.toContain("supersecretvalue")
 	})

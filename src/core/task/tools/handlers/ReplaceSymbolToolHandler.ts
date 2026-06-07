@@ -1,7 +1,9 @@
 // tool call test comment
-import { ToolUse } from "@core/assistant-message"
+
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
+import { ToolUse } from "@core/assistant-message"
 import { resolveWorkspacePath } from "@core/workspace"
+import { computeDiffFromContents, type DiffStructure } from "@shared/utils/diff"
 import { AnchorStateManager } from "@utils/AnchorStateManager"
 import { ASTAnchorBridge, SymbolRange } from "@utils/ASTAnchorBridge"
 import { formatLineWithHash, stripHashes } from "@utils/line-hashing"
@@ -9,10 +11,12 @@ import { getReadablePath } from "@utils/path"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { formatResponse } from "@/core/prompts/responses"
+import { defineTool } from "@/core/prompts/system-prompt/tool-unit"
+import { replace_symbol } from "@/core/prompts/system-prompt/tools/replace_symbol"
 import { HostProvider } from "@/hosts/host-provider"
 import { getDiagnosticsProviders } from "@/integrations/diagnostics/getDiagnosticsProviders"
 import { telemetryService } from "@/services/telemetry"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -20,7 +24,6 @@ import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
-import { computeDiffFromContents, type DiffStructure } from "@shared/utils/diff"
 
 interface Replacement {
 	path: string
@@ -36,7 +39,7 @@ interface FileBatch {
 }
 
 export class ReplaceSymbolToolHandler implements IFullyManagedTool {
-	readonly name = DiracDefaultTool.REPLACE_SYMBOL
+	readonly name = IsaacDefaultTool.REPLACE_SYMBOL
 	public diagnosticsTimeoutMs = 1500
 	public diagnosticsDelayMs = 500
 
@@ -147,12 +150,14 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 						batch.absolutePath,
 						r.symbol,
 						r.type,
-						config.services.diracIgnoreController,
+						config.services.isaacIgnoreController,
 						config.ulid,
 					)
 
 					if (!symbolRange) {
-						return formatResponse.toolError(`Symbol '${r.symbol}'${r.type ? ` of type '${r.type}'` : ""} not found in ${r.path}.`)
+						return formatResponse.toolError(
+							`Symbol '${r.symbol}'${r.type ? ` of type '${r.type}'` : ""} not found in ${r.path}.`,
+						)
 					}
 					resolvedReplacements.push({ replacement: r, range: symbolRange })
 				}
@@ -178,7 +183,7 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 				for (const { replacement, range } of sortedForApplication) {
 					const newText = stripHashes(replacement.text)
 
-					// Strip the leading whitespace 
+					// Strip the leading whitespace
 					const lineStart = currentContent.lastIndexOf("\n", range.startIndex - 1) + 1
 					const leadingWhitespaceBefore = currentContent.slice(lineStart, range.startIndex)
 					const adjustedNewText =
@@ -186,7 +191,8 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 							? newText.replace(/^[ \t]*/, (match) => match.slice(leadingWhitespaceBefore.length))
 							: newText
 
-					currentContent = currentContent.slice(0, range.startIndex) + adjustedNewText + currentContent.slice(range.endIndex)
+					currentContent =
+						currentContent.slice(0, range.startIndex) + adjustedNewText + currentContent.slice(range.endIndex)
 
 					const diff = this.getDiffBlock(
 						originalLines,
@@ -231,9 +237,7 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 				return {
 					path: fr.batch.displayPath,
 					diff: fr.diff,
-					edits: hunks
-						? [{ additions: hunks.totalAdditions, deletions: hunks.totalDeletions }]
-						: [],
+					edits: hunks ? [{ additions: hunks.totalAdditions, deletions: hunks.totalDeletions }] : [],
 					hunks,
 				}
 			})
@@ -250,7 +254,9 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 			const shouldAutoApprove =
 				config.isSubagentExecution ||
 				(await Promise.all(
-					Array.from(batches.values()).map((b) => config.callbacks.shouldAutoApproveToolWithPath(this.name, b.displayPath)),
+					Array.from(batches.values()).map((b) =>
+						config.callbacks.shouldAutoApproveToolWithPath(this.name, b.displayPath),
+					),
 				).then((results) => results.every(Boolean)))
 
 			if (!shouldAutoApprove) {
@@ -258,16 +264,17 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 				const fileNames = Array.from(batches.values())
 					.map((b) => path.basename(b.absolutePath))
 					.join(", ")
-				const notificationMessage = `Dirac wants to replace symbols [${symbolNames}] in [${fileNames}]`
+				const notificationMessage = `Isaac wants to replace symbols [${symbolNames}] in [${fileNames}]`
 				showNotificationForApproval(notificationMessage, config.autoApprovalSettings.enableNotifications)
 
 				// Show the diff for all files in the batch
-				await config.services.diffViewProvider.showReview(fileResults.map(fr => ({
-					absolutePath: fr.batch.absolutePath,
-					displayPath: fr.batch.displayPath,
-					content: fr.finalContent
-				})))
-
+				await config.services.diffViewProvider.showReview(
+					fileResults.map((fr) => ({
+						absolutePath: fr.batch.absolutePath,
+						displayPath: fr.batch.displayPath,
+						content: fr.finalContent,
+					})),
+				)
 
 				await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "tool")
 				await config.callbacks.removeLastPartialMessageIfExistsWithType("ask", "tool")
@@ -331,8 +338,8 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 
 				config.taskState.consecutiveMistakeCount = 0
 				config.taskState.didEditFile = true
-				config.services.fileContextTracker.markFileAsEditedByDirac(batch.displayPath)
-				await config.services.fileContextTracker.trackFileContext(batch.displayPath, "dirac_edited")
+				config.services.fileContextTracker.markFileAsEditedByIsaac(batch.displayPath)
+				await config.services.fileContextTracker.trackFileContext(batch.displayPath, "isaac_edited")
 
 				appliedResults.push({
 					batch,
@@ -431,3 +438,17 @@ export class ReplaceSymbolToolHandler implements IFullyManagedTool {
 		return res.join("\n")
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `replace_symbol`. Co-locates the prompt spec with
+ * the handler factory and the mutating flag, exposing the drift-detecting typed
+ * link between spec params and the handler. This tool only has the array param
+ * `replacements`; no scalar `readParam` call applies. Coexists with the legacy
+ * registration paths (no cutover yet).
+ */
+export const replace_symbol_unit = defineTool({
+	id: IsaacDefaultTool.REPLACE_SYMBOL,
+	spec: replace_symbol,
+	readonly: false,
+	createHandler: (validator: unknown) => new ReplaceSymbolToolHandler(validator as ToolValidator),
+})

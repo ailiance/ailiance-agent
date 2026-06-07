@@ -3,13 +3,13 @@
  * Provides mock implementations of VSCode extension context.
  */
 
+import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import os from "os"
 import path from "path"
-import fs from "node:fs"
 import { ExtensionRegistryInfo } from "@/registry"
-import { DiracExtensionContext } from "@/shared/dirac"
-import type { DiracMemento } from "@/shared/storage/DiracStorage"
+import { IsaacExtensionContext } from "@/shared/isaac"
+import type { IsaacMemento } from "@/shared/storage/IsaacStorage"
 import { createStorageContext, type StorageContext } from "@/shared/storage/storage-context"
 import { EnvironmentVariableCollection, ExtensionKind, ExtensionMode, readJson, URI } from "./vscode-shim"
 
@@ -34,12 +34,12 @@ const CLI_STATE_OVERRIDES: Record<string, any> = {
 }
 
 /**
- * Memento adapter that wraps a DiracFileStorage with optional key overrides.
+ * Memento adapter that wraps a IsaacFileStorage with optional key overrides.
  * Used for globalState where CLI needs to inject hardcoded overrides.
  */
-class MementoAdapter implements DiracMemento {
+class MementoAdapter implements IsaacMemento {
 	constructor(
-		private readonly store: DiracMemento,
+		private readonly store: IsaacMemento,
 		private readonly overrides: Record<string, any> = {},
 	) {}
 
@@ -79,13 +79,13 @@ class MementoAdapter implements DiracMemento {
 }
 
 export interface CliContextConfig {
-	diracDir?: string
+	isaacDir?: string
 	/** The workspace directory being worked in (used to compute workspace storage hash) */
 	workspaceDir?: string
 }
 
 export interface CliContextResult {
-	extensionContext: DiracExtensionContext
+	extensionContext: IsaacExtensionContext
 	storageContext: StorageContext
 	DATA_DIR: string
 	EXTENSION_DIR: string
@@ -96,16 +96,16 @@ export interface CliContextResult {
  * Initialize the VSCode-like context for CLI mode.
  *
  * Creates a shared StorageContext (the single source of truth for all storage)
- * and wraps it in a DiracExtensionContext shell for legacy APIs that still
+ * and wraps it in a IsaacExtensionContext shell for legacy APIs that still
  * expect the VSCode ExtensionContext shape.
  */
 export function initializeCliContext(config: CliContextConfig = {}): CliContextResult {
-	const DIRAC_DIR = config.diracDir || process.env.DIRAC_DIR || path.join(os.homedir(), ".dirac")
+	const ISAAC_DIR = config.isaacDir || process.env.ISAAC_DIR || path.join(os.homedir(), ".isaac")
 
-	// Create the shared StorageContext — this owns all DiracFileStorage instances.
+	// Create the shared StorageContext — this owns all IsaacFileStorage instances.
 	// CLI, JetBrains, and VSCode all share this same file-backed implementation.
 	let storageContext = createStorageContext({
-		diracDir: DIRAC_DIR,
+		isaacDir: ISAAC_DIR,
 		workspacePath: config.workspaceDir || process.cwd(),
 		workspaceStorageDir: process.env.WORKSPACE_STORAGE_DIR || undefined,
 	})
@@ -131,7 +131,7 @@ export function initializeCliContext(config: CliContextConfig = {}): CliContextR
 	}
 	const EXTENSION_MODE = process.env.IS_DEV === "true" ? ExtensionMode.Development : ExtensionMode.Production
 
-	const extension: DiracExtensionContext["extension"] = {
+	const extension: IsaacExtensionContext["extension"] = {
 		id: ExtensionRegistryInfo.id,
 		isActive: true,
 		extensionPath: EXTENSION_DIR,
@@ -142,9 +142,9 @@ export function initializeCliContext(config: CliContextConfig = {}): CliContextR
 		extensionKind: ExtensionKind.UI,
 	}
 
-	// Build the DiracExtensionContext shell. All storage delegates to storageContext —
-	// there are NO separate DiracFileStorage instances here.
-	const extensionContext: DiracExtensionContext = {
+	// Build the IsaacExtensionContext shell. All storage delegates to storageContext —
+	// there are NO separate IsaacFileStorage instances here.
+	const extensionContext: IsaacExtensionContext = {
 		extension: extension,
 		extensionMode: EXTENSION_MODE,
 

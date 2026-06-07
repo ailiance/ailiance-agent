@@ -1,7 +1,7 @@
 {
 	"name": "isaac-cli",
 	"version": "0.9.1-beta",
-	"description": "EU-sovereign autonomous coding agent CLI, forked from Dirac, routed to ailiance LLM gateway by default",
+	"description": "EU-sovereign autonomous coding agent CLI, forked from Isaac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"
 	],
@@ -37,7 +37,7 @@
 		"prepare": "npm run build",
 		"build": "npm run typecheck && npx tsx esbuild.mts && npm run build:types",
 		"build:production": "npm run typecheck && npx tsx esbuild.mts --production && npm run build:types",
-		"build:types": "(npx tsc -p tsconfig.lib.json || true) && cp dist/types/cli/src/exports.d.ts dist/lib.d.ts && mkdir -p dist/agent && cp dist/types/cli/src/agent/DiracAgent.d.ts dist/types/cli/src/agent/DiracSessionEmitter.d.ts dist/types/cli/src/agent/public-types.d.ts dist/agent/ && rm -rf dist/types",
+		"build:types": "(npx tsc -p tsconfig.lib.json || true) && cp dist/types/cli/src/exports.d.ts dist/lib.d.ts && mkdir -p dist/agent && cp dist/types/cli/src/agent/IsaacAgent.d.ts dist/types/cli/src/agent/IsaacSessionEmitter.d.ts dist/types/cli/src/agent/public-types.d.ts dist/agent/ && rm -rf dist/types",
 		"watch": "npx tsx esbuild.mts --watch",
 		"dev": "IS_DEV=true && npm run link && npm run watch ; npm run unlink",
 		"clean": "rimraf dist",
@@ -50,7 +50,7 @@
 	"keywords": [
 		"isaac",
 		"ailiance",
-		"dirac",
+		"isaac",
 		"claude",
 		"dev",
 		"openrouter",
@@ -85,13 +85,13 @@
 		"ink-testing-library": "^4.0.0",
 		"rimraf": "^6.0.1",
 		"typescript": "^5.4.5",
-		"vitest": "^4.0.17"
+		"vitest": "^4.1.8"
 	},
 	"dependencies": {
-		"better-sqlite3": "^12.4.1",
 		"@agentclientprotocol/sdk": "^0.13.1",
 		"@vscode/ripgrep": "^1.15.9",
 		"aws4fetch": "^1.0.20",
+		"better-sqlite3": "^12.4.1",
 		"chalk": "^5.3.0",
 		"commander": "^12.1.0",
 		"ink": "npm:@jrichman/ink@7.0.0",

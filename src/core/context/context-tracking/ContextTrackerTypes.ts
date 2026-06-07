@@ -2,9 +2,9 @@
 export interface FileMetadataEntry {
 	path: string
 	record_state: "active" | "stale"
-	record_source: "read_tool" | "user_edited" | "dirac_edited" | "file_mentioned"
-	dirac_read_date: number | null
-	dirac_edit_date: number | null
+	record_source: "read_tool" | "user_edited" | "isaac_edited" | "file_mentioned"
+	isaac_read_date: number | null
+	isaac_edit_date: number | null
 	user_edit_date?: number | null
 }
 
@@ -22,7 +22,7 @@ export interface EnvironmentMetadataEntry {
 	os_arch: string
 	host_name: string
 	host_version: string
-	dirac_version: string
+	isaac_version: string
 }
 
 export interface TaskMetadata {

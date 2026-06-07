@@ -1,6 +1,6 @@
 /**
  * Welcome view component
- * Shows an interactive prompt when user starts dirac without a command
+ * Shows an interactive prompt when user starts isaac without a command
  * Supports file mentions with @
  */
 
@@ -8,22 +8,21 @@ import { Box, Text, useInput } from "ink"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StateManager } from "@/core/storage/StateManager"
 import type { ApiProvider } from "@/shared/api"
+import { getRandomQuote } from "@/shared/quotes"
 import { getProviderDefaultModelId, getProviderModelIdKey, Mode, SettingsKey } from "@/shared/storage"
+import { version as CLI_VERSION } from "../../package.json"
 import { useStdinContext } from "../context/StdinContext"
 import { centerText } from "../utils/display"
-import { version as CLI_VERSION } from "../../package.json"
-
 import {
-    checkAndWarnRipgrepMissing,
-    extractMentionQuery,
-    type FileSearchResult,
-    getRipgrepInstallInstructions,
-    insertMention,
-    searchWorkspaceFiles,
+	checkAndWarnRipgrepMissing,
+	extractMentionQuery,
+	type FileSearchResult,
+	getRipgrepInstallInstructions,
+	insertMention,
+	searchWorkspaceFiles,
 } from "../utils/file-search"
 import { isMouseEscapeSequence } from "../utils/input"
 import { parseImagesFromInput } from "../utils/parser"
-import { getRandomQuote } from "@/shared/quotes"
 import { FileMentionMenu } from "./FileMentionMenu"
 
 interface WelcomeViewProps {
@@ -32,8 +31,8 @@ interface WelcomeViewProps {
 	controller?: any
 }
 
-// ASCII art Dirac logo
-const DIRAC_LOGO = [
+// ASCII art Isaac logo
+const ISAAC_LOGO = [
 	"        █████████████        ",
 	"      ███          ▀▀██      ",
 	"    ██▀                      ",
@@ -49,9 +48,8 @@ const DIRAC_LOGO = [
 	"▀██▄                  ▄██▀   ",
 	"  ▀██▄              ▄██▀     ",
 	"    ▀██▄          ▄██▀       ",
-	"       ▀▀▀▀▀▀▀▀▀▀▀▀          "
-];
-
+	"       ▀▀▀▀▀▀▀▀▀▀▀▀          ",
+]
 
 const SEARCH_DEBOUNCE_MS = 150
 const RIPGREP_WARNING_DURATION_MS = 5000
@@ -76,11 +74,11 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 		const mode = stateManager.getGlobalSettingsKey("mode") as string
 		const providerKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
 		const currentProvider = stateManager.getGlobalSettingsKey(providerKey) as string
-		return currentProvider || "dirac"
+		return currentProvider || "isaac"
 	}, [controller])
 
 	// Get model ID based on current mode and provider
-	// Different providers use different state keys (e.g., dirac uses actModeOpenRouterModelId)
+	// Different providers use different state keys (e.g., isaac uses actModeOpenRouterModelId)
 	const modelId = useMemo(() => {
 		const stateManager = StateManager.get()
 		const modelKey = getProviderModelIdKey(provider as ApiProvider, mode)
@@ -243,9 +241,9 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 
 	return (
 		<Box flexDirection="column" width="100%">
-			{/* Dirac logo - centered */}
+			{/* Isaac logo - centered */}
 			<Box flexDirection="column">
-				{DIRAC_LOGO.map((line, idx) => (
+				{ISAAC_LOGO.map((line, idx) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: static array that never changes
 					<Text color="#F59E0B" key={idx}>
 						{centerText(line)}

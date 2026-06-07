@@ -1,5 +1,7 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
+import { defineTool, readParam } from "@core/prompts/system-prompt/tool-unit"
+import { execute_command } from "@core/prompts/system-prompt/tools/execute_command"
 // ailiance-agent fork: hard-deny zone gate
 import { classifyCommand, HARD_DENY_EXIT_CODE } from "@core/safety/zoneClassifier"
 import { WorkspacePathAdapter } from "@core/workspace/WorkspacePathAdapter"
@@ -7,7 +9,7 @@ import { MultiCommandState } from "@shared/ExtensionMessage"
 import { telemetryService } from "@/services/telemetry"
 import { truncateHeadTail } from "@/shared/content-limits"
 import { Logger } from "@/shared/services/Logger"
-import { DiracDefaultTool } from "@/shared/tools"
+import { IsaacDefaultTool } from "@/shared/tools"
 import { notifyAsyncTool } from "../../AsyncToolNotifier"
 import type { ToolResponse } from "../../index"
 import type { PendingToolEntry, PendingToolRegistry } from "../../PendingToolRegistry"
@@ -17,8 +19,8 @@ import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
-import { coerceToStringArray } from "../utils/coerceArray"
 import { isSafeCommand } from "../utils/CommandSafetyChecker"
+import { coerceToStringArray } from "../utils/coerceArray"
 import { applyModelContentFixes } from "../utils/ModelContentProcessor"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
 
@@ -69,7 +71,7 @@ export function resolveCommandTimeoutSeconds(command: string, useManagedTimeout:
 }
 
 export class ExecuteCommandToolHandler implements IFullyManagedTool {
-	readonly name = DiracDefaultTool.BASH
+	readonly name = IsaacDefaultTool.BASH
 
 	constructor(private validator: ToolValidator) {}
 
@@ -150,8 +152,11 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const rawCommands = coerceToStringArray(block.params.commands)
-		const script = block.params.script as string | undefined
-		const language = (block.params.language as string | undefined) || "bash"
+		// Lot E: read scalar params through the typed contract derived from the
+		// spec. Renaming `script`/`language` in the spec breaks this handler's
+		// compile. The array `commands` is read via `coerceToStringArray`.
+		const script = readParam(execute_command_unit, block.params, "script")
+		const language = readParam(execute_command_unit, block.params, "language") || "bash"
 
 		// Validate required parameters
 		let validation: { ok: boolean; error?: string; paramName?: string }
@@ -170,7 +175,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			}
 			await config.callbacks.say(
 				"error",
-				`Dirac tried to use ${this.name} without providing any commands or script. Retrying...`,
+				`Isaac tried to use ${this.name} without providing any commands or script. Retrying...`,
 			)
 			return formatResponse.toolError(validation.error!)
 		}
@@ -185,7 +190,14 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 		}
 
 		if (script) {
-			const wrappedCommand = this.wrapScript(script, language)
+			let wrappedCommand: string
+			try {
+				wrappedCommand = this.wrapScript(script, language)
+			} catch (err) {
+				config.taskState.consecutiveMistakeCount++
+				const message = err instanceof Error ? err.message : String(err)
+				return formatResponse.toolError(message)
+			}
 			const langDisplay = language.charAt(0).toUpperCase() + language.slice(1)
 			commandsToProcess.push({
 				command: wrappedCommand,
@@ -263,7 +275,7 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 		if (commandsRequiringApproval.length > 0) {
 			showNotificationForApproval(
-				`Dirac wants to execute ${commandsRequiringApproval.length} commands`,
+				`Isaac wants to execute ${commandsRequiringApproval.length} commands`,
 				config.autoApprovalSettings.enableNotifications,
 			)
 
@@ -287,10 +299,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				}
 
 				if (messageTs !== undefined) {
-					const messages = config.callbacks.getDiracMessages()
+					const messages = config.callbacks.getIsaacMessages()
 					const index = messages.findIndex((m) => m.ts === messageTs)
 					if (index !== -1) {
-						await config.callbacks.updateDiracMessage(index, { multiCommandState: { ...multiCommandState } })
+						await config.callbacks.updateIsaacMessage(index, { multiCommandState: { ...multiCommandState } })
 					}
 				}
 
@@ -305,10 +317,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			}
 
 			if (messageTs !== undefined) {
-				const messages = config.callbacks.getDiracMessages()
+				const messages = config.callbacks.getIsaacMessages()
 				const index = messages.findIndex((m) => m.ts === messageTs)
 				if (index !== -1) {
-					await config.callbacks.updateDiracMessage(index, { multiCommandState: { ...multiCommandState } })
+					await config.callbacks.updateIsaacMessage(index, { multiCommandState: { ...multiCommandState } })
 				}
 			}
 		} else {
@@ -325,10 +337,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 
 		const updateMessage = async () => {
 			if (messageTs === undefined) return
-			const messages = config.callbacks.getDiracMessages()
+			const messages = config.callbacks.getIsaacMessages()
 			const index = messages.findIndex((m) => m.ts === messageTs)
 			if (index !== -1) {
-				await config.callbacks.updateDiracMessage(index, {
+				await config.callbacks.updateIsaacMessage(index, {
 					multiCommandState: { ...multiCommandState },
 					commandCompleted: false,
 					partial: false,
@@ -385,9 +397,12 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			}
 
 			// Permission validation
-			const permissionResult = config.services.commandPermissionController.validateCommand(actualCommand, isYolo || config.isSubagentExecution)
+			const permissionResult = config.services.commandPermissionController.validateCommand(
+				actualCommand,
+				isYolo || config.isSubagentExecution,
+			)
 			if (!permissionResult.allowed && !wasManuallyApproved && !isYolo && !config.isSubagentExecution) {
-				let errorMessage = `Command "${actualCommand}" was denied by DIRAC_COMMAND_PERMISSIONS.`
+				let errorMessage = `Command "${actualCommand}" was denied by ISAAC_COMMAND_PERMISSIONS.`
 				if (permissionResult.failedSegment) {
 					errorMessage += ` Segment "${permissionResult.failedSegment}" ${permissionResult.reason}.`
 				} else {
@@ -406,14 +421,14 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 				continue
 			}
 
-			// Diracignore validation
-			const ignoredFileAttemptedToAccess = config.services.diracIgnoreController.validateCommand(actualCommand)
+			// Isaacignore validation
+			const ignoredFileAttemptedToAccess = config.services.isaacIgnoreController.validateCommand(actualCommand)
 			if (ignoredFileAttemptedToAccess) {
 				cmdState.status = "failed"
-				cmdState.output = `Diracignore error: ${ignoredFileAttemptedToAccess}`
+				cmdState.output = `Isaacignore error: ${ignoredFileAttemptedToAccess}`
 				await updateMessage()
 
-				results.push(`--- Output for '${displayName}' ---\nDiracignore error: ${ignoredFileAttemptedToAccess}`)
+				results.push(`--- Output for '${displayName}' ---\nIsaacignore error: ${ignoredFileAttemptedToAccess}`)
 				anyFailed = true
 				continue
 			}
@@ -692,10 +707,10 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 		}
 
 		// Mark the final message as completed
-		const messages = config.callbacks.getDiracMessages()
+		const messages = config.callbacks.getIsaacMessages()
 		const index = messages.findIndex((m) => m.ts === messageTs)
 		if (index !== -1) {
-			await config.callbacks.updateDiracMessage(index, {
+			await config.callbacks.updateIsaacMessage(index, {
 				commandCompleted: true,
 				partial: false,
 			})
@@ -704,25 +719,48 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 		return formatResponse.toolResult(results.join("\n\n"))
 	}
 
+	// Strict whitelist of allowed script interpreters. Maps the LLM-provided
+	// `language` to a fixed, known-safe interpreter binary. Anything not in this
+	// map is rejected — we never fall back to the raw `language` value, which
+	// would otherwise be injected verbatim into the shell command and allow RCE
+	// (e.g. language="bash -c 'rm -rf ~'" or arbitrary heredoc escapes).
+	private static readonly ALLOWED_INTERPRETERS: Readonly<Record<string, string>> = {
+		bash: "bash",
+		sh: "sh",
+		python: "python3",
+		python3: "python3",
+		node: "node",
+		javascript: "node",
+		ruby: "ruby",
+		perl: "perl",
+	}
+
 	private wrapScript(script: string, language: string): string {
-		const delimiter = `EOF_DIRAC_SCRIPT_${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+		const delimiter = `EOF_ISAAC_SCRIPT_${Math.random().toString(36).substring(2, 10).toUpperCase()}`
 		const normalizedLanguage = language.toLowerCase().trim()
 
-		let interpreter = "bash"
-		if (normalizedLanguage === "python" || normalizedLanguage === "python3") {
-			interpreter = "python3"
-		} else if (normalizedLanguage === "node" || normalizedLanguage === "javascript") {
-			interpreter = "node"
-		} else if (normalizedLanguage === "sh") {
-			interpreter = "sh"
-		} else if (normalizedLanguage === "ruby") {
-			interpreter = "ruby"
-		} else if (normalizedLanguage === "perl") {
-			interpreter = "perl"
-		} else {
-			interpreter = normalizedLanguage
+		const interpreter = ExecuteCommandToolHandler.ALLOWED_INTERPRETERS[normalizedLanguage]
+		if (!interpreter) {
+			const allowed = Object.keys(ExecuteCommandToolHandler.ALLOWED_INTERPRETERS).join(", ")
+			throw new Error(
+				`Unsupported script language "${language}". Allowed values: ${allowed}. ` +
+					`Use one of these, or pass the command via the 'commands' parameter instead.`,
+			)
 		}
 
 		return `${interpreter} << '${delimiter}'\n${script}\n${delimiter}`
 	}
 }
+
+/**
+ * Lot E — unified tool unit for `execute_command`. Co-locates the prompt spec
+ * with the handler factory and the mutating flag, exposing the drift-detecting
+ * typed link between spec params and the handler. Coexists with the legacy
+ * registration paths (no cutover yet).
+ */
+export const execute_command_unit = defineTool({
+	id: IsaacDefaultTool.BASH,
+	spec: execute_command,
+	readonly: false,
+	createHandler: (validator: unknown) => new ExecuteCommandToolHandler(validator as ToolValidator),
+})

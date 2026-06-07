@@ -5,10 +5,10 @@ import * as vscode from "vscode"
 import { DecorationController } from "@/hosts/vscode/DecorationController"
 import { NotebookDiffView } from "@/hosts/vscode/NotebookDiffView"
 import { Logger } from "@/shared/services/Logger"
-import { arePathsEqual } from "@/utils/path"
 import { createDirectoriesForFile } from "@/utils/fs"
+import { arePathsEqual } from "@/utils/path"
 
-export const DIFF_VIEW_URI_SCHEME = "dirac-diff"
+export const DIFF_VIEW_URI_SCHEME = "isaac-diff"
 
 export class VscodeDiffViewProvider extends DiffViewProvider {
 	private activeDiffEditor?: vscode.TextEditor
@@ -39,8 +39,8 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 
 	private static updateContextKeys(editor: vscode.TextEditor | undefined) {
 		if (!editor || editor.document.uri.scheme === DIFF_VIEW_URI_SCHEME) {
-			vscode.commands.executeCommand("setContext", "dirac.isFileUnderReview", false)
-			vscode.commands.executeCommand("setContext", "dirac.isFileModified", false)
+			vscode.commands.executeCommand("setContext", "isaac.isFileUnderReview", false)
+			vscode.commands.executeCommand("setContext", "isaac.isFileModified", false)
 			return
 		}
 
@@ -54,12 +54,12 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 		}
 
 		if (proposedContent === undefined) {
-			vscode.commands.executeCommand("setContext", "dirac.isFileUnderReview", false)
-			vscode.commands.executeCommand("setContext", "dirac.isFileModified", false)
+			vscode.commands.executeCommand("setContext", "isaac.isFileUnderReview", false)
+			vscode.commands.executeCommand("setContext", "isaac.isFileModified", false)
 		} else {
-			vscode.commands.executeCommand("setContext", "dirac.isFileUnderReview", true)
+			vscode.commands.executeCommand("setContext", "isaac.isFileUnderReview", true)
 			const isModified = editor.document.getText() !== proposedContent
-			vscode.commands.executeCommand("setContext", "dirac.isFileModified", isModified)
+			vscode.commands.executeCommand("setContext", "isaac.isFileModified", isModified)
 		}
 	}
 
@@ -120,7 +120,7 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 					query: Buffer.from(this.originalContent ?? "").toString("base64"),
 				}),
 				uri,
-				`${fileName}: ${fileExists ? "Original ↔ Dirac's Changes" : "New File"} (Editable)`,
+				`${fileName}: ${fileExists ? "Original ↔ Isaac's Changes" : "New File"} (Editable)`,
 				{
 					preserveFocus: true,
 				},
@@ -250,7 +250,7 @@ export class VscodeDiffViewProvider extends DiffViewProvider {
 	}
 
 	protected async closeAllDiffViews(): Promise<void> {
-		// Close all the dirac diff views.
+		// Close all the isaac diff views.
 		const tabs = vscode.window.tabGroups.all
 			.flatMap((tg) => tg.tabs)
 			.filter((tab) => tab.input instanceof vscode.TabInputTextDiff && tab.input?.original?.scheme === DIFF_VIEW_URI_SCHEME)

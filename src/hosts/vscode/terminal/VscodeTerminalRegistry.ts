@@ -27,10 +27,10 @@ export class TerminalRegistry {
 	): TerminalInfo {
 		const terminalOptions: vscode.TerminalOptions = {
 			cwd,
-			name: "Dirac",
-			iconPath: new vscode.ThemeIcon("dirac-icon"),
+			name: "Isaac",
+			iconPath: new vscode.ThemeIcon("isaac-icon"),
 			env: {
-				DIRAC_ACTIVE: "true",
+				ISAAC_ACTIVE: "true",
 				...env,
 			},
 		}
