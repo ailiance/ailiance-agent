@@ -9,14 +9,29 @@ export class RpcPeer {
 	private pending = new Map<number, { resolve: (v: any) => void; reject: (e: any) => void }>()
 	private notifyHandlers = new Map<string, NotifyHandler>()
 
+	private closed = false
+
 	constructor(
 		private transport: Transport,
 		private handlers: Record<string, Handler> = {},
 	) {
 		transport.onMessage((m) => this.onMessage(m))
+		// Reject pending requests if the transport closes (e.g. daemon spawn
+		// failure or crash) so callers never hang on an unresolvable promise.
+		transport.onClose?.(() => this.rejectPending(new Error("transport closed")))
+	}
+
+	private rejectPending(error: Error): void {
+		for (const p of this.pending.values()) {
+			p.reject(error)
+		}
+		this.pending.clear()
 	}
 
 	request(method: string, params?: any): Promise<any> {
+		if (this.closed) {
+			return Promise.reject(new Error("RpcPeer disposed"))
+		}
 		const id = this.nextId++
 		return new Promise((resolve, reject) => {
 			this.pending.set(id, { resolve, reject })
@@ -58,15 +73,18 @@ export class RpcPeer {
 				p.resolve(res.result)
 			}
 		} else if ("method" in m) {
-			this.notifyHandlers.get(m.method)?.(m.params)
+			// A throwing notify handler must not escape the transport listener.
+			try {
+				this.notifyHandlers.get(m.method)?.(m.params)
+			} catch {
+				// ignore handler error; notifications are fire-and-forget
+			}
 		}
 	}
 
 	dispose(): void {
-		for (const p of this.pending.values()) {
-			p.reject(new Error("RpcPeer disposed"))
-		}
-		this.pending.clear()
+		this.closed = true
+		this.rejectPending(new Error("RpcPeer disposed"))
 		this.transport.close()
 	}
 }

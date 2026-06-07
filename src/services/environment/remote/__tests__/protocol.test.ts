@@ -15,6 +15,22 @@ describe("protocol framing", () => {
 		assert.equal(out[0].method, "env/readFile")
 		assert.equal(out[0].params.path, "a.txt")
 	})
+
+	// C2: a framed-but-malformed body must not throw out of the data listener
+	// (an uncaughtException would crash the daemon). The frame is dropped and a
+	// subsequent valid frame is still decoded.
+	it("drops a malformed body without throwing and keeps decoding", () => {
+		const out: any[] = []
+		const decoder = decodeMessages((m) => out.push(m))
+		const bad = Buffer.from("not-json{", "utf8")
+		const badFrame = Buffer.concat([Buffer.from(`Content-Length: ${bad.length}\r\n\r\n`, "ascii"), bad])
+		assert.doesNotThrow(() => decoder.push(badFrame))
+		assert.equal(out.length, 0)
+		const good = encodeMessage({ jsonrpc: "2.0", id: 7, method: "env/exists", params: { path: "x" } })
+		assert.doesNotThrow(() => decoder.push(good))
+		assert.equal(out.length, 1)
+		assert.equal(out[0].method, "env/exists")
+	})
 })
 
 describe("RpcPeer over in-process transport", () => {
@@ -35,5 +51,15 @@ describe("RpcPeer over in-process transport", () => {
 		})
 		const client = new RpcPeer(clientT)
 		await assert.rejects(() => client.request("env/boom", {}), /nope/)
+	})
+
+	// I3: a transport close (e.g. daemon spawn failure / crash) must reject any
+	// in-flight request rather than leave the promise pending forever.
+	it("rejects pending requests when the transport closes", async () => {
+		const [clientT] = inProcessTransportPair()
+		const client = new RpcPeer(clientT)
+		const p = client.request("env/never", {})
+		clientT.close()
+		await assert.rejects(() => p, /transport closed/)
 	})
 })
