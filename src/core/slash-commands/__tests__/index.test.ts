@@ -18,4 +18,22 @@ describe("slash-commands", () => {
 		})
 		expect(result.processedText).to.include("help them create a new task with preloaded context")
 	})
+
+	it("should return a direct response for snapshot commands via runDirectCommand", async () => {
+		const text = "<feedback>" + "/snapshot hello" + "</feedback>"
+		const result = await parseSlashCommands(
+			text,
+			{},
+			{},
+			"test-ulid",
+			undefined,
+			[],
+			undefined,
+			undefined,
+			undefined,
+			async (_name, _arg) => "OK snap",
+		)
+		expect(result.isDirectResponse).to.equal(true)
+		expect(result.directResponseText).to.equal("OK snap")
+	})
 })

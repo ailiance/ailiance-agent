@@ -1,10 +1,16 @@
+import { randomUUID } from "node:crypto"
 import { extractSymbolLikeStrings } from "@core/context/instructions/user-instructions/rule-conditionals"
 import { parseMentions } from "@core/mentions"
 import { formatResponse } from "@core/prompts/responses"
 import { parseSlashCommands } from "@core/slash-commands"
-import { GlobalFileNames } from "@core/storage/disk"
+import { ensureSnapshotsDirectoryExists, GlobalFileNames } from "@core/storage/disk"
+import { captureSnapshot } from "@core/storage/snapshot/capture"
+import { rehydrate } from "@core/storage/snapshot/restore"
+import { SnapshotStore } from "@core/storage/snapshot/SnapshotStore"
+import { runRestore, runSessions, runSnapshot } from "@core/storage/snapshot/snapshotCommands"
 import { resolveWorkspacePath } from "@core/workspace"
 import { isMultiRootEnabled } from "@core/workspace/multi-root-utils"
+import { LocalEnvironment } from "@services/environment/LocalEnvironment"
 import { listFiles } from "@services/glob/list-files"
 import { mentionRegexGlobal } from "@shared/context-mentions"
 import { USER_CONTENT_TAGS } from "@shared/messages/constants"
@@ -348,6 +354,27 @@ export class ContextLoader {
 	}> {
 		const parsedText = await parseMentions(text, cwd, this.urlContentFetcher, this.fileContextTracker, this.workspaceManager)
 
+		const runDirectCommand = async (name: string, arg: string): Promise<string> => {
+			const env = new LocalEnvironment(this.dependencies.cwd)
+			const store = new SnapshotStore(env, await ensureSnapshotsDirectoryExists())
+			const deps = {
+				store,
+				taskId: this.dependencies.taskId,
+				envLabel: "local",
+				newId: () => `snap_${randomUUID().slice(0, 8)}`,
+				capture: captureSnapshot,
+				rehydrate,
+				newTaskId: () => randomUUID(),
+			}
+			if (name === "snapshot") {
+				return runSnapshot(deps, arg)
+			}
+			if (name === "sessions") {
+				return runSessions(deps)
+			}
+			return runRestore(deps, arg)
+		}
+
 		const { processedText, needsIsaacrulesFileCheck, isDirectResponse, directResponseText } = await parseSlashCommands(
 			parsedText,
 			localWorkflowToggles,
@@ -358,6 +385,7 @@ export class ContextLoader {
 			this.dependencies.commandPermissionController,
 			this.dependencies.extensionPath,
 			this.dependencies.sourceDir,
+			runDirectCommand,
 		)
 
 		// Skip automatic path and symbol detection for subsequent turns
@@ -378,6 +406,8 @@ export class ContextLoader {
 			return {
 				enrichedText: `${processedText}\n\n${additionalContext.join("\n\n")}`,
 				needsIsaacrulesFileCheck,
+				isDirectResponse,
+				directResponseText,
 			}
 		}
 

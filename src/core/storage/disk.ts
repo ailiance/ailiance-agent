@@ -362,6 +362,10 @@ export async function ensureCacheDirectoryExists(): Promise<string> {
 	return getGlobalStorageDir("cache")
 }
 
+export async function ensureSnapshotsDirectoryExists(): Promise<string> {
+	return getGlobalStorageDir("snapshots")
+}
+
 async function getGlobalStorageDir(...subdirs: string[]) {
 	const fullPath = path.resolve(HostProvider.get().globalStorageFsPath, ...subdirs)
 	await fs.mkdir(fullPath, { recursive: true })
