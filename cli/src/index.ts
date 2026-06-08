@@ -148,6 +148,14 @@ program
 	})
 
 program
+	.command("webui")
+	.description("Start the ISAAC web dashboard (gateway models, tools, LISAEL memories)")
+	.action(async () => {
+		const { runWebui } = await import("./commands/webui")
+		return runWebui()
+	})
+
+program
 	.command("update")
 	.description("Check for updates and install if available")
 	.option("-v, --verbose", "Show verbose output")
