@@ -4,7 +4,7 @@
 
 ### Agent de code souverain — extension VS Code + CLI Ink, audit JSONL EU AI Act, branché sur la passerelle ailiance par défaut
 
-[![release](https://img.shields.io/badge/release-v0.5.0--beta-7e3af2)](CHANGELOG.md)
+[![release](https://img.shields.io/badge/release-v0.9.5--beta-7e3af2)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![sovereignty](https://img.shields.io/badge/EU--sovereign-100%25-7e3af2)](https://github.com/ailiance/ailiance)
 [![heritage](https://img.shields.io/badge/heritage-Dirac%20%2F%20Cline-1f4e8a)](https://github.com/dirac-run/dirac)
@@ -19,11 +19,11 @@ CLI : **`isaac`** · Extension VS Code · UI webview React · Provider par défa
 
 ## C'est quoi
 
-Un agent de code conversationnel forké de [Dirac](https://github.com/dirac-run/dirac) (lui-même basé sur [Cline](https://github.com/cline/cline)) avec **trois différences qui comptent** :
+Un agent de code souverain **inspiré de** [Dirac](https://github.com/dirac-run/dirac) (lui-même un fork de [Cline](https://github.com/cline/cline)) : ISAAC en réutilise le socle Apache-2.0 mais le réoriente autour de **trois différences qui comptent** :
 
 1. **Tracing JSONL EU AI Act** — chaque tour de plan / d'outil est écrit dans `.ailiance-agent/runs/<task_id>/`, secrets scrubés, audit prêt pour Annex IV §1(c).
 2. **Backend ailiance par défaut** — la passerelle souveraine 5 workers (Apertus, Devstral, EuroLLM, Gemma 3, Qwen3-Next) au lieu d'OpenAI/Anthropic. 41 autres providers branchables (Bedrock, Vertex, DeepSeek, Mistral, OpenRouter, etc.).
-3. **Télémétrie désactivée** — upstream Dirac envoie des events à PostHog. Ce fork coupe tout. Aucune donnée ne sort de l'hôte.
+3. **Télémétrie désactivée** — upstream Dirac envoie des events à PostHog. ISAAC coupe tout. Aucune donnée ne sort de l'hôte.
 
 ### Vue d'ensemble
 
@@ -390,7 +390,7 @@ Inspirée de Claude Code. Visible en bas de la chat view :
 - Ligne 1 : `▸ <cwd_complet>` + badge branche (vert si clean, jaune si dirty)
 - Ligne 2 : badge magenta modèle + badge contexte coloré (vert ≥ 40 %, jaune ≥ 15 %, rouge sinon) + horloge live
 
-## Ce qui distingue ce fork
+## Ce qui distingue ISAAC
 
 | | isaac | Dirac upstream |
 |---|---|---|
@@ -402,7 +402,7 @@ Inspirée de Claude Code. Visible en bas de la chat view :
 | **Plugin hooks** | `PreToolUse` / `PostToolUse` câblés au runtime | upstream |
 | **Filtrage MCP** | `enabledMcpServers` + `mcpToolDenylist` + `mcpToolAllowlist` | upstream |
 
-Pour le reste — boucle ReAct, hash-anchored parallel edits, AST manipulation, `--auto-condense`, `--double-check-completion`, 41 providers tiers — **on hérite et on garde la compatibilité stricte avec Dirac**. Les améliorations qui ne sont pas spécifiques au fork remontent en upstream.
+Pour le reste — boucle ReAct, hash-anchored parallel edits, AST manipulation, `--auto-condense`, `--double-check-completion`, 41 providers tiers — **ISAAC réutilise le socle Dirac/Cline (Apache-2.0) et en garde la compatibilité**. Les améliorations génériques peuvent remonter en amont.
 
 ## Boucle agent + audit JSONL
 
@@ -574,18 +574,18 @@ Voir [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Versions actives :
 - **v0.3.1** (2026-05-06) — fleet ailiance passé à 5 workers (Gemma 3, Qwen3-Next 80B MoE)
 - **v0.3.0** (2026-05-06) — statusline 2 lignes, local stack auto-detect, plugin hooks runtime, filtrage MCP, provider AIHubMix
 - **v0.2.0** (2026-05-05) — convergence agent end-to-end avec ailiance (parsing tool-calls Mistral)
-- **v0.1.0** (2026-05-05) — fork initial : tracing JSONL, télémétrie off, defaults ailiance
+- **v0.1.0** (2026-05-05) — base initiale (socle Dirac/Cline) : tracing JSONL, télémétrie off, defaults ailiance
 
 ## Limitations connues (v0)
 
 - **Backend** : par défaut `http://studio:9300/v1` (Tailscale privé). Override via `AGENT_KIKI_GATEWAY` ou `--baseurl`. Le suffixe `/v1` est obligatoire.
 - **ailiance LoRA adapters** : worker wrap base + `linear_to_lora_layers`, charge les poids via `strict=False` (`ailiance:1ed24b8`). Adapter par domaine activé quand le header `X-Lora-Domain` est présent.
-- **Sentinel apiKey** : sans provider configuré, le fork persiste `openAiApiKey="unused"` comme sentinelle pour le code path openai-compatible. La passerelle ailiance ne valide pas les clés.
+- **Sentinel apiKey** : sans provider configuré, ISAAC persiste `openAiApiKey="unused"` comme sentinelle pour le code path openai-compatible. La passerelle ailiance ne valide pas les clés.
 - **Trace gap** : les tâches abandonnées avant un tool call valide produisent un dossier de run avec meta/trace vides. Audit downstream : traiter comme `incomplete`.
 - **Node.js v25 non supporté** (bug V8 Turboshaft upstream). Utiliser Node 20, 22 ou 24 LTS.
 - **Pas de rotation des traces** : `<cwd>/.ailiance-agent/runs/` s'accumule sans purge auto. Nettoyage manuel jusqu'à v0.4.
 
 ## Origine et licence
 
-Fork de [Dirac](https://github.com/dirac-run/dirac), lui-même basé sur [Cline](https://github.com/cline/cline). Les améliorations qui ne sont pas spécifiques au fork (boucle agent, optimisations de contexte, suite d'évals, parallel edits, AST manipulation, sub-agents) viennent d'upstream et restent compatibles. License **Apache-2.0**, préservée.
+ISAAC est **inspiré de** [Dirac](https://github.com/dirac-run/dirac) (lui-même un fork de [Cline](https://github.com/cline/cline)) et en réutilise des composants (boucle agent, optimisations de contexte, suite d'évals, parallel edits, AST manipulation, sub-agents). À ce titre il **reste sous licence [Apache-2.0](LICENSE)** et conserve les attributions et copyrights d'origine. « Inspiré de » est un choix de positionnement, pas une dispense d'attribution : tout code réutilisé reste crédité conformément à Apache-2.0 §4.
 
