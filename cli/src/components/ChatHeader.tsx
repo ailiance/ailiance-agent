@@ -43,6 +43,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ isWelcomeState, quote, o
 			<Text bold color="white">
 				{centerText(`ISAAC v${CLI_VERSION} — EU-sovereign coding agent · powered by LISAEL`)}
 			</Text>
+			<Text dimColor>{centerText("LISAEL — Liaison Inter-Systèmes Agentiques & Environnement Linker")}</Text>
 			{webuiUrl && (
 				<Box marginTop={0}>
 					<Text dimColor>{centerText(`Web UI: ${osc8(webuiUrl, webuiUrl)}`)}</Text>

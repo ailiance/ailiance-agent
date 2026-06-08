@@ -1,6 +1,6 @@
 {
 	"name": "isaac-cli",
-	"version": "0.9.1-beta",
+	"version": "0.9.5",
 	"description": "EU-sovereign autonomous coding agent CLI, forked from Isaac, routed to ailiance LLM gateway by default",
 	"files": [
 		"dist"

@@ -256,6 +256,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 				<Text bold color="white">
 					{centerText(`ISAAC v${CLI_VERSION} — EU-sovereign coding agent · powered by LISAEL`)}
 				</Text>
+				<Text dimColor>{centerText("LISAEL — Liaison Inter-Systèmes Agentiques & Environnement Linker")}</Text>
 
 				<Box marginTop={1}>
 					<Text color="cyan" italic>
