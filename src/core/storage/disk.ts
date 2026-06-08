@@ -335,6 +335,25 @@ export async function saveTaskMetadata(taskId: string, metadata: TaskMetadata) {
 	}
 }
 
+/**
+ * Atomically write a raw state file into a task directory. Used by snapshot
+ * restore to rehydrate captured JSON files without re-parsing their typed
+ * shapes. Mirrors the temp+rename guarantee of the typed save* helpers.
+ */
+export async function writeTaskStateFile(taskId: string, fileName: string, data: string): Promise<void> {
+	const filePath = path.join(await ensureTaskDirectoryExists(taskId), fileName)
+	await atomicWriteFile(filePath, data)
+}
+
+/** Read a raw state file from a task directory, or undefined if absent. */
+export async function readTaskStateFile(taskId: string, fileName: string): Promise<string | undefined> {
+	const filePath = path.join(await ensureTaskDirectoryExists(taskId), fileName)
+	if (await fileExistsAtPath(filePath)) {
+		return fs.readFile(filePath, "utf8")
+	}
+	return undefined
+}
+
 export async function ensureStateDirectoryExists(): Promise<string> {
 	return getGlobalStorageDir("state")
 }
