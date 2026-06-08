@@ -7,9 +7,13 @@ export async function runWebui(): Promise<void> {
 	console.log(`✓ ISAAC webui running: ${status.url}`)
 	console.log("  Press Ctrl+C to stop.")
 
-	// The server unref()s itself, so keep the process alive explicitly.
+	// The server unref()s itself, so keep the process alive explicitly. A timer
+	// is more robust than stdin.resume() alone (stdin may be a non-TTY/closed
+	// pipe when launched in the background).
+	const keepAlive = setInterval(() => {}, 1 << 30)
 	process.stdin.resume()
 	const shutdown = async () => {
+		clearInterval(keepAlive)
 		try {
 			await webuiServer.stop()
 		} finally {
