@@ -44,4 +44,24 @@ describe("embedConfigFromEnv", () => {
 			{ baseUrl: "http://x", apiKey: "k", model: "my-model" },
 		)
 	})
+	it("derives the endpoint from AILIANCE_GATEWAY when no explicit embeddings URL is set", () => {
+		assert.deepEqual(
+			embedConfigFromEnv({
+				ISAAC_MEM_EMBEDDINGS: "1",
+				AILIANCE_GATEWAY: "https://gateway.ailiance.fr/v1",
+			}),
+			{ baseUrl: "https://gateway.ailiance.fr/v1", apiKey: "unused", model: "ailiance-rust-emb" },
+		)
+	})
+	it("lets explicit embeddings env override the AILIANCE_GATEWAY derivation", () => {
+		assert.deepEqual(
+			embedConfigFromEnv({
+				ISAAC_MEM_EMBEDDINGS: "1",
+				AILIANCE_GATEWAY: "https://gateway.ailiance.fr/v1",
+				ISAAC_EMBEDDINGS_BASE_URL: "http://x",
+				ISAAC_EMBEDDINGS_API_KEY: "k",
+			}),
+			{ baseUrl: "http://x", apiKey: "k", model: "text-embedding-3-small" },
+		)
+	})
 })
