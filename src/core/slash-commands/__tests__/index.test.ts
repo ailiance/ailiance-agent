@@ -36,4 +36,24 @@ describe("slash-commands", () => {
 		expect(result.isDirectResponse).to.equal(true)
 		expect(result.directResponseText).to.equal("OK snap")
 	})
+
+	it("should pass the command name and trimmed argument to runDirectCommand", async () => {
+		const captured: Array<{ name: string; arg: string }> = []
+		const stub = async (name: string, arg: string) => {
+			captured.push({ name, arg })
+			return "ok"
+		}
+		const run = (inner: string) =>
+			parseSlashCommands(`<task>${inner}</task>`, {}, {}, "test-ulid", undefined, [], undefined, undefined, undefined, stub)
+
+		await run("/snapshot my label")
+		await run("/restore snap_x")
+		await run("/sessions")
+
+		expect(captured).to.deep.equal([
+			{ name: "snapshot", arg: "my label" },
+			{ name: "restore", arg: "snap_x" },
+			{ name: "sessions", arg: "" },
+		])
+	})
 })
