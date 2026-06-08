@@ -2,6 +2,8 @@ import { promises as fs } from "node:fs"
 import http, { type Server } from "node:http"
 import { createServer as createNetServer } from "node:net"
 import path from "node:path"
+import { getExposedUnits } from "@core/task/tools/units"
+import { listMemories } from "@/utils/ailiance-memory"
 import { LANDING_HTML } from "./landing-html"
 
 function getAkiVersion(): string {
@@ -144,6 +146,21 @@ export class WebuiServer {
 				return this.serveProbeWorkers(res)
 			}
 
+			// Models served by the ailiance gateway (proxied to avoid browser CORS)
+			if (reqPath === "/api/models") {
+				return this.serveModels(res)
+			}
+
+			// LISAEL memories
+			if (reqPath === "/api/memories") {
+				return this.serveMemories(res)
+			}
+
+			// Agent tools exposed to the model
+			if (reqPath === "/api/tools") {
+				return this.serveTools(res)
+			}
+
 			// /spa → webview-ui SPA (standalone build)
 			if (reqPath === "/spa" || reqPath === "/spa/") {
 				if (!buildDir) {
@@ -230,6 +247,52 @@ export class WebuiServer {
 		)
 		res.writeHead(200, { "Content-Type": "application/json" })
 		res.end(JSON.stringify(results))
+	}
+
+	private async serveModels(res: http.ServerResponse): Promise<void> {
+		const base = (process.env.AILIANCE_GATEWAY || "https://gateway.ailiance.fr/v1").replace(/\/$/, "")
+		try {
+			const ctrl = new AbortController()
+			const timeout = setTimeout(() => ctrl.abort(), 5000)
+			const r = await fetch(`${base}/models`, {
+				headers: { Authorization: `Bearer ${process.env.AILIANCE_GATEWAY_API_KEY || "unused"}` },
+				signal: ctrl.signal,
+			})
+			clearTimeout(timeout)
+			const json = (await r.json()) as { data?: Array<{ id: string; owned_by?: string }> }
+			const models = (json.data || []).map((m) => ({ id: m.id, owned_by: m.owned_by }))
+			res.writeHead(200, { "Content-Type": "application/json" })
+			res.end(JSON.stringify(models))
+		} catch (err) {
+			res.writeHead(502, { "Content-Type": "application/json" })
+			res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }))
+		}
+	}
+
+	private async serveMemories(res: http.ServerResponse): Promise<void> {
+		try {
+			const memories = await listMemories()
+			const out = memories.map((m) => ({ name: m.name, description: m.description, scope: m.scope, type: m.type }))
+			res.writeHead(200, { "Content-Type": "application/json" })
+			res.end(JSON.stringify(out))
+		} catch (err) {
+			res.writeHead(500, { "Content-Type": "application/json" })
+			res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }))
+		}
+	}
+
+	private serveTools(res: http.ServerResponse): void {
+		try {
+			const tools = getExposedUnits().map((u) => {
+				const spec = u.spec as { name: string; description: string }
+				return { name: spec.name, description: spec.description }
+			})
+			res.writeHead(200, { "Content-Type": "application/json" })
+			res.end(JSON.stringify(tools))
+		} catch (err) {
+			res.writeHead(500, { "Content-Type": "application/json" })
+			res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }))
+		}
 	}
 
 	private async serveLanding(res: http.ServerResponse): Promise<void> {

@@ -3,27 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ailiance-agent dashboard</title>
+  <title>ISAAC dashboard</title>
   <style>
     body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 2rem; }
     h1 { color: #58a6ff; margin-bottom: 0.25rem; }
     .version { color: #8b949e; font-size: 0.9rem; }
+    .lisael { color: #8b949e; font-size: 0.8rem; margin-top: 0.1rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
     .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; }
     .card h2 { font-size: 1.1rem; margin-top: 0; color: #58a6ff; }
+    .card h2 .count { color: #8b949e; font-size: 0.8rem; font-weight: normal; }
     .status-up { color: #3fb950; }
     .status-down { color: #f85149; }
     .status-unknown { color: #d29922; }
-    .row { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #21262d; font-size: 0.9rem; }
+    .row { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px solid #21262d; font-size: 0.9rem; }
     .row:last-child { border-bottom: none; }
+    .row .desc { color: #8b949e; font-size: 0.8rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+    .list { max-height: 280px; overflow-y: auto; }
+    .muted { color: #8b949e; font-size: 0.85rem; }
     .footer { margin-top: 3rem; color: #8b949e; font-size: 0.85rem; text-align: center; }
     a { color: #58a6ff; }
     code { background: #21262d; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.85em; }
   </style>
 </head>
 <body>
-  <h1>ailiance-agent</h1>
-  <div class="version">EU-sovereign coding agent · v<span id="version">…</span></div>
+  <h1>ISAAC</h1>
+  <div class="version">EU-sovereign coding agent · powered by LISAEL · v<span id="version">…</span></div>
+  <div class="lisael">LISAEL — Liaison Inter-Systèmes Agentiques &amp; Environnement Linker</div>
 
   <div class="grid">
     <div class="card">
@@ -42,6 +48,21 @@
     </div>
 
     <div class="card">
+      <h2>Gateway models <span class="count" id="models-count"></span></h2>
+      <div class="list" id="models-list"><div class="muted">Loading…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Agent tools <span class="count" id="tools-count"></span></h2>
+      <div class="list" id="tools-list"><div class="muted">Loading…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>LISAEL · memories <span class="count" id="memories-count"></span></h2>
+      <div class="list" id="memories-list"><div class="muted">Loading…</div></div>
+    </div>
+
+    <div class="card">
       <h2>Quick links</h2>
       <div class="row"><a href="vscode://saoudrizwan.claude-dev/openInNewTab">Open in VS Code extension</a></div>
       <div class="row"><a href="https://github.com/ailiance/isaac-cli" target="_blank">GitHub repo</a></div>
@@ -52,7 +73,7 @@
   </div>
 
   <div class="footer">
-    For the full UI (chat, settings, monitoring), use VS Code with the ailiance-agent extension.
+    For the full UI (chat, settings, monitoring), use VS Code with the ISAAC extension.
   </div>
 
   <script>
@@ -75,11 +96,33 @@
     refreshAll()
     setInterval(refreshAll, 5000)
 
-    fetch("/api/version").then(function(r) { return r.text() }).then(function(v) {
+    fetch("/api/version").then((r) => r.text()).then((v) => {
       document.getElementById("version").textContent = v.trim() || "?"
-    }).catch(function() {
+    }).catch(() => {
       document.getElementById("version").textContent = "?"
     })
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]))
+    }
+    function renderList(listId, countId, rows) {
+      const list = document.getElementById(listId)
+      const count = document.getElementById(countId)
+      if (count) count.textContent = "(" + rows.length + ")"
+      if (!rows.length) { list.innerHTML = '<div class="muted">None</div>'; return }
+      list.innerHTML = rows.map((row) => '<div class="row"><span>' + escapeHtml(row.label) +
+          '</span><span class="desc" title="' + escapeHtml(row.desc) + '">' + escapeHtml(row.desc) + "</span></div>").join("")
+    }
+    function loadList(url, listId, countId, mapFn) {
+      fetch(url).then((r) => r.json()).then((data) => {
+        renderList(listId, countId, (Array.isArray(data) ? data : []).map(mapFn))
+      }).catch(() => {
+        document.getElementById(listId).innerHTML = '<div class="status-down">Unavailable</div>'
+      })
+    }
+    loadList("/api/models", "models-list", "models-count", (m) => ({ label: m.id, desc: m.owned_by || "" }))
+    loadList("/api/tools", "tools-list", "tools-count", (t) => ({ label: t.name, desc: t.description || "" }))
+    loadList("/api/memories", "memories-list", "memories-count", (m) => ({ label: m.name, desc: m.description || (m.scope || "") }))
   </script>
 </body>
 </html>
